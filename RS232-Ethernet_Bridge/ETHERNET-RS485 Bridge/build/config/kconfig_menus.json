@@ -14345,7 +14345,10 @@
                                 "help": "ESP32 only supports GPIO0 to input the RMII clock.",
                                 "id": "ETH_RMII_CLK_IN_GPIO",
                                 "name": "ETH_RMII_CLK_IN_GPIO",
-                                "range": null,
+                                "range": [
+                                    0,
+                                    0
+                                ],
                                 "title": null,
                                 "type": "int"
                             },
@@ -14365,10 +14368,7 @@
                                 "help": "Set the GPIO number to output RMII Clock.",
                                 "id": "ETH_RMII_CLK_OUT_GPIO",
                                 "name": "ETH_RMII_CLK_OUT_GPIO",
-                                "range": [
-                                    16,
-                                    17
-                                ],
+                                "range": null,
                                 "title": "RMII clock GPIO number",
                                 "type": "int"
                             },
@@ -14491,7 +14491,10 @@
                                 "help": "Number of DMA receive buffers, each buffer is 1600 bytes.",
                                 "id": "ETH_OPENETH_DMA_RX_BUFFER_NUM",
                                 "name": "ETH_OPENETH_DMA_RX_BUFFER_NUM",
-                                "range": null,
+                                "range": [
+                                    1,
+                                    64
+                                ],
                                 "title": "Number of Ethernet DMA Rx buffers",
                                 "type": "int"
                             },
@@ -14501,7 +14504,10 @@
                                 "help": "Number of DMA transmit buffers, each buffer is 1600 bytes.",
                                 "id": "ETH_OPENETH_DMA_TX_BUFFER_NUM",
                                 "name": "ETH_OPENETH_DMA_TX_BUFFER_NUM",
-                                "range": null,
+                                "range": [
+                                    1,
+                                    64
+                                ],
                                 "title": "Number of Ethernet DMA Tx buffers",
                                 "type": "int"
                             }
