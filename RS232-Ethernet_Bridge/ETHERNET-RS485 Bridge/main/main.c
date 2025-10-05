@@ -2,6 +2,7 @@
 
 
 
+
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -11,6 +12,9 @@
 #include "esp_eth.h"
 #include "esp_mac.h"
 #include "driver/gpio.h"
+
+#include "littlefs_manager.h"
+#include "rs485_master.h"
 
 static const char *TAG = "wt32_eth01";
 static esp_eth_handle_t eth_handle = NULL;
@@ -48,7 +52,7 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
 static void phy_hard_reset(void)
 {
     ESP_LOGI(TAG, "Performing HARD PHY reset...");
-    
+
     // Настройка GPIO16 как выхода
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << 16),
@@ -58,47 +62,19 @@ static void phy_hard_reset(void)
         .intr_type = GPIO_INTR_DISABLE
     };
     gpio_config(&io_conf);
-    
+
     // Последовательность reset для LAN8720:
-    // 1. Сначала устанавливаем HIGH (нормальное состояние)
     gpio_set_level(GPIO_NUM_16, 1);
     vTaskDelay(pdMS_TO_TICKS(10));
-    
-    // 2. ACTIVE LOW (сброс) - держим 100ms
     gpio_set_level(GPIO_NUM_16, 0);
-    ESP_LOGI(TAG, "PHY Reset: ACTIVE (LOW)");
     vTaskDelay(pdMS_TO_TICKS(100));
-    
-    // 3. RELEASE (HIGH) - начинается инициализация PHY
     gpio_set_level(GPIO_NUM_16, 1);
-    ESP_LOGI(TAG, "PHY Reset: RELEASED (HIGH)");
-    
-    // 4. Ждем стабилизации PHY (LAN8720 требует минимум 25ms после reset)
+   
+    //Ждем стабилизации PHY (LAN8720 требует минимум 25ms после reset)
     ESP_LOGI(TAG, "Waiting for PHY to stabilize...");
     vTaskDelay(pdMS_TO_TICKS(50));
 }
 
-// ======================= ПРОВЕРКА SMI =======================
-static void check_smi_activity(void)
-{
-    ESP_LOGI(TAG, "Checking SMI interface...");
-    
-    // Настраиваем MDC и MDIO как входы для проверки
-    gpio_config_t smi_conf = {
-        .pin_bit_mask = (1ULL << 23) | (1ULL << 18),
-        .mode = GPIO_MODE_INPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&smi_conf);
-    
-    vTaskDelay(pdMS_TO_TICKS(10));
-    
-    ESP_LOGI(TAG, "SMI Status - MDC: %d, MDIO: %d", 
-             gpio_get_level(GPIO_NUM_23), 
-             gpio_get_level(GPIO_NUM_18));
-}
 
 // ======================= Ethernet Init =======================
 static esp_err_t initialize_ethernet(void)
@@ -107,8 +83,7 @@ static esp_err_t initialize_ethernet(void)
 
     // Вариант 1: Пробуем адрес 1
     ESP_LOGI(TAG, "Trying PHY address 1...");
-    
-    // ВАЖНО: Выполняем РУЧНОЙ reset перед инициализацией драйвера
+
     phy_hard_reset();
 
     // --- Инициализация сетевого стека ---
@@ -125,11 +100,11 @@ static esp_err_t initialize_ethernet(void)
 
     // --- Конфигурация MAC для WT32-ETH01 ---
     eth_esp32_emac_config_t emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
-    
+
     // SMI GPIO
     emac_config.smi_gpio.mdc_num = 23;    // GPIO23
     emac_config.smi_gpio.mdio_num = 18;   // GPIO18
-    
+
     // Внешний clock на GPIO0
     emac_config.clock_config.rmii.clock_mode = EMAC_CLK_EXT_IN;
     emac_config.clock_config.rmii.clock_gpio = 0;
@@ -143,10 +118,10 @@ static esp_err_t initialize_ethernet(void)
 
     // --- Конфигурация PHY (адрес 1) ---
     eth_phy_config_t phy_config = ETH_PHY_DEFAULT_CONFIG();
-    
+
     // Пробуем адрес 1 (WT32-ETH01 обычно адрес 1)
     phy_config.phy_addr = 1;
-    
+
     // ВАЖНО: Указываем -1 чтобы драйвер НЕ управлял reset
     phy_config.reset_gpio_num = -1;       // Reset уже выполнен вручную
     phy_config.reset_timeout_ms = 2000;   // Увеличиваем таймаут
@@ -171,43 +146,11 @@ static esp_err_t initialize_ethernet(void)
     ESP_LOGI(TAG, "MAC and PHY instances created successfully");
 
     esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(mac, phy);
-    
+
     // Установка драйвера
     ESP_LOGI(TAG, "Installing Ethernet driver...");
     esp_err_t ret = esp_eth_driver_install(&eth_config, &eth_handle);
-    
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed with PHY address 1: %s", esp_err_to_name(ret));
-        
-        // Пробуем адрес 0
-        ESP_LOGI(TAG, "Trying PHY address 0...");
-        
-        // Удаляем старые драйверы
-       // if (mac) esp_eth_mac_del(mac);
-       // if (phy) esp_eth_phy_del(phy);
-        
-        // Перезапускаем reset
-        phy_hard_reset();
-        
-        // Создаем новые драйверы с адресом 0
-        phy_config.phy_addr = 0;
-        mac = esp_eth_mac_new_esp32(&emac_config, &mac_config);
-        phy = esp_eth_phy_new_lan87xx(&phy_config);
-        
-        if (!mac || !phy) {
-            ESP_LOGE(TAG, "Failed to recreate MAC/PHY");
-            return ESP_FAIL;
-        }
-        
-        esp_eth_config_t eth_config2 = ETH_DEFAULT_CONFIG(mac, phy);
-        ret = esp_eth_driver_install(&eth_config2, &eth_handle);
-        
-        if (ret != ESP_OK) {
-            ESP_LOGE(TAG, "Failed with PHY address 0 too: %s", esp_err_to_name(ret));
-            check_smi_activity();
-            return ret;
-        }
-    }
+
 
     ESP_LOGI(TAG, "Ethernet driver installed successfully!");
 
@@ -239,24 +182,53 @@ void app_main(void)
     if (initialize_ethernet() == ESP_OK) {
         ESP_LOGI(TAG, "Waiting for Ethernet connection and IP address...");
 
+        // Инициализируем LittleFS после успешной инициализации Ethernet
+        if (littlefs_init() == ESP_OK) {
+            ESP_LOGI(TAG, "LittleFS initialized, creating test file...");
+            littlefs_write_file("test.txt", "Hello from LittleFS!\n");
+            littlefs_list_files();
+            littlefs_read_file("test.txt");
+        } else {
+            ESP_LOGE(TAG, "LittleFS init failed");
+        }
+
         int counter = 0;
+
+
+        rs485_master_init(9600, 2048, 1024);
+
+////////////////////////////////////////////////////////////
+        rs485_slave_cfg_t s1 = {
+            .slave_addr = 1,
+            .reg_start = 0,
+            .reg_count = 6,         // читаем 6 регистров
+            .poll_interval_ms = 2000
+        };
+        int idx1 = rs485_master_add_slave(&s1);
+    
+        rs485_slave_cfg_t s2 = {
+            .slave_addr = 2,
+            .reg_start = 0,
+            .reg_count = 4,
+            .poll_interval_ms = 5000
+        };
+        int idx2 = rs485_master_add_slave(&s2);
+////////////////////////////////////////////////////
+
+/*
         while (1) {
             counter++;
             ESP_LOGI(TAG, "System running... (%d)", counter);
             vTaskDelay(5000 / portTICK_PERIOD_MS);
         }
+
+        */
     } else {
         ESP_LOGE(TAG, "Ethernet initialization failed!");
-        
-        ESP_LOGI(TAG, "Checking final SMI status...");
-        check_smi_activity();
-        
         ESP_LOGI(TAG, "Will retry initialization in 10 seconds...");
         vTaskDelay(pdMS_TO_TICKS(10000));
         esp_restart();
     }
 }
-
-
 
 
