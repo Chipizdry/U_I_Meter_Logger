@@ -3,3 +3,4 @@
 0x40000 ETHERNET-RS485.bin
 0x8000 partition_table/partition-table.bin
 0x30000 ota_data_initial.bin
+0x320000 storage.bin

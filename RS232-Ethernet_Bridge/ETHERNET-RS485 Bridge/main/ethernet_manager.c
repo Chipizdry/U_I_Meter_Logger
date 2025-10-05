@@ -11,6 +11,11 @@
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
+#include "lwip/icmp.h"
+#include "lwip/ip.h"
+#include "lwip/raw.h"
+#include "lwip/netif.h"
+#include "lwip/inet_chksum.h"
 
 static const char *TAG = "ethernet_manager";
 
@@ -165,3 +170,5 @@ esp_netif_ip_info_t ethernet_get_ip_info(void)
     }
     return info;
 }
+
+

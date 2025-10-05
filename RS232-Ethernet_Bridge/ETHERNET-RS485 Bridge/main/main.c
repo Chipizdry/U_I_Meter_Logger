@@ -16,6 +16,7 @@
 #include "ethernet_manager.h"
 #include "littlefs_manager.h"
 #include "rs485_master.h"
+#include "web_server.h"
 
 static const char *TAG = "main";
 
@@ -23,15 +24,15 @@ void app_main(void)
 {
   //  ESP_LOGI(TAG, "Starting WT32-ETH01 Bridge...");
 
-    vTaskDelay(pdMS_TO_TICKS(2000));
+  if (littlefs_init() == ESP_OK) {
+    littlefs_list_files();
+   }
+ 
 
     if (ethernet_init() == ESP_OK) {
         ESP_LOGI(TAG, "Ethernet initialized. Waiting for IP...");
 
-        if (littlefs_init() == ESP_OK) {
-            littlefs_write_file("test.txt", "Hello from LittleFS!\n");
-            littlefs_list_files();
-        }
+      
 
         rs485_master_init(9600, 2048, 1024);
 
@@ -42,6 +43,12 @@ void app_main(void)
         rs485_master_add_slave(&s2);
     } else {
         ESP_LOGE(TAG, "Ethernet initialization failed!");
+        vTaskDelay(pdMS_TO_TICKS(10000));
+        esp_restart();
+    }
+
+    if (web_server_start() != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start web server");
         vTaskDelay(pdMS_TO_TICKS(10000));
         esp_restart();
     }

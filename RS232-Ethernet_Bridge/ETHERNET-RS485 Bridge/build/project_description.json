@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "ETHERNET-RS485",
-    "project_version":    "bfe875d1-dirty",
+    "project_version":    "c975f4d7-dirty",
     "project_path":       "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge",
     "idf_path":           "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf",
     "build_dir":          "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build",
@@ -1190,12 +1190,12 @@
             "dir": "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main",
             "type": "LIBRARY",
             "lib": "__idf_main",
-            "reqs": [ "esp_netif", "esp_eth", "lwip", "driver", "esp_event", "esp_littlefs", "esp_system", "freertos" ],
+            "reqs": [ "esp_netif", "esp_eth", "lwip", "driver", "esp_event", "esp_littlefs", "esp_system", "freertos", "esp_http_server" ],
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/libmain.a",
-            "sources": [ "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/main.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/littlefs_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/rs485_master.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/ethernet_manager.c" ],
+            "sources": [ "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/main.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/littlefs_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/rs485_master.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/ethernet_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/web_server.c" ],
             "include_dirs": [ "." ]
         },
         "mbedtls": {
@@ -2814,7 +2814,7 @@
             "prefix": "idf",
             "dir": "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main",
             "lib": "__idf_main",
-            "reqs": [ "esp_netif", "esp_eth", "lwip", "driver", "esp_event", "esp_littlefs", "esp_system", "freertos" ],
+            "reqs": [ "esp_netif", "esp_eth", "lwip", "driver", "esp_event", "esp_littlefs", "esp_system", "freertos", "esp_http_server" ],
             "priv_reqs": [],
             "managed_reqs": [],
             "managed_priv_reqs": [],

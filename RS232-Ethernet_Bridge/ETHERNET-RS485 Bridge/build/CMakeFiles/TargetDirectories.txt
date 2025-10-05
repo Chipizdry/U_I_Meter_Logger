@@ -825,6 +825,9 @@ D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/wifi_provisioning/CMakeFiles/install/local.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/wifi_provisioning/CMakeFiles/install/strip.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/__idf_main.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/littlefs_storage_bin.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/storage-flash.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/encrypted-storage-flash.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/edit_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/rebuild_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/CMakeFiles/list_install_components.dir

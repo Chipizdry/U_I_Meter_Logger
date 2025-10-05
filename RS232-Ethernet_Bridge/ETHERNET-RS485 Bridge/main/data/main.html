@@ -1,0 +1,32 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>COR-Velo Control Panel</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Подключение к Wi-Fi</h2>
+        <form id="wifiForm">
+            <label>SSID: <input type="text" name="ssid" required></label><br>
+            <label>Password: <input type="password" name="password"></label><br>
+            <button type="submit">Подключиться</button>
+
+
+            <label>Режим Wi-Fi:
+                <select name="mode" required>
+                    <option value="STA">STA</option>
+                    <option value="AP">AP</option>
+                    <option value="STA_AP">STA+AP</option>
+                </select>
+            </label><br>
+            <button type="submit">Сохранить</button>
+        </form>
+    </div>
+    <script src="/script.js"></script>
+</body>
+</html>
