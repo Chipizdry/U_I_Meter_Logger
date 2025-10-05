@@ -120,7 +120,8 @@ static esp_err_t send_request_sync(int uart_num, const uint8_t *req, int req_len
     }
     // Ждем, пока FIFO и драйвер выдавят всё на шину
     uart_wait_tx_done(uart_num, pdMS_TO_TICKS(1000));
-
+    ESP_LOGI(TAG, "TX (%d bytes) → slave:", req_len);
+    ESP_LOG_BUFFER_HEX(TAG, req, req_len);
     // Подождать ещё 1 char time для границы
     esp_rom_delay_us(char_time_us);
 
@@ -177,7 +178,8 @@ static void poll_slave(slave_entry_t *s)
         heap_caps_free(resp);
         return;
     }
-
+    ESP_LOGI(TAG, "RX (%d bytes) ← slave %d:", r, s->cfg.slave_addr);
+    ESP_LOG_BUFFER_HEX(TAG, resp, r);
     // Проверка адреса и функция
     if (r < 5) {
         s->data.last_error = -6;
@@ -235,7 +237,7 @@ static void poll_slave(slave_entry_t *s)
 /* Polling task: идёт по всем слейвам и опрашивает те, у которых время пришло */
 static void poll_task(void *arg)
 {
-    const int uart_num = RS485_UART_NUM;
+   // const int uart_num = RS485_UART_NUM;
     while (s_running) {
         TickType_t now = xTaskGetTickCount();
         for (int i = 0; i < RS485_MAX_SLAVES; ++i) {

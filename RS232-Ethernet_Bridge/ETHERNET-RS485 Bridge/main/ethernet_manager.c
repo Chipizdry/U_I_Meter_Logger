@@ -9,6 +9,8 @@
 #include "esp_mac.h"
 #include "driver/gpio.h"
 #include "lwip/inet.h"
+#include "lwip/sockets.h"
+#include "lwip/inet.h"
 
 static const char *TAG = "ethernet_manager";
 

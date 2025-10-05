@@ -12,9 +12,9 @@
 #define ETHERNET_USE_DHCP   0
 
 // Статическая IP-конфигурация (если ETHERNET_USE_DHCP == 0)
-#define ETHERNET_STATIC_IP      "192.168.154.189"
+#define ETHERNET_STATIC_IP      "192.168.1.1"
 #define ETHERNET_NETMASK        "255.255.255.0"
-#define ETHERNET_GATEWAY        "192.168.154.1"
+#define ETHERNET_GATEWAY        "192.168.1.1"
 
 // ======================= API =======================
 

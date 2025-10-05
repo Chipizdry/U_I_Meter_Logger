@@ -1,6 +1,7 @@
 idf_component_register(SRCS "main.c"
                              "littlefs_manager.c"
                              "rs485_master.c"
+                             "ethernet_manager.c"
                     INCLUDE_DIRS "."
                     REQUIRES 
                         esp_netif 
