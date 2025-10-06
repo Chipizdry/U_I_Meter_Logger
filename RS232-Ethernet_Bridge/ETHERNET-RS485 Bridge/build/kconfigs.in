@@ -45,6 +45,7 @@ source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_psr
 source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_ringbuf/Kconfig"
 source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_system/Kconfig"
 source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_timer/Kconfig"
+source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_websocket_client/Kconfig"
 source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_wifi/Kconfig"
 source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/espcoredump/Kconfig"
 source "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/fatfs/Kconfig"

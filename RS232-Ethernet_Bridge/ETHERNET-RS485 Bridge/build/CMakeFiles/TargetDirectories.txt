@@ -731,6 +731,13 @@ D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_local_ctrl/CMakeFiles/install.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_local_ctrl/CMakeFiles/install/local.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_local_ctrl/CMakeFiles/install/strip.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/__idf_esp_websocket_client.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/edit_cache.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/rebuild_cache.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/list_install_components.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/install.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/install/local.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/CMakeFiles/install/strip.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/espcoredump/CMakeFiles/__idf_espcoredump.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/espcoredump/CMakeFiles/edit_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/espcoredump/CMakeFiles/rebuild_cache.dir

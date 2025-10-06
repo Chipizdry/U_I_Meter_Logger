@@ -9,7 +9,7 @@
 // ======================= Конфигурация Ethernet =======================
 
 // Использовать DHCP (1) или статический IP (0)
-#define ETHERNET_USE_DHCP   0
+#define ETHERNET_USE_DHCP   1
 
 // Статическая IP-конфигурация (если ETHERNET_USE_DHCP == 0)
 #define ETHERNET_STATIC_IP      "192.168.1.1"

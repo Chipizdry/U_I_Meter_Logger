@@ -474,6 +474,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_websocket_client/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/espcoredump/cmake_install.cmake")
 endif()
 

@@ -17,6 +17,7 @@
 #include "littlefs_manager.h"
 #include "rs485_master.h"
 #include "web_server.h"
+#include "websocket_client.h"
 
 static const char *TAG = "main";
 
@@ -52,4 +53,6 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(10000));
         esp_restart();
     }
+
+    websocket_client_start("ws://192.168.154.245:8000/api/ws/events"); 
 }

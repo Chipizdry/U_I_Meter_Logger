@@ -1029,6 +1029,13 @@ CONFIG_ESP_TIMER_IMPL_TG0_LAC=y
 # end of ESP Timer (High Resolution Timer)
 
 #
+# ESP WebSocket client
+#
+# CONFIG_ESP_WS_CLIENT_ENABLE_DYNAMIC_BUFFER is not set
+# CONFIG_ESP_WS_CLIENT_SEPARATE_TX_LOCK is not set
+# end of ESP WebSocket client
+
+#
 # Wi-Fi
 #
 CONFIG_ESP_WIFI_ENABLED=y

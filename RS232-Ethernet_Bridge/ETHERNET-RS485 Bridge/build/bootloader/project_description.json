@@ -1098,6 +1098,18 @@
             "managed_priv_reqs": [],
             "include_dirs": [ "include" ]
         },
+        "esp_websocket_client": {
+            "alias": "idf::esp_websocket_client",
+            "target": "___idf_esp_websocket_client",
+            "prefix": "idf",
+            "dir": "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_websocket_client",
+            "lib": "__idf_esp_websocket_client",
+            "reqs": [ "lwip", "esp-tls", "tcp_transport", "http_parser", "esp_event" ],
+            "priv_reqs": [ "esp_timer" ],
+            "managed_reqs": [],
+            "managed_priv_reqs": [],
+            "include_dirs": [ "include" ]
+        },
         "esp_wifi": {
             "alias": "idf::esp_wifi",
             "target": "___idf_esp_wifi",
