@@ -7,6 +7,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+// Встроенный сертификат (объявляется линковщиком)
+extern const uint8_t ca_cert_pem_start[] asm("_binary_ca_cert_pem_start");
+extern const uint8_t ca_cert_pem_end[]   asm("_binary_ca_cert_pem_end");
+
 static const char *TAG = "websocket_client";
 static esp_websocket_client_handle_t client = NULL;
 
@@ -16,26 +20,27 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
-            ESP_LOGI(TAG, "Connected to WebSocket server");
+            ESP_LOGI(TAG, "✅ Connected to WebSocket server");
             break;
 
         case WEBSOCKET_EVENT_DISCONNECTED:
-            ESP_LOGW(TAG, "Disconnected from WebSocket server");
+            ESP_LOGW(TAG, "⚠️  Disconnected from WebSocket server");
             break;
 
         case WEBSOCKET_EVENT_DATA:
-            ESP_LOGI(TAG, "Received message (%d bytes): %.*s", data->data_len, data->data_len, (char *)data->data_ptr);
-            // здесь можно парсить JSON, выполнять команды и т.д.
+            ESP_LOGI(TAG, "📩 Received message (%d bytes): %.*s", data->data_len, data->data_len, (char *)data->data_ptr);
             break;
 
         case WEBSOCKET_EVENT_ERROR:
-            ESP_LOGE(TAG, "WebSocket error occurred");
+            ESP_LOGE(TAG, "❌ WebSocket error occurred");
             break;
 
         default:
             break;
     }
 }
+
+
 
 esp_err_t websocket_client_start(const char *uri)
 {
@@ -46,7 +51,10 @@ esp_err_t websocket_client_start(const char *uri)
 
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
-        .reconnect_timeout_ms = 5000,  // авто-переподключение
+        .cert_pem = (const char *)ca_cert_pem_start,  // ✅ используем наш CA сертификат
+        .reconnect_timeout_ms = 5000,
+        .network_timeout_ms = 10000,
+        .skip_cert_common_name_check = true,           // если CN не совпадает с хостом
     };
 
     client = esp_websocket_client_init(&websocket_cfg);
@@ -62,9 +70,12 @@ esp_err_t websocket_client_start(const char *uri)
         return err;
     }
 
-    ESP_LOGI(TAG, "WebSocket client started: %s", uri);
+    ESP_LOGI(TAG, "🚀 WebSocket client started: %s", uri);
     return ESP_OK;
 }
+
+
+
 
 esp_err_t websocket_client_send(const char *message)
 {

@@ -54,5 +54,5 @@ void app_main(void)
         esp_restart();
     }
 
-    websocket_client_start("ws://192.168.154.245:8000/api/ws/events"); 
+    websocket_client_start("wss://dev-corid.cor-medical.ua/api/ws/events"); 
 }

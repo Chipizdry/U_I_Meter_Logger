@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "ETHERNET-RS485",
-    "project_version":    "93d4f1e7-dirty",
+    "project_version":    "ad68280f-dirty",
     "project_path":       "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge",
     "idf_path":           "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf",
     "build_dir":          "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build",
@@ -640,7 +640,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/esp_eth/libesp_eth.a",
-            "sources": [ "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/esp_eth.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_802_3.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/esp_eth_netif_glue.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/mac/esp_eth_mac_esp.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/mac/esp_eth_mac_esp_dma.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/mac/esp_eth_mac_esp_gpio.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_dp83848.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_ip101.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_ksz80xx.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_lan87xx.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_rtl8201.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/openeth/esp_eth_mac_openeth.c" ],
+            "sources": [ "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/esp_eth.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_802_3.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/esp_eth_netif_glue.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/mac/esp_eth_mac_esp.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/mac/esp_eth_mac_esp_dma.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/mac/esp_eth_mac_esp_gpio.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_dp83848.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_ip101.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_ksz80xx.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_lan87xx.c", "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf/components/esp_eth/src/phy/esp_eth_phy_rtl8201.c" ],
             "include_dirs": [ "include" ]
         },
         "esp_event": {
@@ -1210,7 +1210,7 @@
             "managed_reqs": [],
             "managed_priv_reqs": [],
             "file": "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/esp-idf/main/libmain.a",
-            "sources": [ "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/main.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/littlefs_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/rs485_master.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/ethernet_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/web_server.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/websocket_client.c" ],
+            "sources": [ "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/main.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/littlefs_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/rs485_master.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/ethernet_manager.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/web_server.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/main/websocket_client.c", "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build/ca_cert.pem.S" ],
             "include_dirs": [ "." ]
         },
         "mbedtls": {
