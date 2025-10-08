@@ -16,6 +16,13 @@ extern const uint8_t ca_cert_pem_end[]   asm("_binary_ca_cert_pem_end");
 static const char *TAG = "websocket_client";
 static esp_websocket_client_handle_t client = NULL;
 
+// переменные для авторизации
+static char ws_email[64];
+static char ws_password[64];
+
+
+
+
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
     esp_websocket_event_data_t *data = (esp_websocket_event_data_t *)event_data;
@@ -23,14 +30,26 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     switch (event_id) {
         case WEBSOCKET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "✅ Connected to WebSocket server");
+
+            // отправляем авторизационное сообщение
+            if (strlen(ws_email) > 0 && strlen(ws_password) > 0) {
+                char auth_msg[256];
+                snprintf(auth_msg, sizeof(auth_msg),
+                         "{\"email\": \"%s\", \"password\": \"%s\"}",
+                         ws_email, ws_password);
+
+                esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
+                ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
+            }
             break;
 
         case WEBSOCKET_EVENT_DISCONNECTED:
-            ESP_LOGW(TAG, "⚠️  Disconnected from WebSocket server");
+            ESP_LOGW(TAG, "⚠️ Disconnected from WebSocket server");
             break;
 
         case WEBSOCKET_EVENT_DATA:
-            ESP_LOGI(TAG, "📩 Received message (%d bytes): %.*s", data->data_len, data->data_len, (char *)data->data_ptr);
+            ESP_LOGI(TAG, "📩 Received message (%d bytes): %.*s",
+                     data->data_len, data->data_len, (char *)data->data_ptr);
             break;
 
         case WEBSOCKET_EVENT_ERROR:
@@ -42,21 +61,29 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     }
 }
 
-
-
-esp_err_t websocket_client_start(const char *uri)
+esp_err_t websocket_client_start(const char *session_id, const char *email, const char *password)
 {
     if (client) {
         ESP_LOGW(TAG, "WebSocket client already started");
         return ESP_OK;
     }
 
+    // сохраняем данные пользователя
+    strncpy(ws_email, email, sizeof(ws_email) - 1);
+    strncpy(ws_password, password, sizeof(ws_password) - 1);
+
+    // формируем URI с session_id
+    char uri[256];
+    snprintf(uri, sizeof(uri),
+             "wss://dev-corid.cor-medical.ua/api/modbus/ws/devices?session_id=%s",
+             session_id);
+
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
-        .cert_pem = (const char *)ca_cert_pem_start,  // ✅ используем наш CA сертификат
+        .cert_pem = (const char *)ca_cert_pem_start,
         .reconnect_timeout_ms = 5000,
         .network_timeout_ms = 10000,
-        .skip_cert_common_name_check = true,           // если CN не совпадает с хостом
+        .skip_cert_common_name_check = true,
     };
 
     client = esp_websocket_client_init(&websocket_cfg);
@@ -66,6 +93,7 @@ esp_err_t websocket_client_start(const char *uri)
     }
 
     esp_websocket_register_events(client, WEBSOCKET_EVENT_ANY, websocket_event_handler, NULL);
+
     esp_err_t err = esp_websocket_client_start(client);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));
@@ -73,10 +101,12 @@ esp_err_t websocket_client_start(const char *uri)
     }
 
     ESP_LOGI(TAG, "🚀 WebSocket client started: %s", uri);
+
     xTaskCreate(websocket_send_task, "websocket_send_task", 4096, NULL, 5, NULL);
+
+
     return ESP_OK;
 }
-
 
 
 

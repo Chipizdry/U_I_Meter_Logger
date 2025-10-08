@@ -55,6 +55,7 @@ void app_main(void)
     }
     initialize_sntp();
 
-    
-    websocket_client_start("wss://dev-corid.cor-medical.ua/api/ws/events"); 
+
+   
+    websocket_client_start("123", "chipizdry@gmail.com", "12345678");
 }
