@@ -23,7 +23,7 @@ static const char *TAG = "main";
 
 void app_main(void)
 {
-  //  ESP_LOGI(TAG, "Starting WT32-ETH01 Bridge...");
+    vTaskDelay(pdMS_TO_TICKS(1000));
 
   if (littlefs_init() == ESP_OK) {
     littlefs_list_files();
@@ -53,6 +53,8 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(10000));
         esp_restart();
     }
+    initialize_sntp();
 
+    
     websocket_client_start("wss://dev-corid.cor-medical.ua/api/ws/events"); 
 }

@@ -7,6 +7,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
+#include "esp_sntp.h"
+
 // Встроенный сертификат (объявляется линковщиком)
 extern const uint8_t ca_cert_pem_start[] asm("_binary_ca_cert_pem_start");
 extern const uint8_t ca_cert_pem_end[]   asm("_binary_ca_cert_pem_end");
@@ -71,6 +73,7 @@ esp_err_t websocket_client_start(const char *uri)
     }
 
     ESP_LOGI(TAG, "🚀 WebSocket client started: %s", uri);
+    xTaskCreate(websocket_send_task, "websocket_send_task", 4096, NULL, 5, NULL);
     return ESP_OK;
 }
 
@@ -100,5 +103,42 @@ void websocket_client_stop(void)
 }
 
 
+static void websocket_send_task(void *pvParameters)
+{
+    int counter = 0;
+    while (1)
+    {
+        if (esp_websocket_client_is_connected(client))
+        {
+            char message[128];
+            snprintf(message, sizeof(message), "{\"msg_id\": %d, \"text\": \"Hello from ESP32 #%d\"}", counter, counter);
+            esp_websocket_client_send_text(client, message, strlen(message), portMAX_DELAY);
+            ESP_LOGI(TAG, "📤 Sent test message: %s", message);
+            counter++;
+        }
+        else
+        {
+            ESP_LOGW(TAG, "⚠️ WebSocket not connected, skipping send");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(2000)); 
+    }
+}
 
 
+void initialize_sntp(void)
+{
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, "pool.ntp.org");
+    sntp_init();
+
+    // ждем, пока время установится
+    time_t now = 0;
+    struct tm timeinfo = { 0 };
+    while (timeinfo.tm_year < (2020 - 1900)) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        time(&now);
+        localtime_r(&now, &timeinfo);
+    }
+    ESP_LOGI("TIME", "✅ System time set to: %s", asctime(&timeinfo));
+}

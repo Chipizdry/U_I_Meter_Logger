@@ -3,9 +3,10 @@
   "idf.espIdfPathWin": "d:\\Espressif\\frameworks\\esp-idf-v5.3.1\\v5.3.1\\esp-idf",
   "idf.pythonInstallPath": "C:\\Users\\chipi\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
   "idf.openOcdConfigs": [
-    "board/esp32-wrover-kit-3.3v.cfg"
+    "interface/ftdi/esp32_devkitj_v1.cfg",
+    "target/esp32.cfg"
   ],
-  "idf.portWin": "COM4",
+  "idf.portWin": "COM3",
   "idf.toolsPathWin": "C:\\Users\\chipi\\.espressif",
   "idf.customExtraVars": {
     "OPENOCD_SCRIPTS": "C:\\Users\\chipi\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
@@ -14,7 +15,7 @@
     "IDF_TARGET": "esp32"
   },
   "idf.flashType": "UART",
-  "idf.monitorPort": "COM6",
+  "idf.monitorPort": "COM4",
   "files.associations": {
     "websocket_client.h": "c"
   }

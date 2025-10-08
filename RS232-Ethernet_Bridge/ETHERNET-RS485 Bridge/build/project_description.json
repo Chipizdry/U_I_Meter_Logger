@@ -1,7 +1,7 @@
 {
     "version":            "1.1",
     "project_name":       "ETHERNET-RS485",
-    "project_version":    "ad68280f-dirty",
+    "project_version":    "f544bf31-dirty",
     "project_path":       "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge",
     "idf_path":           "D:/Espressif/frameworks/esp-idf-v5.3.1/v5.3.1/esp-idf",
     "build_dir":          "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build",

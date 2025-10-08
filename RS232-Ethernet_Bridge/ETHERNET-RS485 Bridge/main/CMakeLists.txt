@@ -20,7 +20,7 @@ idf_component_register(
         freertos
         esp_http_server
         esp_websocket_client
-    EMBED_TXTFILES "certs/ca_cert.pem"
+    EMBED_TXTFILES "ca_cert.pem"
 )
 
 littlefs_create_partition_image(storage ${CMAKE_CURRENT_SOURCE_DIR}/data FLASH_IN_PROJECT)
