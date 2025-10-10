@@ -15,7 +15,7 @@
     "IDF_TARGET": "esp32"
   },
   "idf.flashType": "UART",
-  "idf.monitorPort": "COM4",
+  "idf.monitorPort": "COM3",
   "files.associations": {
     "websocket_client.h": "c"
   }

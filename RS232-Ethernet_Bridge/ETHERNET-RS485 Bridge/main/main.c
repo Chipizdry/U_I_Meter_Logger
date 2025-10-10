@@ -37,7 +37,7 @@ void app_main(void)
 
         rs485_master_init(9600, 2048, 1024);
 
-        rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 16, .poll_interval_ms = 500 };
+        rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 10, .poll_interval_ms = 500 };
         rs485_master_add_slave(&s1);
 
        // rs485_slave_cfg_t s2 = { .slave_addr = 2, .reg_start = 0, .reg_count = 4, .poll_interval_ms = 5000 };

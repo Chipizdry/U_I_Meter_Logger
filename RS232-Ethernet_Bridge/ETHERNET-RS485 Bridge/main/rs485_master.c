@@ -3,6 +3,9 @@
 
 
 
+
+
+
 #include "rs485_master.h"
 #include <string.h>
 #include <stdlib.h>
@@ -13,7 +16,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/semphr.h"
-#include "esp_rom_sys.h" // esp_rom_delay_us
+#include "esp_rom_sys.h" 
+#include "esp_timer.h"
 
 static const char *TAG = "rs485_master";
 
@@ -50,6 +54,17 @@ static uint16_t modbus_crc16(const uint8_t *buf, size_t len)
     }
     return crc;
 }
+
+static void de_off_timer_cb(void *arg)
+{
+    // просто опускаем DE
+    rs485_set_de(0);
+    ESP_LOGD(TAG, "DE → 0 (timer expired)");
+}
+
+
+
+
 
 /* Управление DE (direction) */
 static inline void rs485_set_de(int level)
@@ -102,31 +117,43 @@ static int read_response_sync(int uart_num, uint8_t *buf, int expected_len, int 
 }
 
 /* Отправка запроса: берём uart_mutex чтобы избежать конкуренции, ставим DE=1, пишем, ждем TX done, даём DE=0 */
-static esp_err_t send_request_sync(int uart_num, const uint8_t *req, int req_len, uint32_t char_time_us)
+static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_len, uint32_t char_time_us)
 {
     if (xSemaphoreTake(s_uart_mutex, pdMS_TO_TICKS(200)) != pdTRUE) {
         ESP_LOGW(TAG, "UART busy");
         return ESP_ERR_TIMEOUT;
     }
 
-    rs485_set_de(1);
-    // Небольшая пауза для драйвера перед отправкой — 1 char time
-    esp_rom_delay_us(char_time_us);
+    // Время передачи сообщения в микросекундах:
+    // (длина пакета в байтах) * (10 бит/байт) * (1e6 / baud)
+    // char_time_us уже = 10 * 1e6 / baud
+    uint64_t tx_time_us = (uint64_t)req_len * (uint64_t)char_time_us;
 
+    // Добавим запас в 3 символа:
+    uint64_t total_time_us = tx_time_us + (uint64_t)(3 * char_time_us);
+
+    // Поднимаем DE
+    rs485_set_de(1);
+
+    // Передача пакета (не ждём завершения)
     int written = uart_write_bytes(uart_num, (const char *)req, req_len);
     if (written != req_len) {
-        ESP_LOGE(TAG, "uart_write_bytes wrote %d/%d", written, req_len);
-        // всё равно ждать завершения
+        ESP_LOGW(TAG, "uart_write_bytes wrote %d/%d", written, req_len);
     }
-    // Ждем, пока FIFO и драйвер выдавят всё на шину
-    uart_wait_tx_done(uart_num, pdMS_TO_TICKS(1000));
-    ESP_LOGI(TAG, "TX (%d bytes) → slave:", req_len);
-    ESP_LOG_BUFFER_HEX(TAG, req, req_len);
-    // Подождать ещё 1 char time для границы
-    esp_rom_delay_us(char_time_us);
 
-    // Снимаем DE только после завершения физической передачи
-    rs485_set_de(0);
+    // Запускаем одноразовый таймер, который опустит DE после total_time_us
+    const esp_timer_create_args_t targs = {
+        .callback = &de_off_timer_cb,
+        .arg = NULL,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "de_off_timer"
+    };
+    esp_timer_handle_t timer;
+    ESP_ERROR_CHECK(esp_timer_create(&targs, &timer));
+    ESP_ERROR_CHECK(esp_timer_start_once(timer, total_time_us));
+
+    ESP_LOGI(TAG, "TX started (%d bytes), DE→1 for ~%" PRIu64 " us", req_len, total_time_us);
+    ESP_LOG_BUFFER_HEX(TAG, req, req_len);
 
     xSemaphoreGive(s_uart_mutex);
     return ESP_OK;
@@ -145,7 +172,7 @@ static void poll_slave(slave_entry_t *s)
 
     uint32_t char_time_us = char_time_us_from_baud(s_baud);
     // Отправляем запрос синхронно (DE управление внутри)
-    esp_err_t er = send_request_sync(uart_num, req, nreq, char_time_us);
+    esp_err_t er = send_request_async(uart_num, req, nreq, char_time_us);
     if (er != ESP_OK) {
         s->data.last_error = -3;
         return;
@@ -298,6 +325,10 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
         return r;
     }
 
+     // --- diagnostic info ---
+     ESP_LOGI(TAG, "uart_driver_install ok on uart %d", RS485_UART_NUM);
+     ESP_LOGI(TAG, "uart pins: TX=%d RX=%d DE=%d", RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
+
     s_data_mutex = xSemaphoreCreateMutex();
     s_uart_mutex = xSemaphoreCreateMutex();
     if (!s_data_mutex || !s_uart_mutex) {
@@ -410,4 +441,6 @@ void rs485_master_deinit(void)
     memset(s_slaves, 0, sizeof(s_slaves));
     s_slave_count = 0;
 }
+
+
 
