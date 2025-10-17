@@ -59,6 +59,10 @@ static esp_err_t file_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+
+
+
+
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
 {

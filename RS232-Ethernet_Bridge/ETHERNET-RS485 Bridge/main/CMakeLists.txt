@@ -8,6 +8,7 @@ idf_component_register(
         "ethernet_manager.c"
         "web_server.c"
         "websocket_client.c"
+        "nvs_credentials.c"
     INCLUDE_DIRS "."
     REQUIRES 
         esp_netif 
@@ -18,6 +19,7 @@ idf_component_register(
         esp_littlefs
         esp_system
         freertos
+        nvs_flash
         esp_http_server
         esp_websocket_client
     EMBED_TXTFILES "ca_cert.pem"

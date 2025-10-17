@@ -12,23 +12,67 @@
 #include "esp_eth.h"
 #include "esp_mac.h"
 #include "driver/gpio.h"
+#include "nvs_flash.h"
 
 #include "ethernet_manager.h"
 #include "littlefs_manager.h"
 #include "rs485_master.h"
 #include "web_server.h"
 #include "websocket_client.h"
+#include "nvs_credentials.h"
 
 static const char *TAG = "main";
+
+char login[64];
+char password[64];
 
 void app_main(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1000));
+    // --- Инициализация NVS ---
+esp_err_t ret = nvs_flash_init();
+if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+    ESP_LOGW(TAG, "NVS flash needs erase, erasing...");
+    // ЭРАС нужно делать только один раз при смене версии NVS, а не при каждом запуске
+    ret = nvs_flash_erase();
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to erase NVS flash: %s", esp_err_to_name(ret));
+    }
+    ret = nvs_flash_init();
+}
+ESP_ERROR_CHECK(ret);
 
-  if (littlefs_init() == ESP_OK) {
-    littlefs_list_files();
-   }
+// --- Инициализация собственного модуля NVS credentials ---
+ret = nvs_credentials_init();
+if (ret != ESP_OK) {
+    ESP_LOGE(TAG, "Failed to init NVS credentials module");
+}
+
+// --- Загрузка сохранённых данных ---
+ret = nvs_load_credentials(login, sizeof(login), password, sizeof(password));
+if (ret == ESP_OK) {
+    ESP_LOGI(TAG, "Loaded credentials: login=%s password=%s", login, password);
+} else if (ret == ESP_ERR_NVS_NOT_FOUND) {
+    ESP_LOGI(TAG, "No credentials found, saving default");
+    ret = nvs_save_credentials("chipizdry@gmail.com", "12345678");
+    if (ret == ESP_OK) {
+        ESP_LOGI(TAG, "Default credentials saved successfully");
+    } else {
+        ESP_LOGE(TAG, "Failed to save default credentials: %s", esp_err_to_name(ret));
+    }
+} else {
+    ESP_LOGE(TAG, "Error loading credentials: %s", esp_err_to_name(ret));
+}
+
+
+
+
+    if (littlefs_init() == ESP_OK) {
+        littlefs_list_files();
+    }
  
+  
+
 
     if (ethernet_init() == ESP_OK) {
         ESP_LOGI(TAG, "Ethernet initialized. Waiting for IP...");
