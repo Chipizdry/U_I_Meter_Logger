@@ -36,36 +36,46 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-    // === Сохранение Wi-Fi настроек ===
-    wifiForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
+   // === Сохранение Wi-Fi настроек ===
+wifiForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
 
-        const formData = new FormData(wifiForm);
-        const params = new URLSearchParams(formData);
-        const token = sessionStorage.getItem('auth_token');
+    const formData = new FormData(wifiForm);
+    const params = new URLSearchParams(formData);
+    const token = sessionStorage.getItem('auth_token');
 
-        console.log("Отправляем токен:", token);
+    console.log("Отправляем токен:", token);
 
-        try {
-            const response = await fetch("/save_settings", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: params.toString()
-            });
+    try {
+        const response = await fetch("/save_settings", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": `Bearer ${token}`
+            },
+            body: params.toString()
+        });
 
-            const text = await response.text();
-            if (response.ok) {
-                alert(text);
-            } else {
-                alert(`Ошибка: ${text}`);
-            }
-        } catch (err) {
-            alert(`Ошибка соединения: ${err}`);
+        // Если сервер вернул 401 — токен недействителен
+        if (response.status === 401) {
+            alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
+            sessionStorage.removeItem("auth_token");
+            showLogin();
+            return;
         }
-    });
+
+        const text = await response.text();
+
+        if (response.ok) {
+            alert(text);
+        } else {
+            alert(`Ошибка: ${text}`);
+        }
+    } catch (err) {
+        alert(`Ошибка соединения: ${err}`);
+    }
+});
+
 
     // === Выход из аккаунта ===
     logoutBtn.addEventListener("click", () => {
