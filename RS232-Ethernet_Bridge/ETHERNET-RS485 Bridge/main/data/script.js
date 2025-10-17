@@ -1,66 +1,89 @@
 
+
 document.addEventListener("DOMContentLoaded", () => {
-
-    // === Обработчик логина ===
     const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
+    const wifiForm = document.getElementById("wifiForm");
+    const mainScreen = document.getElementById("mainScreen");
+    const logoutBtn = document.getElementById("logoutBtn");
 
-            const data = new URLSearchParams(new FormData(e.target));
-            const res = await fetch('/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: data.toString()
+    // Проверяем, есть ли уже токен
+    const token = sessionStorage.getItem('auth_token');
+    if (token) {
+        showMainScreen();
+    } else {
+        showLogin();
+    }
+
+    // === Авторизация ===
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = new URLSearchParams(new FormData(e.target));
+        const res = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: data.toString()
+        });
+
+        if (res.ok) {
+            const json = await res.json();
+            sessionStorage.setItem('auth_token', json.token);
+            alert('Авторизация успешна ✅');
+            showMainScreen();
+        } else {
+            const text = await res.text();
+            alert('Ошибка входа 💩: ' + text);
+        }
+    });
+
+    // === Сохранение Wi-Fi настроек ===
+    wifiForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(wifiForm);
+        const params = new URLSearchParams(formData);
+        const token = sessionStorage.getItem('auth_token');
+
+        console.log("Отправляем токен:", token);
+
+        try {
+            const response = await fetch("/save_settings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: params.toString()
             });
 
-            if (res.ok) {
-                const json = await res.json();
-                sessionStorage.setItem('auth_token', json.token);
-                alert('Авторизация успешна ✅');
-                console.log('Токен сохранён:', json.token);
+            const text = await response.text();
+            if (response.ok) {
+                alert(text);
             } else {
-                const text = await res.text();
-                alert('Ошибка входа 💩: ' + text);
+                alert(`Ошибка: ${text}`);
             }
-        });
+        } catch (err) {
+            alert(`Ошибка соединения: ${err}`);
+        }
+    });
+
+    // === Выход из аккаунта ===
+    logoutBtn.addEventListener("click", () => {
+        sessionStorage.removeItem("auth_token");
+        alert("Вы вышли из системы 👋");
+        showLogin();
+    });
+
+    // === Функции отображения ===
+    function showMainScreen() {
+        loginForm.classList.add("hidden");
+        mainScreen.classList.remove("hidden");
     }
 
-    // === Обработчик Wi-Fi настроек ===
-    const wifiForm = document.getElementById("wifiForm");
-    if (wifiForm) {
-        wifiForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-
-            const formData = new FormData(wifiForm);
-            const params = new URLSearchParams();
-            for (const [key, value] of formData.entries()) {
-                params.append(key, value);
-            }
-
-            const token = sessionStorage.getItem('auth_token');
-            console.log("Отправляем токен:", token);
-
-            try {
-                const response = await fetch("/save_settings", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/x-www-form-urlencoded",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: params.toString()
-                });
-
-                if (response.ok) {
-                    const text = await response.text();
-                    alert(text);
-                } else {
-                    const text = await response.text();
-                    alert(`Ошибка: ${text}`);
-                }
-            } catch (err) {
-                alert(`Ошибка соединения: ${err}`);
-            }
-        });
+    function showLogin() {
+        loginForm.classList.remove("hidden");
+        mainScreen.classList.add("hidden");
     }
 });
+
+
