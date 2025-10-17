@@ -28,7 +28,26 @@ static void generate_token(char *buf, size_t len)
     buf[len - 1] = '\0';
 }
 
+static bool check_token(httpd_req_t *req)
+{
+    ESP_LOGI(TAG, "Checking token...");
+    size_t buf_len = httpd_req_get_hdr_value_len(req, "Authorization") + 1;
+    ESP_LOGI(TAG, "Header len: %d", buf_len);
+    if (buf_len <= 1) return false;
 
+    char *buf = malloc(buf_len);
+    httpd_req_get_hdr_value_str(req, "Authorization", buf, buf_len);
+    ESP_LOGI(TAG, "Header content: %s", buf);
+    bool ok = false;
+    if (strncmp(buf, "Bearer ", 7) == 0) {
+        const char *client_token = buf + 7;
+        if (strcmp(client_token, auth_token) == 0) {
+            ok = true;
+        }
+    }
+    free(buf);
+    return ok;
+}
 
 // === POST /login ===
 static esp_err_t login_post_handler(httpd_req_t *req)
@@ -131,6 +150,12 @@ static esp_err_t file_get_handler(httpd_req_t *req)
 // POST /save_settings
 static esp_err_t save_settings_post_handler(httpd_req_t *req)
 {
+
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
     char buf[256];
     int ret, len = req->content_len;
     if (len >= sizeof(buf)) {
