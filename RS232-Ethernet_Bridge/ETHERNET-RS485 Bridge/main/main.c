@@ -32,11 +32,11 @@ void app_main(void)
     // --- Инициализация NVS ---
 esp_err_t ret = nvs_flash_init();
 if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_LOGW(TAG, "NVS flash needs erase, erasing...");
+    ESP_LOGW(TAG, "NVS flash needs erase, erasing...💩");
     // ЭРАС нужно делать только один раз при смене версии NVS, а не при каждом запуске
     ret = nvs_flash_erase();
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to erase NVS flash: %s", esp_err_to_name(ret));
+        ESP_LOGE(TAG, "Failed to erase NVS flash 💩😢: %s", esp_err_to_name(ret));
     }
     ret = nvs_flash_init();
 }
@@ -61,7 +61,7 @@ if (ret == ESP_OK) {
         ESP_LOGE(TAG, "Failed to save default credentials: %s", esp_err_to_name(ret));
     }
 } else {
-    ESP_LOGE(TAG, "Error loading credentials: %s", esp_err_to_name(ret));
+    ESP_LOGE(TAG, "Error loading credentials 💩😢: %s", esp_err_to_name(ret));
 }
 
 

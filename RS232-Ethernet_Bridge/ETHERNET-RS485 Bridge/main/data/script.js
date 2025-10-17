@@ -1,43 +1,57 @@
 
 
+document.addEventListener("DOMContentLoaded", () => {
+    const form = document.getElementById("wifiForm");
 
+    form.addEventListener("submit", async (e) => {
+        e.preventDefault(); // отключаем стандартное поведение формы
 
-document.getElementById("wifiForm").addEventListener("submit", function(e) {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    fetch("/set_wifi", {
-        method: "POST",
-        body: JSON.stringify({
-            ssid: formData.get("ssid"),
-            password: formData.get("password")
-        }),
-        headers: {
-            "Content-Type": "application/json"
+        const formData = new FormData(form);
+        const params = new URLSearchParams();
+
+        for (const [key, value] of formData.entries()) {
+            params.append(key, value);
         }
-    })
-    .then(r => r.text())
-    .then(alert)
-    .catch(console.error);
+
+        try {
+            const response = await fetch("/save_settings", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/x-www-form-urlencoded"
+                },
+                body: params.toString()
+            });
+
+            if (response.ok) {
+                const text = await response.text();
+                alert(text); // показываем сообщение об успехе
+            } else {
+                const text = await response.text();
+                alert(`Ошибка: ${text}`);
+            }
+        } catch (err) {
+            alert(`Ошибка соединения: ${err}`);
+        }
+    });
 });
 
 
-
-
-document.getElementById('wifiForm').addEventListener('submit', async (e) => {
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    const formData = new FormData(e.target);
-    const data = {
-        ssid: formData.get('ssid'),
-        password: formData.get('password'),
-        mode: formData.get('mode')
-    };
-
-    await fetch('/set_wifi', {
+    const data = new URLSearchParams(new FormData(e.target));
+    const res = await fetch('/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: data.toString()
     });
 
-    alert("Настройки отправлены на ESP32");
+    if (res.ok) {
+        const json = await res.json();
+        localStorage.setItem('auth_token', json.token);
+        alert('Авторизация успешна ✅');
+    } else {
+        const text = await res.text();
+        alert('Ошибка входа 💩: ' + text);
+    }
 });

@@ -14,6 +14,7 @@ idf_component_register(
         esp_netif 
         esp_eth 
         lwip 
+        json
         driver 
         esp_event 
         esp_littlefs
