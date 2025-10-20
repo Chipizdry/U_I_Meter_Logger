@@ -8,6 +8,7 @@
 #include "esp_vfs.h"
 #include "esp_littlefs.h"
 #include "nvs_credentials.h"
+#include "nvs_settings.h"
 #include "esp_random.h"
 #include "cJSON.h" 
 #include <string.h>
@@ -147,62 +148,71 @@ static esp_err_t file_get_handler(httpd_req_t *req)
 
 
 
-// POST /save_settings
+/// POST /save_settings
 static esp_err_t save_settings_post_handler(httpd_req_t *req)
 {
-
     if (!check_token(req)) {
         httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
         return ESP_FAIL;
     }
 
     char buf[256];
-    int ret, len = req->content_len;
+    int len = req->content_len;
     if (len >= sizeof(buf)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
         return ESP_FAIL;
     }
 
-    ret = httpd_req_recv(req, buf, len);
+    int ret = httpd_req_recv(req, buf, len);
     if (ret <= 0) {
         httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
         return ESP_FAIL;
     }
     buf[len] = '\0'; // terminate string
 
-    // Простейший парсинг form-urlencoded: login=xxx&password=yyy&ssid=zzz&mode=STA
-    char *login = strstr(buf, "login=");
-    char *password = strstr(buf, "password=");
-    char *ssid = strstr(buf, "ssid=");
-    char *mode = strstr(buf, "mode=");
-    
-    if (!login || !password) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Missing login or password");
-        return ESP_FAIL;
-    }
-
-    // выделяем значения
+    // --- Простая form-urlencoded разборка ---
     char login_val[64] = {0};
     char password_val[64] = {0};
     char ssid_val[64] = {0};
     char mode_val[16] = {0};
 
-    sscanf(login, "login=%63[^&]", login_val);
-    sscanf(password, "password=%63[^&]", password_val);
-    if (ssid) sscanf(ssid, "ssid=%63[^&]", ssid_val);
-    if (mode) sscanf(mode, "mode=%15[^&]", mode_val);
+    sscanf(strstr(buf, "login=") ?: "", "login=%63[^&]", login_val);
+    sscanf(strstr(buf, "password=") ?: "", "password=%63[^&]", password_val);
+    sscanf(strstr(buf, "ssid=") ?: "", "ssid=%63[^&]", ssid_val);
+    sscanf(strstr(buf, "mode=") ?: "", "mode=%15[^&]", mode_val);
 
-    // Сохраняем логин/пароль через NVS
-    esp_err_t err = nvs_save_credentials(login_val, password_val);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to save credentials: %s", esp_err_to_name(err));
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save credentials");
-        return ESP_FAIL;
+    esp_err_t err = ESP_OK;
+
+    // --- Сохраняем User Settings ---
+    if (strlen(login_val) > 0 || strlen(password_val) > 0) {
+        user_settings_t user = {0};
+        nvs_load_user_settings(&user); // читаем старые данные
+        if (strlen(login_val) > 0) strncpy(user.login, login_val, sizeof(user.login) - 1);
+        if (strlen(password_val) > 0) strncpy(user.password, password_val, sizeof(user.password) - 1);
+        err = nvs_save_user_settings(&user);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to save user settings: %s", esp_err_to_name(err));
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save user settings");
+            return ESP_FAIL;
+        }
+        ESP_LOGI(TAG, "User settings saved: %s / %s", user.login, user.password);
     }
 
-    // TODO: тут можно сохранять ssid_val и mode_val в отдельный NVS модуль, например nvs_network
+    // --- Сохраняем Network Settings ---
+    if (strlen(ssid_val) > 0 || strlen(mode_val) > 0) {
+        network_settings_t net = {0};
+        nvs_load_network_settings(&net);
+        if (strlen(ssid_val) > 0) strncpy(net.ssid, ssid_val, sizeof(net.ssid) - 1);
+        if (strlen(mode_val) > 0) strncpy(net.mode, mode_val, sizeof(net.mode) - 1);
+        err = nvs_save_network_settings(&net);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to save network settings: %s", esp_err_to_name(err));
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save network settings");
+            return ESP_FAIL;
+        }
+        ESP_LOGI(TAG, "Network settings saved: ssid=%s mode=%s", net.ssid, net.mode);
+    }
 
-    ESP_LOGI(TAG, "Saved credentials: %s / %s", login_val, password_val);
     httpd_resp_sendstr(req, "Settings saved successfully 💾");
     return ESP_OK;
 }

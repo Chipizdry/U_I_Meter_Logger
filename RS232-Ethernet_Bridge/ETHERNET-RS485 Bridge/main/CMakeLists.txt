@@ -9,6 +9,7 @@ idf_component_register(
         "web_server.c"
         "websocket_client.c"
         "nvs_credentials.c"
+        "nvs_settings.c"
     INCLUDE_DIRS "."
     REQUIRES 
         esp_netif 
