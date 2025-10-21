@@ -26,16 +26,18 @@ static const char *TAG = "main";
 char login[64];
 char password[64];
 
+user_settings_t user;
+network_settings_t net;
+system_settings_t sys;
+
+
 void app_main(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
     ESP_ERROR_CHECK(nvs_settings_init());
 
-    user_settings_t user;
-    network_settings_t net;
-    system_settings_t sys;
-
+   
     nvs_load_user_settings(&user);
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);

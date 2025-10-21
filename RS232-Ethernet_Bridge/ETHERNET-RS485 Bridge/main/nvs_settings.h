@@ -14,6 +14,7 @@ extern "C" {
 #define NETWORK_SETTINGS_VERSION  2
 #define SYSTEM_SETTINGS_VERSION   1
 
+
 typedef struct {
     uint8_t version;
     char login[64];
@@ -39,6 +40,12 @@ typedef struct {
     int log_level;
     bool debug_mode;
 } system_settings_t;
+
+
+
+extern user_settings_t user;
+extern network_settings_t net;
+extern system_settings_t sys;
 
 // Инициализация NVS
 esp_err_t nvs_settings_init(void);
