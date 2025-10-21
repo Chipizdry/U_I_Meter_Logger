@@ -20,6 +20,42 @@ esp_err_t nvs_settings_init(void) {
     return ret;
 }
 
+
+// =======================================================
+// ========== Настройки по умолчанию ======================
+// =======================================================
+
+static void set_default_user_settings(user_settings_t *s) {
+    memset(s, 0, sizeof(*s));
+    s->version = USER_SETTINGS_VERSION;
+    strcpy(s->login, "admin");
+    strcpy(s->password, "admin");
+    strcpy(s->language, "RU");
+}
+
+static void set_default_network_settings(network_settings_t *s) {
+    memset(s, 0, sizeof(*s));
+    s->version = NETWORK_SETTINGS_VERSION;
+    strcpy(s->ssid, "COR-Admin");
+    strcpy(s->mode, "AP");
+    strcpy(s->ip, "192.168.1.100");
+    strcpy(s->gateway, "192.168.1.1");
+    strcpy(s->dns, "8.8.8.8");
+    s->dhcp_enabled = true;
+}
+
+static void set_default_system_settings(system_settings_t *s) {
+    memset(s, 0, sizeof(*s));
+    s->version = SYSTEM_SETTINGS_VERSION;
+    s->refresh_interval = 1000;
+    s->log_level = 2;
+    s->debug_mode = false;
+}
+
+
+
+
+
 // ========= универсальная функция =========
 static esp_err_t nvs_save_blob(const char *key, const void *data, size_t size) {
     nvs_handle_t handle;
@@ -63,17 +99,22 @@ esp_err_t nvs_save_user_settings(const user_settings_t *settings) {
 esp_err_t nvs_load_user_settings(user_settings_t *settings) {
     esp_err_t err = nvs_load_blob("user", settings, sizeof(user_settings_t));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW(TAG, "No user settings found, creating default");
-        memset(settings, 0, sizeof(*settings));
-        settings->version = USER_SETTINGS_VERSION;
-        strcpy(settings->login, "user@example.com");
-        strcpy(settings->password, "12345678");
-        strcpy(settings->language, "en");
+        ESP_LOGW(TAG, "No user settings found, loading defaults");
+        set_default_user_settings(settings);
+        nvs_save_user_settings(settings);
+        return ESP_OK;
+    }
+    if (settings->version != USER_SETTINGS_VERSION) {
+        ESP_LOGW(TAG, "User settings version mismatch, resetting to defaults");
+        set_default_user_settings(settings);
         nvs_save_user_settings(settings);
         return ESP_OK;
     }
     return err;
 }
+
+
+
 
 esp_err_t nvs_clear_user_settings(void) {
     return nvs_clear_key("user");
@@ -88,13 +129,14 @@ esp_err_t nvs_save_network_settings(const network_settings_t *settings) {
 esp_err_t nvs_load_network_settings(network_settings_t *settings) {
     esp_err_t err = nvs_load_blob("network", settings, sizeof(network_settings_t));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW(TAG, "No network settings found, creating default");
-        memset(settings, 0, sizeof(*settings));
-        settings->version = NETWORK_SETTINGS_VERSION;
-        strcpy(settings->ip, "192.168.1.100");
-        strcpy(settings->gateway, "192.168.1.1");
-        strcpy(settings->dns, "8.8.8.8");
-        settings->dhcp_enabled = true;
+        ESP_LOGW(TAG, "No network settings found, loading defaults");
+        set_default_network_settings(settings);
+        nvs_save_network_settings(settings);
+        return ESP_OK;
+    }
+    if (settings->version != NETWORK_SETTINGS_VERSION) {
+        ESP_LOGW(TAG, "Network settings version mismatch, resetting to defaults");
+        set_default_network_settings(settings);
         nvs_save_network_settings(settings);
         return ESP_OK;
     }
@@ -114,12 +156,14 @@ esp_err_t nvs_save_system_settings(const system_settings_t *settings) {
 esp_err_t nvs_load_system_settings(system_settings_t *settings) {
     esp_err_t err = nvs_load_blob("system", settings, sizeof(system_settings_t));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
-        ESP_LOGW(TAG, "No system settings found, creating default");
-        memset(settings, 0, sizeof(*settings));
-        settings->version = SYSTEM_SETTINGS_VERSION;
-        settings->refresh_interval = 1000;
-        settings->log_level = 2;
-        settings->debug_mode = false;
+        ESP_LOGW(TAG, "No system settings found, loading defaults");
+        set_default_system_settings(settings);
+        nvs_save_system_settings(settings);
+        return ESP_OK;
+    }
+    if (settings->version != SYSTEM_SETTINGS_VERSION) {
+        ESP_LOGW(TAG, "System settings version mismatch, resetting to defaults");
+        set_default_system_settings(settings);
         nvs_save_system_settings(settings);
         return ESP_OK;
     }
@@ -129,5 +173,3 @@ esp_err_t nvs_load_system_settings(system_settings_t *settings) {
 esp_err_t nvs_clear_system_settings(void) {
     return nvs_clear_key("system");
 }
-
-

@@ -20,7 +20,6 @@
 #include "rs485_master.h"
 #include "web_server.h"
 #include "websocket_client.h"
-#include "nvs_credentials.h"
 #include "nvs_settings.h"
 static const char *TAG = "main";
 
@@ -46,44 +45,6 @@ void app_main(void)
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d",
              sys.refresh_interval, sys.log_level, sys.debug_mode);
 
-/*
-    // --- Инициализация NVS ---
-esp_err_t ret = nvs_flash_init();
-if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-    ESP_LOGW(TAG, "NVS flash needs erase, erasing...💩");
-    // ЭРАС нужно делать только один раз при смене версии NVS, а не при каждом запуске
-    ret = nvs_flash_erase();
-    if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to erase NVS flash 💩😢: %s", esp_err_to_name(ret));
-    }
-    ret = nvs_flash_init();
-}
-ESP_ERROR_CHECK(ret);
-
-// --- Инициализация собственного модуля NVS credentials ---
-ret = nvs_credentials_init();
-if (ret != ESP_OK) {
-    ESP_LOGE(TAG, "Failed to init NVS credentials module");
-}
-
-// --- Загрузка сохранённых данных ---
-ret = nvs_load_credentials(login, sizeof(login), password, sizeof(password));
-if (ret == ESP_OK) {
-    ESP_LOGI(TAG, "Loaded credentials: login=%s password=%s", login, password);
-} else if (ret == ESP_ERR_NVS_NOT_FOUND) {
-    ESP_LOGI(TAG, "No credentials found, saving default");
-    ret = nvs_save_credentials("chipizdry@gmail.com", "12345678");
-    if (ret == ESP_OK) {
-        ESP_LOGI(TAG, "Default credentials saved successfully");
-    } else {
-        ESP_LOGE(TAG, "Failed to save default credentials: %s", esp_err_to_name(ret));
-    }
-} else {
-    ESP_LOGE(TAG, "Error loading credentials 💩😢: %s", esp_err_to_name(ret));
-}
-
-*/
-
 
     if (littlefs_init() == ESP_OK) {
         littlefs_list_files();
@@ -94,9 +55,6 @@ if (ret == ESP_OK) {
 
     if (ethernet_init() == ESP_OK) {
         ESP_LOGI(TAG, "Ethernet initialized. Waiting for IP...");
-
-      
-
         rs485_master_init(9600, 2048, 1024);
 
         rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 10, .poll_interval_ms = 500 };

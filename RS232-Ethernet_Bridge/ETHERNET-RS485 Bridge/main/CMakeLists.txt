@@ -8,7 +8,6 @@ idf_component_register(
         "ethernet_manager.c"
         "web_server.c"
         "websocket_client.c"
-        "nvs_credentials.c"
         "nvs_settings.c"
     INCLUDE_DIRS "."
     REQUIRES 

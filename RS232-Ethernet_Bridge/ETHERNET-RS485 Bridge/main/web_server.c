@@ -7,7 +7,6 @@
 #include "esp_http_server.h"  
 #include "esp_vfs.h"
 #include "esp_littlefs.h"
-#include "nvs_credentials.h"
 #include "nvs_settings.h"
 #include "esp_random.h"
 #include "cJSON.h" 
@@ -50,6 +49,9 @@ static bool check_token(httpd_req_t *req)
     return ok;
 }
 
+
+
+
 // === POST /login ===
 static esp_err_t login_post_handler(httpd_req_t *req)
 {
@@ -67,19 +69,26 @@ static esp_err_t login_post_handler(httpd_req_t *req)
     }
     buf[len] = '\0';
 
+    // --- Парсим form-urlencoded данные ---
     char input_login[64] = {0};
     char input_pass[64] = {0};
-
     sscanf(buf, "login=%63[^&]&password=%63s", input_login, input_pass);
 
-    char stored_login[64] = {0};
-    char stored_pass[64] = {0};
-    if (nvs_load_credentials(stored_login, sizeof(stored_login), stored_pass, sizeof(stored_pass)) != ESP_OK) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "No credentials saved");
+    // --- Загружаем настройки пользователя из NVS ---
+    user_settings_t user_settings = {0};
+    esp_err_t err = nvs_load_user_settings(&user_settings);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to load user settings: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to load user settings");
         return ESP_FAIL;
     }
 
-    if (strcmp(input_login, stored_login) == 0 && strcmp(input_pass, stored_pass) == 0) {
+    ESP_LOGI(TAG, "Loaded stored user: %s", user_settings.login);
+
+    // --- Проверяем введённые данные ---
+    if (strcmp(input_login, user_settings.login) == 0 &&
+        strcmp(input_pass, user_settings.password) == 0)
+    {
         generate_token(auth_token, sizeof(auth_token));
         ESP_LOGI(TAG, "User '%s' authenticated, token: %s", input_login, auth_token);
 
@@ -91,6 +100,7 @@ static esp_err_t login_post_handler(httpd_req_t *req)
         cJSON_Delete(json);
         free((void*)response);
     } else {
+        ESP_LOGW(TAG, "Invalid login attempt: %s / %s", input_login, input_pass);
         httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Invalid credentials 💩");
     }
 
