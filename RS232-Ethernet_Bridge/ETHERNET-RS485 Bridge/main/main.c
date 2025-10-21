@@ -14,6 +14,7 @@
 #include "esp_mac.h"
 #include "driver/gpio.h"
 #include "nvs_flash.h"
+#include "esp_system.h"
 
 #include "ethernet_manager.h"
 #include "littlefs_manager.h"
@@ -21,6 +22,11 @@
 #include "web_server.h"
 #include "websocket_client.h"
 #include "nvs_settings.h"
+
+
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+
 static const char *TAG = "main";
 
 char login[64];
@@ -35,6 +41,9 @@ void app_main(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
+  //  uint8_t mac[6];
+  //  esp_efuse_mac_get_default(mac);
+
     ESP_ERROR_CHECK(nvs_settings_init());
 
    
@@ -42,10 +51,9 @@ void app_main(void)
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);
 
-    ESP_LOGI("MAIN", "User: %s / %s (%s)", user.login, user.password, user.language);
+    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s",user.login, user.password, user.language, user.serial);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
-    ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d", sys.refresh_interval, sys.log_level, sys.debug_mode);
-
+    ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
 
     if (littlefs_init() == ESP_OK) {
         littlefs_list_files();

@@ -210,7 +210,7 @@ CMAKE_PROJECT_DESCRIPTION:STATIC=
 CMAKE_PROJECT_HOMEPAGE_URL:STATIC=
 
 //Value Computed by CMake
-CMAKE_PROJECT_NAME:STATIC=ETHERNET-RS485
+CMAKE_PROJECT_NAME:STATIC=ETHERNET_RS485_Bridge
 
 //Value Computed by CMake
 CMAKE_PROJECT_VERSION:STATIC=3.6.0
@@ -312,6 +312,15 @@ ETHERNET-RS485_IS_TOP_LEVEL:STATIC=ON
 
 //Value Computed by CMake
 ETHERNET-RS485_SOURCE_DIR:STATIC=D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge
+
+//Value Computed by CMake
+ETHERNET_RS485_Bridge_BINARY_DIR:STATIC=D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build
+
+//Value Computed by CMake
+ETHERNET_RS485_Bridge_IS_TOP_LEVEL:STATIC=ON
+
+//Value Computed by CMake
+ETHERNET_RS485_Bridge_SOURCE_DIR:STATIC=D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge
 
 //Generate the auto-generated files as needed
 GEN_FILES:BOOL=

@@ -20,6 +20,7 @@ typedef struct {
     char login[64];
     char password[64];
     char language[8];
+    char serial[16];
 } user_settings_t;
 
 typedef struct {
@@ -39,6 +40,8 @@ typedef struct {
     int refresh_interval;
     int log_level;
     bool debug_mode;
+    int build_number;          // 👈 номер сборки
+    char build_date[32];       // 👈 дата и время сборки
 } system_settings_t;
 
 

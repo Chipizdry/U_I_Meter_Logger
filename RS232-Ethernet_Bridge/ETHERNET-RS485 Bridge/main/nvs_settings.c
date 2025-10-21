@@ -6,9 +6,31 @@
 #include "nvs.h"
 #include "esp_log.h"
 #include <string.h>
+#include <stdio.h>
+#include "esp_mac.h"
+
+#ifndef BUILD_NUMBER
+#define BUILD_NUMBER 0
+#endif
+
+#ifndef BUILD_DATE
+#define BUILD_DATE "unknown"
+#endif
+
 
 static const char *TAG = "NVS_SETTINGS";
 static const char *NAMESPACE = "app_config";
+
+
+
+void generate_device_serial(char *serial, size_t size)
+{
+    uint8_t mac[6];
+    esp_efuse_mac_get_default(mac);
+    snprintf(serial, size, "COR-%02X%02X%02X%02X%02X%02X",
+             mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
 
 esp_err_t nvs_settings_init(void) {
     esp_err_t ret = nvs_flash_init();
@@ -31,6 +53,7 @@ static void set_default_user_settings(user_settings_t *s) {
     strcpy(s->login, "admin");
     strcpy(s->password, "admin");
     strcpy(s->language, "RU");
+    generate_device_serial(s->serial, sizeof(s->serial));
 }
 
 static void set_default_network_settings(network_settings_t *s) {
@@ -52,6 +75,8 @@ static void set_default_system_settings(system_settings_t *s) {
     s->refresh_interval = 1000;
     s->log_level = 2;
     s->debug_mode = false;
+    s->build_number = BUILD_NUMBER;
+    strncpy(s->build_date, BUILD_DATE, sizeof(s->build_date)-1);
 }
 
 

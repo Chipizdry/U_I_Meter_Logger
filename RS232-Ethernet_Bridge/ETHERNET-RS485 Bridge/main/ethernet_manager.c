@@ -16,6 +16,7 @@
 #include "lwip/raw.h"
 #include "lwip/netif.h"
 #include "lwip/inet_chksum.h"
+#include "nvs_settings.h"
 
 static const char *TAG = "ethernet_manager";
 
@@ -97,20 +98,21 @@ esp_err_t ethernet_init(void)
         return ESP_FAIL;
     }
 
-#if ETHERNET_USE_DHCP == 0
-    // Статическая IP-конфигурация
-    esp_netif_dhcpc_stop(s_eth_netif);
-    esp_netif_ip_info_t ip_info;
-    inet_pton(AF_INET, ETHERNET_STATIC_IP, &ip_info.ip);
-    inet_pton(AF_INET, ETHERNET_NETMASK, &ip_info.netmask);
-    inet_pton(AF_INET, ETHERNET_GATEWAY, &ip_info.gw);
-    esp_netif_set_ip_info(s_eth_netif, &ip_info);
-    ESP_LOGI(TAG, "Using static IP: %s", ETHERNET_STATIC_IP);
-#else
-    ESP_LOGI(TAG, "Using DHCP");
-#endif
+    // --- Используем настройки из NVS ---
+    if (net.dhcp_enabled) {
+        ESP_LOGI(TAG, "Using DHCP mode");
+    } else {
+        ESP_LOGI(TAG, "Using static IP: %s", net.ip);
+        esp_netif_dhcpc_stop(s_eth_netif);
 
-    // --- Конфигурация MAC и PHY ---
+        esp_netif_ip_info_t ip_info;
+        inet_pton(AF_INET, net.ip, &ip_info.ip);
+        inet_pton(AF_INET, net.mask, &ip_info.netmask);
+        inet_pton(AF_INET, net.gateway, &ip_info.gw);
+        esp_netif_set_ip_info(s_eth_netif, &ip_info);
+    }
+
+    // --- MAC/PHY как у тебя ---
     eth_esp32_emac_config_t emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
     emac_config.smi_gpio.mdc_num = 23;
     emac_config.smi_gpio.mdio_num = 18;
