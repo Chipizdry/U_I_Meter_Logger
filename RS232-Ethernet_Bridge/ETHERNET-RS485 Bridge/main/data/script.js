@@ -94,6 +94,40 @@ wifiForm.addEventListener("submit", async (e) => {
         loginForm.classList.remove("hidden");
         mainScreen.classList.add("hidden");
     }
+
+
+
+// === Гамбургер меню ===
+const menuButton = document.getElementById("menuButton");
+const sideMenu = document.getElementById("sideMenu");
+menuButton.addEventListener("click", () => {
+    sideMenu.classList.toggle("open");
+});
+
+// === Переключение вкладок ===
+const menuItems = document.querySelectorAll(".menu-item[data-tab]");
+const tabContents = document.querySelectorAll(".tab-content");
+
+menuItems.forEach(item => {
+    item.addEventListener("click", () => {
+        // Активируем выбранную вкладку
+        menuItems.forEach(i => i.classList.remove("active"));
+        tabContents.forEach(t => t.classList.remove("active"));
+
+        item.classList.add("active");
+        document.getElementById(item.dataset.tab).classList.add("active");
+
+        // Автоматически закрываем меню на мобильных
+        sideMenu.classList.remove("open");
+    });
+
+    
+});
+
+
+
+
+
 });
 
 
