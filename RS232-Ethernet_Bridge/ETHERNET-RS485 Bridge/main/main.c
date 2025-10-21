@@ -42,8 +42,7 @@ void app_main(void)
 
     ESP_LOGI("MAIN", "User: %s / %s (%s)", user.login, user.password, user.language);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
-    ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d",
-             sys.refresh_interval, sys.log_level, sys.debug_mode);
+    ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d", sys.refresh_interval, sys.log_level, sys.debug_mode);
 
 
     if (littlefs_init() == ESP_OK) {

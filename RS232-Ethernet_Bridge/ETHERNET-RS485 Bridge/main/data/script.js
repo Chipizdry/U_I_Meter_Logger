@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const token = sessionStorage.getItem('auth_token');
     if (token) {
         showMainScreen();
+        fetchSettings();
     } else {
         showLogin();
     }
@@ -48,6 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const json = await res.json();
             sessionStorage.setItem('auth_token', json.token);
             alert('Авторизация успешна ✅');
+            fetchSettings();
             showMainScreen();
         } else {
             const text = await res.text();
@@ -238,6 +240,74 @@ function validateIP(ip) {
         console.log("LAN settings:", Object.fromEntries(formData));
         // TODO: fetch('/save_network', {...})
     });
+
+
+// === Функция получения настроек с сервера ===
+    async function fetchSettings() {
+        const token = sessionStorage.getItem("auth_token");
+        if (!token) return;
+
+        try {
+            const res = await fetch("/get_settings", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (res.status === 401) {
+                alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
+                sessionStorage.removeItem("auth_token");
+                showLogin();
+                return;
+            }
+
+            if (!res.ok) {
+                const text = await res.text();
+                alert(`Ошибка получения настроек: ${text}`);
+                return;
+            }
+
+            const data = await res.json();
+            console.log("Полученные настройки:", data);
+
+            // === Заполняем форму LAN ===
+            if (data.network) {
+                const net = data.network;
+                document.getElementById("ip").value = net.ip || "";
+                document.getElementById("mask").value = net.mask || "";
+                document.getElementById("gateway").value = net.gateway || "";
+                document.getElementById("dns").value = net.dns || "";
+                document.getElementById("dhcp").checked = !!net.dhcp_enabled;
+                document.getElementById("port").value = net.port;
+              //  document.getElementById("ssid").value = net.ssid || "";
+              //  document.getElementById("mode").value = net.mode || "";
+
+                // Обновляем состояние полей IP в зависимости от DHCP
+                updateIPFieldsState();
+            }
+
+            // === Можно также заполнить User и System настройки, если нужно ===
+            if (data.user) {
+                const user = data.user;
+                document.getElementById("login").value = user.login || "";
+                // Язык можно использовать для переключения локализации
+            }
+
+            if (data.system) {
+                const sys = data.system;
+                document.getElementById("refresh_interval").value = sys.refresh_interval || "";
+                document.getElementById("log_level").value = sys.log_level || "";
+                document.getElementById("debug_mode").checked = !!sys.debug_mode;
+            }
+
+        } catch (err) {
+            alert("Ошибка соединения при получении настроек: " + err);
+        }
+    }
+
+
+
 
 
 

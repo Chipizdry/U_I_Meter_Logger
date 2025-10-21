@@ -11,7 +11,8 @@
 #include "esp_random.h"
 #include "cJSON.h" 
 #include <string.h>
-
+#include "ethernet_manager.h"
+#include "lwip/inet.h" 
 
 static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
@@ -106,6 +107,79 @@ static esp_err_t login_post_handler(httpd_req_t *req)
 
     return ESP_OK;
 }
+
+
+
+// === GET /get_settings ===
+static esp_err_t get_settings_handler(httpd_req_t *req)
+{
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
+    // --- Загружаем все настройки из NVS ---
+    user_settings_t user = {0};
+    network_settings_t net = {0};
+    system_settings_t sys = {0};
+
+    nvs_load_user_settings(&user);
+    nvs_load_network_settings(&net);
+    nvs_load_system_settings(&sys);
+
+
+     // Если DHCP включен, берем текущие настройки с Ethernet
+     if (net.dhcp_enabled) {
+        esp_netif_ip_info_t ip_info = ethernet_get_ip_info();
+        char ip[16], mask[16], gw[16];
+        inet_ntoa_r(ip_info.ip, ip, sizeof(ip));
+        inet_ntoa_r(ip_info.netmask, mask, sizeof(mask));
+        inet_ntoa_r(ip_info.gw, gw, sizeof(gw));
+
+        strncpy(net.ip, ip, sizeof(net.ip));
+        strncpy(net.mask, mask, sizeof(net.mask));
+        strncpy(net.gateway, gw, sizeof(net.gateway));
+        // DNS можно оставить как есть или брать с DHCP клиента
+    }
+
+
+
+    // --- Формируем JSON ---
+    cJSON *json = cJSON_CreateObject();
+
+    cJSON *user_json = cJSON_CreateObject();
+    cJSON_AddStringToObject(user_json, "login", user.login);
+    cJSON_AddStringToObject(user_json, "language", user.language);
+    cJSON_AddItemToObject(json, "user", user_json);
+
+    cJSON *network_json = cJSON_CreateObject();
+    cJSON_AddStringToObject(network_json, "ip", net.ip);
+    cJSON_AddStringToObject(network_json, "gateway", net.gateway);
+    cJSON_AddStringToObject(network_json, "mask", net.mask);
+    cJSON_AddStringToObject(network_json, "dns", net.dns);
+    cJSON_AddNumberToObject(network_json, "port", net.port);
+    cJSON_AddBoolToObject(network_json, "dhcp_enabled", net.dhcp_enabled);
+    cJSON_AddStringToObject(network_json, "ssid", net.ssid);
+    cJSON_AddStringToObject(network_json, "mode", net.mode);
+    cJSON_AddItemToObject(json, "network", network_json);
+
+    cJSON *system_json = cJSON_CreateObject();
+    cJSON_AddNumberToObject(system_json, "refresh_interval", sys.refresh_interval);
+    cJSON_AddNumberToObject(system_json, "log_level", sys.log_level);
+    cJSON_AddBoolToObject(system_json, "debug_mode", sys.debug_mode);
+    cJSON_AddItemToObject(json, "system", system_json);
+
+    const char *response = cJSON_PrintUnformatted(json);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, response);
+
+    cJSON_Delete(json);
+    free((void*)response);
+
+    return ESP_OK;
+}
+
+
 
 
 
@@ -253,6 +327,14 @@ esp_err_t web_server_start(void)
             .handler = login_post_handler,
             .user_ctx = NULL
         };
+        httpd_uri_t get_settings_uri = {
+            .uri = "/get_settings",
+            .method = HTTP_GET,
+            .handler = get_settings_handler,
+            .user_ctx = NULL
+        };
+
+        httpd_register_uri_handler(server, &get_settings_uri);
         httpd_register_uri_handler(server, &file_get_uri);
         httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &login_uri);
