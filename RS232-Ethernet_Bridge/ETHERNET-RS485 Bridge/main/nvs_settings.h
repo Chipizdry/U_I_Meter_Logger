@@ -25,7 +25,9 @@ typedef struct {
     uint8_t version;
     char ip[16];
     char gateway[16];
+    char mask[16];
     char dns[16];
+    int port;
     bool dhcp_enabled;
     char ssid[64];
     char mode[16]; 

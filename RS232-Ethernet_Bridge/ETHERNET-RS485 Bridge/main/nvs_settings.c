@@ -40,7 +40,9 @@ static void set_default_network_settings(network_settings_t *s) {
     strcpy(s->mode, "AP");
     strcpy(s->ip, "192.168.1.100");
     strcpy(s->gateway, "192.168.1.1");
+    strcpy(s->mask, "255.255.255.0");
     strcpy(s->dns, "8.8.8.8");
+    s->port =80;
     s->dhcp_enabled = true;
 }
 

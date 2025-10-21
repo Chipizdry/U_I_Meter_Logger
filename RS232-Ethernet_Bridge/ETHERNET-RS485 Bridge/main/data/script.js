@@ -5,6 +5,25 @@ document.addEventListener("DOMContentLoaded", () => {
     const wifiForm = document.getElementById("wifiForm");
     const mainScreen = document.getElementById("mainScreen");
     const logoutBtn = document.getElementById("logoutBtn");
+    const ipFields = ["ip", "mask", "gateway", "dns"];
+    const dhcpCheckbox = document.getElementById("dhcp");
+
+    ipFields.forEach(id => {
+        const field = document.getElementById(id);
+        if (field) applyIPMask(field);
+    });
+
+
+// === Включение / выключение DHCP ===
+    function updateIPFieldsState() {
+        const disabled = dhcpCheckbox.checked;
+        ipFields.forEach(id => {
+            const field = document.getElementById(id);
+            field.disabled = disabled;
+            field.style.opacity = disabled ? "0.6" : "1.0";
+        });
+    }
+    dhcpCheckbox.addEventListener("change", updateIPFieldsState);
 
     // Проверяем, есть ли уже токен
     const token = sessionStorage.getItem('auth_token');
@@ -121,10 +140,104 @@ menuItems.forEach(item => {
         sideMenu.classList.remove("open");
     });
 
-    
+
 });
 
 
+ // Функция: форматирует IP (добавляет нули и точки)
+ function formatIP(value) {
+    // Убираем всё, кроме цифр
+    let digits = value.replace(/\D/g, '');
+    // Разбиваем по 3 цифры
+    let parts = [];
+    for (let i = 0; i < digits.length; i += 3) {
+        parts.push(digits.substr(i, 3));
+    }
+    // Если неполный блок — дополним нулями
+    parts = parts.map(p => p.padStart(3, '0'));
+    return parts.join('.').substring(0, 15);
+}
+
+  // === Проверка корректности IP ===
+function validateIP(ip) {
+    const parts = ip.split(".");
+    if (parts.length !== 4) return false;
+    return parts.every(p => {
+        const num = parseInt(p, 10);
+        return !isNaN(num) && num >= 0 && num <= 255;
+    });
+}
+
+
+
+ 
+ // === Форматирование и маска ввода ===
+ function applyIPMask(input) {
+     input.addEventListener("input", (e) => {
+         let value = e.target.value.replace(/[^\d]/g, "");
+         let parts = [];
+ 
+         // Разбиваем по 3 цифры (но не добавляем ведущие нули)
+         for (let i = 0; i < value.length && parts.length < 4; i += 3) {
+             parts.push(value.substring(i, i + 3));
+         }
+ 
+         // Соединяем с точками
+         e.target.value = parts.join(".");
+ 
+         // Автопереход курсора, когда введено 3 цифры и нет точки
+         if (e.inputType === "insertText" && value.length < 12 && value.length % 3 === 0 && !e.target.value.endsWith(".")) {
+             e.target.value += ".";
+         }
+     });
+ 
+     // При фокусе показываем шаблон, если пусто
+     input.addEventListener("focus", (e) => {
+         if (e.target.value.trim() === "") e.target.placeholder = "___.___.___.___";
+     });
+ 
+     // При потере фокуса — завершаем IP и проверяем
+     input.addEventListener("blur", (e) => {
+         let parts = e.target.value.split(".").filter(Boolean);
+ 
+         // Дополняем до 4 октетов
+         while (parts.length < 4) parts.push("0");
+ 
+         // Убираем лишние ведущие нули
+         parts = parts.map(p => String(parseInt(p || "0", 10)));
+ 
+         e.target.value = parts.join(".");
+ 
+         // Проверка корректности
+         if (!validateIP(e.target.value)) {
+             e.target.style.border = "2px solid red";
+             e.target.title = "Некорректный IP адрес";
+         } else {
+             e.target.style.border = "";
+             e.target.title = "";
+         }
+     });
+ }
+ 
+
+    // === Обработчик сохранения ===
+    document.getElementById("lanForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const params = new URLSearchParams(formData);
+
+        // Проверяем все IP
+        const invalid = ipFields.find(id => !validateIP(document.getElementById(id).value));
+        if (invalid) {
+            alert(`Поле "${invalid}" заполнено неверно 💩`);
+            document.getElementById(invalid).focus();
+            return;
+        }
+
+        alert("Настройки сети сохранены ✅");
+        console.log("LAN settings:", Object.fromEntries(formData));
+        // TODO: fetch('/save_network', {...})
+    });
 
 
 
