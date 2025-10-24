@@ -20,7 +20,7 @@
 #include "esp_timer.h"
 
 static const char *TAG = "rs485_master";
-
+static esp_timer_handle_t s_de_off_timer = NULL;
 /* --- внутренние структуры --- */
 typedef struct {
     rs485_slave_cfg_t cfg;
@@ -55,13 +55,12 @@ static uint16_t modbus_crc16(const uint8_t *buf, size_t len)
     return crc;
 }
 
+
 static void de_off_timer_cb(void *arg)
 {
-    // просто опускаем DE
     rs485_set_de(0);
     ESP_LOGD(TAG, "DE → 0 (timer expired)");
 }
-
 
 
 
@@ -141,6 +140,12 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
         ESP_LOGW(TAG, "uart_write_bytes wrote %d/%d", written, req_len);
     }
 
+
+      // Перезапускаем глобальный таймер
+      esp_timer_stop(s_de_off_timer);
+      esp_timer_start_once(s_de_off_timer, total_time_us);
+
+    /*
     // Запускаем одноразовый таймер, который опустит DE после total_time_us
     const esp_timer_create_args_t targs = {
         .callback = &de_off_timer_cb,
@@ -151,6 +156,8 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
     esp_timer_handle_t timer;
     ESP_ERROR_CHECK(esp_timer_create(&targs, &timer));
     ESP_ERROR_CHECK(esp_timer_start_once(timer, total_time_us));
+*/
+
 
     ESP_LOGI(TAG, "TX started (%d bytes), DE→1 for ~%" PRIu64 " us", req_len, total_time_us);
     ESP_LOG_BUFFER_HEX(TAG, req, req_len);
@@ -318,6 +325,19 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     ESP_ERROR_CHECK(uart_param_config(RS485_UART_NUM, &uart_conf));
     ESP_ERROR_CHECK(uart_set_pin(RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
 
+
+
+    const esp_timer_create_args_t targs = {
+        .callback = &de_off_timer_cb,
+        .arg = NULL,
+        .dispatch_method = ESP_TIMER_TASK,
+        .name = "de_off_timer"
+    };
+    ESP_ERROR_CHECK(esp_timer_create(&targs, &s_de_off_timer));
+
+
+
+
     // install driver without event queue (we read synchronously)
     esp_err_t r = uart_driver_install(RS485_UART_NUM, s_rx_buf, s_tx_buf, 0, NULL, 0);
     if (r != ESP_OK) {
@@ -429,18 +449,23 @@ void rs485_master_deinit(void)
 {
     s_running = false;
     vTaskDelay(pdMS_TO_TICKS(10));
-    // delete task if exists
+
     if (s_poll_task) {
         vTaskDelete(s_poll_task);
         s_poll_task = NULL;
     }
-    // free driver
+
     uart_driver_delete(RS485_UART_NUM);
+
+    if (s_de_off_timer) {
+        esp_timer_delete(s_de_off_timer);
+        s_de_off_timer = NULL;
+    }
+
     if (s_data_mutex) { vSemaphoreDelete(s_data_mutex); s_data_mutex = NULL; }
     if (s_uart_mutex) { vSemaphoreDelete(s_uart_mutex); s_uart_mutex = NULL; }
     memset(s_slaves, 0, sizeof(s_slaves));
     s_slave_count = 0;
 }
-
 
 

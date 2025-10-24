@@ -11,11 +11,11 @@
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
-#include "lwip/icmp.h"
+//#include "lwip/icmp.h"
 #include "lwip/ip.h"
 #include "lwip/raw.h"
 #include "lwip/netif.h"
-#include "lwip/inet_chksum.h"
+//#include "lwip/inet_chksum.h"
 #include "nvs_settings.h"
 
 static const char *TAG = "ethernet_manager";
@@ -136,7 +136,7 @@ esp_err_t ethernet_init(void)
 
     ESP_ERROR_CHECK(esp_eth_start(s_eth_handle));
 
-    ESP_LOGI(TAG, "Ethernet started successfully");
+ //   ESP_LOGI(TAG, "Ethernet started successfully");
     return ESP_OK;
 }
 
