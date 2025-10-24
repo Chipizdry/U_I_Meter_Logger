@@ -51,7 +51,7 @@ void app_main(void)
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);
 
-    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s",user.login, user.password, user.language, user.serial);
+    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
 
@@ -86,5 +86,6 @@ void app_main(void)
 
 
    
-    websocket_client_start("123", "chipizdry@gmail.com", "12345678");
+    //websocket_client_start(user.serial, "chipizdry@gmail.com", "12345678");
+    websocket_client_start(user.serial, user.account_login, user.account_password);
 }

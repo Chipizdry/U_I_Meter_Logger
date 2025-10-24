@@ -19,6 +19,8 @@ typedef struct {
     uint8_t version;
     char login[64];
     char password[64];
+    char account_login[32];
+    char account_password[32];
     char language[8];
     char serial[16];
 } user_settings_t;

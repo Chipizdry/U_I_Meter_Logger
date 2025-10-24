@@ -154,7 +154,7 @@ CMAKE_INSTALL_MANDIR:PATH=
 CMAKE_INSTALL_OLDINCLUDEDIR:PATH=/usr/include
 
 //Install path prefix, prepended onto install directories.
-CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/ETHERNET-RS485
+CMAKE_INSTALL_PREFIX:PATH=C:/Program Files (x86)/ETHERNET_RS485_Bridge
 
 //Run-time variable data (LOCALSTATEDIR/run)
 CMAKE_INSTALL_RUNSTATEDIR:PATH=
@@ -303,15 +303,6 @@ ENABLE_TESTING:BOOL=
 
 //No help, variable specified on the command line.
 ESP_PLATFORM:UNINITIALIZED=1
-
-//Value Computed by CMake
-ETHERNET-RS485_BINARY_DIR:STATIC=D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build
-
-//Value Computed by CMake
-ETHERNET-RS485_IS_TOP_LEVEL:STATIC=ON
-
-//Value Computed by CMake
-ETHERNET-RS485_SOURCE_DIR:STATIC=D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge
 
 //Value Computed by CMake
 ETHERNET_RS485_Bridge_BINARY_DIR:STATIC=D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485 Bridge/build
@@ -600,7 +591,7 @@ FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: GIT_EXECUTABLE
 GIT_EXECUTABLE-ADVANCED:INTERNAL=1
 //CMAKE_INSTALL_PREFIX during last run
-_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Program Files (x86)/ETHERNET-RS485
+_GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Program Files (x86)/ETHERNET_RS485_Bridge
 _Python3_EXECUTABLE:INTERNAL=C:/Users/chipi/.espressif/python_env/idf5.3_py3.11_env/Scripts/python.exe
 //Python3 Properties
 _Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;11;2;32;;;C:\Users\chipi\.espressif\tools\idf-python\3.11.2\Lib;C:\Users\chipi\.espressif\tools\idf-python\3.11.2\Lib;C:\Users\chipi\.espressif\python_env\idf5.3_py3.11_env\Lib\site-packages;C:\Users\chipi\.espressif\python_env\idf5.3_py3.11_env\Lib\site-packages

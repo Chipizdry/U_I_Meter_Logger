@@ -95,6 +95,8 @@ static esp_err_t login_post_handler(httpd_req_t *req)
 
         cJSON *json = cJSON_CreateObject();
         cJSON_AddStringToObject(json, "token", auth_token);
+        cJSON_AddNumberToObject(json, "build_number", sys.build_number);
+        cJSON_AddStringToObject(json, "build_date", sys.build_date);
         const char *response = cJSON_PrintUnformatted(json);
         httpd_resp_set_type(req, "application/json");
         httpd_resp_sendstr(req, response);
@@ -306,7 +308,7 @@ esp_err_t web_server_start(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
-    config.server_port = 80;
+    config.server_port = net.port;
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_uri_t file_get_uri = {

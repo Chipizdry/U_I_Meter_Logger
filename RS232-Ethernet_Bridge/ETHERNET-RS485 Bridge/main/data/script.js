@@ -8,6 +8,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const ipFields = ["ip", "mask", "gateway", "dns"];
     const dhcpCheckbox = document.getElementById("dhcp");
 
+    let buildNumber = null;
+    let buildDate = null;
+
     ipFields.forEach(id => {
         const field = document.getElementById(id);
         if (field) applyIPMask(field);
@@ -48,6 +51,16 @@ document.addEventListener("DOMContentLoaded", () => {
         if (res.ok) {
             const json = await res.json();
             sessionStorage.setItem('auth_token', json.token);
+            buildNumber = json.build_number;
+            buildDate = json.build_date;
+    
+            console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
+
+            const buildInfoText = document.getElementById("buildInfoText");
+            if (buildInfoText) {
+                buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
+            }
+    
             alert('Авторизация успешна ✅');
             fetchSettings();
             showMainScreen();
