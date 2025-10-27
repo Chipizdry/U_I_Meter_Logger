@@ -9,6 +9,7 @@ idf_component_register(
         "web_server.c"
         "websocket_client.c"
         "nvs_settings.c"
+        "wifi_manager.c"
     INCLUDE_DIRS "."
     REQUIRES 
         esp_netif 
@@ -16,6 +17,7 @@ idf_component_register(
         lwip 
         json
         driver 
+        esp_wifi
         esp_event 
         esp_littlefs
         esp_system

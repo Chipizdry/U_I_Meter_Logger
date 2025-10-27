@@ -61,8 +61,11 @@ static void set_default_user_settings(user_settings_t *s) {
 static void set_default_network_settings(network_settings_t *s) {
     memset(s, 0, sizeof(*s));
     s->version = NETWORK_SETTINGS_VERSION;
-    strcpy(s->ssid, "COR-Admin");
-    strcpy(s->mode, "AP");
+    strcpy(s->ap_ssid, "COR-Admin");
+    strcpy(s->ap_password, "12345678");
+    strcpy(s->sta_ssid, " ");
+    strcpy(s->sta_password, " ");
+    s->mode = WIFI_MODE_AP;
     strcpy(s->ip, "192.168.1.100");
     strcpy(s->gateway, "192.168.1.1");
     strcpy(s->mask, "255.255.255.0");

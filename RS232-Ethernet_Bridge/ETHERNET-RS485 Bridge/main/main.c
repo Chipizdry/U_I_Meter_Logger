@@ -22,7 +22,7 @@
 #include "web_server.h"
 #include "websocket_client.h"
 #include "nvs_settings.h"
-
+#include "wifi_manager.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -41,11 +41,9 @@ void app_main(void)
 {
     vTaskDelay(pdMS_TO_TICKS(1000));
 
-  //  uint8_t mac[6];
-  //  esp_efuse_mac_get_default(mac);
-
     ESP_ERROR_CHECK(nvs_settings_init());
-
+    ESP_ERROR_CHECK(esp_netif_init());
+    ESP_ERROR_CHECK(esp_event_loop_create_default());
    
     nvs_load_user_settings(&user);
     nvs_load_network_settings(&net);
@@ -59,7 +57,17 @@ void app_main(void)
         littlefs_list_files();
     }
  
-  
+    wifi_settings_t wifi_cfg = {
+        .mode = net.mode,  
+        .ap_channel = 6
+    };
+    
+    strncpy(wifi_cfg.ssid, net.sta_ssid, sizeof(wifi_cfg.ssid));
+    strncpy(wifi_cfg.password, net.sta_password, sizeof(wifi_cfg.password));
+    strncpy(wifi_cfg.ap_ssid, net.ap_ssid, sizeof(wifi_cfg.ap_ssid));
+    strncpy(wifi_cfg.ap_password, net.ap_password, sizeof(wifi_cfg.ap_password));
+    
+    ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
 
 
     if (ethernet_init() == ESP_OK) {

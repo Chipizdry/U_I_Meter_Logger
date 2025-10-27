@@ -11,11 +11,9 @@
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
 #include "lwip/inet.h"
-//#include "lwip/icmp.h"
 #include "lwip/ip.h"
 #include "lwip/raw.h"
 #include "lwip/netif.h"
-//#include "lwip/inet_chksum.h"
 #include "nvs_settings.h"
 
 static const char *TAG = "ethernet_manager";
@@ -88,8 +86,8 @@ esp_err_t ethernet_init(void)
 
     phy_hard_reset();
 
-    ESP_ERROR_CHECK(esp_netif_init());
-    ESP_ERROR_CHECK(esp_event_loop_create_default());
+  //  ESP_ERROR_CHECK(esp_netif_init());
+  //  ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
     s_eth_netif = esp_netif_new(&cfg);

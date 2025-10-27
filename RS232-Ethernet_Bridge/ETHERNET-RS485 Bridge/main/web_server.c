@@ -18,6 +18,14 @@ static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
 static char auth_token[64] = {0};
 
+static const char* wifi_mode_to_string(wifi_mode_t mode) { 
+    switch (mode) { case WIFI_MODE_NULL: return "WIFI_MODE_NULL";
+        case WIFI_MODE_STA: return "WIFI_MODE_STA";
+        case WIFI_MODE_AP: return "WIFI_MODE_AP"; 
+        case WIFI_MODE_APSTA: return "WIFI_MODE_APSTA"; 
+        case WIFI_MODE_MAX: return "WIFI_MODE_MAX"; 
+        default: return "UNKNOWN"; } }
+
 // === Генерация токена ===
 static void generate_token(char *buf, size_t len)
 {
@@ -161,8 +169,8 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     cJSON_AddStringToObject(network_json, "dns", net.dns);
     cJSON_AddNumberToObject(network_json, "port", net.port);
     cJSON_AddBoolToObject(network_json, "dhcp_enabled", net.dhcp_enabled);
-    cJSON_AddStringToObject(network_json, "ssid", net.ssid);
-    cJSON_AddStringToObject(network_json, "mode", net.mode);
+    cJSON_AddStringToObject(network_json, "ssid", net.ap_ssid);
+    cJSON_AddStringToObject(network_json, "mode", wifi_mode_to_string(net.mode));
     cJSON_AddItemToObject(json, "network", network_json);
 
     cJSON *system_json = cJSON_CreateObject();
@@ -288,15 +296,20 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     if (strlen(ssid_val) > 0 || strlen(mode_val) > 0) {
         network_settings_t net = {0};
         nvs_load_network_settings(&net);
-        if (strlen(ssid_val) > 0) strncpy(net.ssid, ssid_val, sizeof(net.ssid) - 1);
-        if (strlen(mode_val) > 0) strncpy(net.mode, mode_val, sizeof(net.mode) - 1);
+        if (strlen(ssid_val) > 0) strncpy(net.ap_ssid, ssid_val, sizeof(net.ap_ssid) - 1);
+        if (strlen(mode_val) > 0) {
+            if (strcmp(mode_val, "WIFI_MODE_NULL") == 0) net.mode = WIFI_MODE_NULL;
+            else if (strcmp(mode_val, "WIFI_MODE_STA") == 0) net.mode = WIFI_MODE_STA;
+            else if (strcmp(mode_val, "WIFI_MODE_AP") == 0) net.mode = WIFI_MODE_AP;
+            else if (strcmp(mode_val, "WIFI_MODE_APSTA") == 0) net.mode = WIFI_MODE_APSTA;
+        }
         err = nvs_save_network_settings(&net);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to save network settings: %s", esp_err_to_name(err));
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save network settings");
             return ESP_FAIL;
         }
-        ESP_LOGI(TAG, "Network settings saved: ssid=%s mode=%s", net.ssid, net.mode);
+        ESP_LOGI(TAG, "Network settings saved: ssid=%s mode=%s", net.ap_ssid, wifi_mode_to_string(net.mode));
     }
 
     httpd_resp_sendstr(req, "Settings saved successfully 💾");

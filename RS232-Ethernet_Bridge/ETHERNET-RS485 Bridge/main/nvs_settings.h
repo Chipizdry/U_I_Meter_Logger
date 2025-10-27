@@ -5,6 +5,7 @@
 #include "esp_err.h"
 #include <stdbool.h>
 #include <stdint.h>
+#include "esp_wifi.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -33,8 +34,12 @@ typedef struct {
     char dns[16];
     int port;
     bool dhcp_enabled;
-    char ssid[64];
-    char mode[16]; 
+    char sta_ssid[64];
+    char sta_password[32];
+    char ap_ssid[64];
+    char ap_password[32];
+    wifi_mode_t mode;  
+
 } network_settings_t;
 
 typedef struct {
