@@ -65,6 +65,10 @@ esp_err_t gpio_manager_init(void)
 
     ESP_LOGI(TAG, "GPIOs configured: RESET as input, LEDs as outputs");
 
+    ESP_LOGI(TAG, "Running LED self-test sequence...");
+    gpio_led_selftest();
+
+
     // Запускаем задачу опроса кнопки
     xTaskCreate(gpio_manager_task, "gpio_manager_task", 2048, NULL, 5, NULL);
 
@@ -128,3 +132,31 @@ void gpio_indicate_error(void)
 
 
 
+void gpio_led_selftest(void)
+{
+    const int delay = 350; // мс
+
+    // 1. Поочередно включаем каждый LED
+    gpio_set_level(GPIO_STATUS_LED, 1);
+    vTaskDelay(pdMS_TO_TICKS(delay));
+    gpio_set_level(GPIO_STATUS_LED, 0);
+
+    gpio_set_level(GPIO_NET_LED, 1);
+    vTaskDelay(pdMS_TO_TICKS(delay));
+    gpio_set_level(GPIO_NET_LED, 0);
+
+    gpio_set_level(GPIO_ERROR_LED, 1);
+    vTaskDelay(pdMS_TO_TICKS(delay));
+    gpio_set_level(GPIO_ERROR_LED, 0);
+
+    // 2. Все вместе — короткая вспышка
+    gpio_set_level(GPIO_STATUS_LED, 1);
+    gpio_set_level(GPIO_NET_LED, 1);
+    gpio_set_level(GPIO_ERROR_LED, 1);
+    vTaskDelay(pdMS_TO_TICKS(200));
+    gpio_set_level(GPIO_STATUS_LED, 0);
+    gpio_set_level(GPIO_NET_LED, 0);
+    gpio_set_level(GPIO_ERROR_LED, 0);
+
+    ESP_LOGI(TAG, "LED self-test completed");
+}
