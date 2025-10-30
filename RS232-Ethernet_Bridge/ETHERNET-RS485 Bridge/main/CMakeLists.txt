@@ -10,6 +10,7 @@ idf_component_register(
         "websocket_client.c"
         "nvs_settings.c"
         "wifi_manager.c"
+        "gpio_manager.c"
     INCLUDE_DIRS "."
     REQUIRES 
         esp_netif 

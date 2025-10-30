@@ -23,6 +23,7 @@
 #include "websocket_client.h"
 #include "nvs_settings.h"
 #include "wifi_manager.h"
+#include "gpio_manager.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -52,6 +53,8 @@ void app_main(void)
     ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
+
+    ESP_ERROR_CHECK(gpio_manager_init());
 
     if (littlefs_init() == ESP_OK) {
         littlefs_list_files();
@@ -92,8 +95,5 @@ void app_main(void)
     }
     initialize_sntp();
 
-
-   
-    //websocket_client_start(user.serial, "chipizdry@gmail.com", "12345678");
     websocket_client_start(user.serial, user.account_login, user.account_password);
 }
