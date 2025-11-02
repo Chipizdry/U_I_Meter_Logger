@@ -39656,7 +39656,7 @@ LOAD C:/Users/chipi/.espressif/tools/xtensa-esp-elf/esp-13.2.0_20240530/xtensa-e
  .rodata.websocket_send_task.str1.4
                 0x3f41a694       0xaa esp-idf/main/libmain.a(websocket_client.c.obj)
  .rodata.websocket_client_start.str1.4
-                0x3f41a694      0x14c esp-idf/main/libmain.a(websocket_client.c.obj)
+                0x3f41a694      0x148 esp-idf/main/libmain.a(websocket_client.c.obj)
  .rodata.initialize_sntp.str1.4
                 0x3f41a694       0x4b esp-idf/main/libmain.a(websocket_client.c.obj)
  .rodata.nvs_save_blob.str1.4
