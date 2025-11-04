@@ -24,6 +24,7 @@
 #include "nvs_settings.h"
 #include "wifi_manager.h"
 #include "gpio_manager.h"
+#include "ota_update.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -87,7 +88,7 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(10000));
         esp_restart();
     }
-
+    ota_init();
     if (web_server_start() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start web server");
         vTaskDelay(pdMS_TO_TICKS(10000));

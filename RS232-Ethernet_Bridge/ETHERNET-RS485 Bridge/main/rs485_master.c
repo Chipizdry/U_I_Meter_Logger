@@ -1,3 +1,13 @@
+
+
+
+
+
+
+
+
+
+
 #include "rs485_master.h"
 #include <string.h>
 #include <stdlib.h>
@@ -39,20 +49,14 @@ static uint16_t modbus_crc16(const uint8_t *buf, size_t len)
     uint16_t crc = 0xFFFF;
     for (size_t pos = 0; pos < len; pos++) {
         crc ^= (uint16_t)buf[pos];
-        __asm__ volatile (
-            "crc_loop:\n"
-            "    tst %[crc], #1\n" // Check LSB
-            "    itt ne\n"
-            "    lsrne %[crc], %[crc], #1\n"
-            "    eorne %[crc], %[crc], %[poly]\n"
-            "    lsre %[crc], %[crc], #1\n"
-            : [crc] "+r" (crc)
-            : [poly] "r" (0xA001)
-            : "cc"
-        );
+        for (int i = 0; i < 8; i++) {
+            if (crc & 0x0001) crc = (crc >> 1) ^ 0xA001;
+            else crc >>= 1;
+        }
     }
     return crc;
 }
+
 
 static void de_off_timer_cb(void *arg)
 {
@@ -60,17 +64,13 @@ static void de_off_timer_cb(void *arg)
     ESP_LOGD(TAG, "DE → 0 (timer expired)");
 }
 
+
+
+
 /* Управление DE (direction) */
 static inline void rs485_set_de(int level)
 {
-    __asm__ volatile (
-        "mov r0, %[pin]\n"
-        "mov r1, %[level]\n"
-        "bl gpio_set_level\n"
-        :
-        : [pin] "r" (RS485_DE_PIN), [level] "r" (level ? 1 : 0)
-        : "r0", "r1"
-    );
+    gpio_set_level(RS485_DE_PIN, level ? 1 : 0);
 }
 
 /* Вычислить время одного символа в микросекундах:
@@ -469,5 +469,4 @@ void rs485_master_deinit(void)
     memset(s_slaves, 0, sizeof(s_slaves));
     s_slave_count = 0;
 }
-
 

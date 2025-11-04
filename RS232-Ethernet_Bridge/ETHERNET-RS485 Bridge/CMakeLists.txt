@@ -27,7 +27,7 @@ add_definitions(-DBUILD_NUMBER=${BUILD_NUMBER})
 string(TIMESTAMP BUILD_DATE "%Y-%m-%d %H:%M:%S")
 add_definitions(-DBUILD_DATE="${BUILD_DATE}")
 
-message(STATUS "🚀 Build number: ${BUILD_NUMBER} (${BUILD_DATE})")
+message(STATUS "Build number: ${BUILD_NUMBER} (${BUILD_DATE})")
 
 # === Подключаем ESP-IDF систему сборки ===
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)

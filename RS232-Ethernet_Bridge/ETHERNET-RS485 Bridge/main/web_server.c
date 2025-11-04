@@ -13,10 +13,18 @@
 #include <string.h>
 #include "ethernet_manager.h"
 #include "lwip/inet.h" 
+#include "esp_ota_ops.h"
+#include "esp_system.h"
+#include <stdbool.h>
+#include "ota_update.h"
+
 
 static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
 static char auth_token[64] = {0};
+
+
+
 
 static const char* wifi_mode_to_string(wifi_mode_t mode) { 
     switch (mode) { case WIFI_MODE_NULL: return "WIFI_MODE_NULL";
@@ -316,6 +324,9 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+
+
+
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
 {
@@ -349,6 +360,14 @@ esp_err_t web_server_start(void)
             .user_ctx = NULL
         };
 
+        httpd_uri_t ota_uri = {
+            .uri = "/ota",
+            .method = HTTP_POST,
+            .handler = ota_post_handler,
+            .user_ctx = NULL
+        };
+        
+        httpd_register_uri_handler(server, &ota_uri);
         httpd_register_uri_handler(server, &get_settings_uri);
         httpd_register_uri_handler(server, &file_get_uri);
         httpd_register_uri_handler(server, &save_settings_uri);

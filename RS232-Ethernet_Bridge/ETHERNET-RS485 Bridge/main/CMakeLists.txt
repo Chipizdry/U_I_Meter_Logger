@@ -11,19 +11,23 @@ idf_component_register(
         "nvs_settings.c"
         "wifi_manager.c"
         "gpio_manager.c"
+        "ota_update.c"
     INCLUDE_DIRS "."
     REQUIRES 
         esp_netif 
         esp_eth 
         lwip 
         json
-        driver 
+        driver
+        app_update 
         esp_wifi
         esp_event 
         esp_littlefs
         esp_system
         freertos
         nvs_flash
+        esp_partition
+        esp_https_ota
         esp_http_server
         esp_websocket_client
     EMBED_TXTFILES "ca_cert.pem"
