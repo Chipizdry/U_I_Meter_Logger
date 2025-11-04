@@ -75,7 +75,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     // формируем URI с session_id
     char uri[256];
     snprintf(uri, sizeof(uri),
-             "wss://dev-corid.cor-medical.ua:45762/ws/devices?session_id=%s",
+             "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s",
              session_id);
 
     esp_websocket_client_config_t websocket_cfg = {
