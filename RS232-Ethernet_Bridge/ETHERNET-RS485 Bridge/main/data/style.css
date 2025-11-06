@@ -830,7 +830,7 @@ select#deviceType:checked {
 
 #status {
     font-size: 10px;
-    font-weight: bold;
+    /*font-weight: bold; */
     color: #5B4296;     /* зелёный текст */
     font-family: 'Arial', sans-serif;
 }

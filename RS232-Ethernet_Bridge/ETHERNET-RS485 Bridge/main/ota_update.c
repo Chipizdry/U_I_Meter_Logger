@@ -164,6 +164,14 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
     // ========= OTA старт ========== 
     if (!ota_started) {
         ota_partition = esp_ota_get_next_update_partition(NULL);
+
+        ESP_LOGW(TAG, "========== OTA UPDATE ==========");
+        ESP_LOGW(TAG, "Writing to partition : %s", ota_partition->label);
+        ESP_LOGW(TAG, "Address             : 0x%lx", ota_partition->address);
+        ESP_LOGW(TAG, "Size                : 0x%lx", ota_partition->size);
+        ESP_LOGW(TAG, "===============================");
+
+
         if (!ota_partition) {
             httpd_resp_send_err(req, 500, "No OTA partition");
             free(buffer); free(boundary_value); free(boundary_marker);
@@ -219,15 +227,32 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
     if (total_received >= total_size && ota_started) {
         ESP_LOGI(TAG, "✅ OTA finalize...");
 
-        if (esp_ota_end(ota_handle) == ESP_OK &&
-            esp_ota_set_boot_partition(ota_partition) == ESP_OK) {
-            httpd_resp_send(req, "OTA complete", -1);
-            vTaskDelay(pdMS_TO_TICKS(1200));
-            esp_restart();
-        } else {
-            httpd_resp_send_err(req, 500, "OTA finalize failed");
+        esp_err_t err = esp_ota_end(ota_handle);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_end failed! err=0x%x", err);
             ota_cleanup();
+            httpd_resp_send_err(req, 500, "OTA end failed");
+            free(buffer); free(boundary_value); free(boundary_marker);
+            return ESP_FAIL;
         }
+
+                
+        err = esp_ota_set_boot_partition(ota_partition);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "esp_ota_set_boot_partition failed! err=0x%x", err);
+            ota_cleanup();
+            httpd_resp_send_err(req, 500, "Set boot partition failed");
+            free(buffer); free(boundary_value); free(boundary_marker);
+            return ESP_FAIL;
+        }
+
+        ESP_LOGW(TAG, "🎉 OTA SUCCESS! Rebooting to new firmware...");
+        httpd_resp_send(req, "OTA complete, rebooting", -1);
+        const esp_partition_t *after = esp_ota_get_boot_partition();
+        ESP_LOGW(TAG, "🎯 Boot partition set to: %s", after->label);
+        vTaskDelay(pdMS_TO_TICKS(1000));
+        esp_restart();
+                
 
         free(buffer); free(boundary_value); free(boundary_marker);
         return ESP_OK;

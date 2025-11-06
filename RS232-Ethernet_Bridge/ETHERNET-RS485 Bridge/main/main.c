@@ -41,8 +41,22 @@ system_settings_t sys;
 
 void app_main(void)
 {
-    vTaskDelay(pdMS_TO_TICKS(1000));
+   
 
+    const esp_partition_t *running    = esp_ota_get_running_partition();
+    const esp_partition_t *boot       = esp_ota_get_boot_partition();
+    const esp_partition_t *next       = esp_ota_get_next_update_partition(NULL);
+
+    ESP_LOGW("BOOT", "========== BOOT INFO ==========");
+    ESP_LOGW("BOOT", "Running partition  : %s", running->label);
+    ESP_LOGW("BOOT", "Configured boot    : %s", boot->label);
+    ESP_LOGW("BOOT", "Next OTA target    : %s", next ? next->label : "NULL");
+    ESP_LOGW("BOOT", "Running addr       : 0x%lx", running->address);
+    ESP_LOGW("BOOT", "Running size       : 0x%lx", running->size);
+    ESP_LOGW("BOOT", "==============================");
+
+    vTaskDelay(pdMS_TO_TICKS(1000));
+    
     ESP_ERROR_CHECK(nvs_settings_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
