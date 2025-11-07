@@ -322,8 +322,6 @@ function validateIP(ip) {
 
 
 
-
-
 });
 
 

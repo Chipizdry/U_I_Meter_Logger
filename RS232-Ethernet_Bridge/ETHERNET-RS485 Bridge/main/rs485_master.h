@@ -48,6 +48,8 @@ typedef struct {
 //  rx_buf_size, tx_buf_size - размеры аппаратных буферов (байты)
 esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size);
 
+esp_err_t rs485_master_send_raw(const uint8_t *tx, size_t tx_len, uint8_t *rx, size_t max_rx_len, int *out_rx_len, int timeout_ms);
+esp_err_t rs485_master_send(const uint8_t *data, size_t len);
 // Добавить слейв в таблицу (возвращает индекс или -1)
 int rs485_master_add_slave(const rs485_slave_cfg_t *cfg);
 
@@ -61,6 +63,8 @@ static inline void rs485_set_de(int level);
 // Скопировать snapshot данных слейва (thread-safe).
 // buf_size_words - размер буфера в uint16_t, возвращает количество записанных регистров или -1 при ошибке
 int rs485_master_get_slave_values(int index, uint16_t *out_buf, int buf_size_words, uint32_t *out_timestamp_ms, int *out_last_error);
+
+
 
 // Получить текущее число слейвов
 int rs485_master_get_count(void);

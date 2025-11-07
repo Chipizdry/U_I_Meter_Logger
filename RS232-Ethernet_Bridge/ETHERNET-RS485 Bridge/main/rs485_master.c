@@ -23,6 +23,15 @@
 
 static const char *TAG = "rs485_master";
 static esp_timer_handle_t s_de_off_timer = NULL;
+
+static QueueHandle_t s_req_queue = NULL;
+
+typedef struct {
+    uint8_t data[32];
+    size_t len;
+} rs485_req_t;
+
+
 /* --- внутренние структуры --- */
 typedef struct {
     rs485_slave_cfg_t cfg;
@@ -363,6 +372,9 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     s_slave_count = 0;
     s_running = true;
 
+    s_req_queue = xQueueCreate(5, sizeof(rs485_req_t));
+
+
     // create poll task
     if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
         ESP_LOGE(TAG, "Failed to create poll task");
@@ -407,10 +419,10 @@ esp_err_t rs485_master_start(void)
 {
     if (s_running) return ESP_ERR_INVALID_STATE;
     s_running = true;
-    if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
-        s_running = false;
-        return ESP_FAIL;
-    }
+  //  if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
+  //      s_running = false;
+  //      return ESP_FAIL;
+  //  }
     return ESP_OK;
 }
 
@@ -470,3 +482,39 @@ void rs485_master_deinit(void)
     s_slave_count = 0;
 }
 
+
+
+esp_err_t rs485_master_send_raw(const uint8_t *tx, size_t tx_len, uint8_t *rx, size_t max_rx_len, int *out_rx_len, int timeout_ms)
+{
+    if (!tx || tx_len == 0) return ESP_ERR_INVALID_ARG;
+    if (xSemaphoreTake(s_uart_mutex, pdMS_TO_TICKS(200)) != pdTRUE) return ESP_ERR_TIMEOUT;
+
+    rs485_set_de(1);
+    uart_flush(RS485_UART_NUM);
+    int written = uart_write_bytes(RS485_UART_NUM, (const char *)tx, tx_len);
+    uart_wait_tx_done(RS485_UART_NUM, pdMS_TO_TICKS(100));
+
+    rs485_set_de(0);
+
+    if (written != tx_len) {
+        xSemaphoreGive(s_uart_mutex);
+        return ESP_FAIL;
+    }
+
+    int len = uart_read_bytes(RS485_UART_NUM, rx, max_rx_len, pdMS_TO_TICKS(timeout_ms));
+    *out_rx_len = len;
+
+    xSemaphoreGive(s_uart_mutex);
+    return (len > 0) ? ESP_OK : ESP_ERR_TIMEOUT;
+}
+
+
+esp_err_t rs485_master_send(const uint8_t *data, size_t len)
+{
+    if (!s_req_queue) return ESP_FAIL;
+    rs485_req_t req = {0};
+    if (len > sizeof(req.data)) return ESP_ERR_INVALID_SIZE;
+    memcpy(req.data, data, len);
+    req.len = len;
+    return xQueueSend(s_req_queue, &req, 10) == pdTRUE ? ESP_OK : ESP_ERR_TIMEOUT;
+}

@@ -56,7 +56,7 @@ void app_main(void)
     ESP_LOGW("BOOT", "==============================");
 
     vTaskDelay(pdMS_TO_TICKS(1000));
-    
+
     ESP_ERROR_CHECK(nvs_settings_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
@@ -75,6 +75,17 @@ void app_main(void)
         littlefs_list_files();
     }
  
+
+    rs485_master_init(9600, 2048, 1024);
+
+    rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 10, .poll_interval_ms = 500 };
+    rs485_master_add_slave(&s1);
+
+   // rs485_slave_cfg_t s2 = { .slave_addr = 2, .reg_start = 0, .reg_count = 4, .poll_interval_ms = 5000 };
+   // rs485_master_add_slave(&s2);
+
+
+
     wifi_settings_t wifi_cfg = {
         .mode = net.mode,  
         .ap_channel = 6
@@ -90,13 +101,7 @@ void app_main(void)
 
     if (ethernet_init() == ESP_OK) {
         ESP_LOGI(TAG, "Ethernet initialized. Waiting for IP...");
-        rs485_master_init(9600, 2048, 1024);
-
-        rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 10, .poll_interval_ms = 500 };
-        rs485_master_add_slave(&s1);
-
-       // rs485_slave_cfg_t s2 = { .slave_addr = 2, .reg_start = 0, .reg_count = 4, .poll_interval_ms = 5000 };
-       // rs485_master_add_slave(&s2);
+       
     } else {
         ESP_LOGE(TAG, "Ethernet initialization failed!");
         vTaskDelay(pdMS_TO_TICKS(10000));
@@ -109,6 +114,8 @@ void app_main(void)
         esp_restart();
     }
     initialize_sntp();
-
+   
     websocket_client_start(user.serial, user.account_login, user.account_password);
 }
+
+

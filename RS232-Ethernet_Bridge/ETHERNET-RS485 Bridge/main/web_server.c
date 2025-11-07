@@ -136,6 +136,17 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
+     // Определяем подмаршрут
+    const char *uri = req->uri;
+
+     
+    bool want_user = (strstr(uri, "/uart") != NULL);
+    bool want_network = (strstr(uri, "/network") != NULL);
+    bool want_system = (strstr(uri, "/system") != NULL);
+    bool want_all = (!want_user && !want_network && !want_system);
+
+
+
     // --- Загружаем все настройки из NVS ---
     user_settings_t user = {0};
     network_settings_t net = {0};
@@ -145,6 +156,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);
 
+    
 
      // Если DHCP включен, берем текущие настройки с Ethernet
      if (net.dhcp_enabled) {
@@ -333,6 +345,9 @@ esp_err_t web_server_start(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.server_port = net.port;
+    config.max_uri_handlers = 15;  
+    config.max_open_sockets = 6;
+    config.stack_size = 8192;
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_uri_t file_get_uri = {
@@ -359,6 +374,13 @@ esp_err_t web_server_start(void)
             .handler = get_settings_handler,
             .user_ctx = NULL
         };
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/get_settings/*",
+            .method = HTTP_GET,
+            .handler = get_settings_handler,
+            .user_ctx = NULL
+        });
 
         httpd_uri_t ota_uri = {
             .uri = "/ota",
