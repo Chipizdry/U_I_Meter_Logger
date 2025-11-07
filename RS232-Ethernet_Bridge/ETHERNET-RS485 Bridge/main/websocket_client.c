@@ -22,6 +22,8 @@ static esp_websocket_client_handle_t client = NULL;
 
 static bool ws_connected = false;
 static int reconnect_delay_sec = 3;
+static char ws_rx_buf[512];
+static int ws_rx_len = 0;
 
 static void websocket_start(void);
 
@@ -90,28 +92,72 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
             websocket_reconnect();
             break;
 
-        case WEBSOCKET_EVENT_DATA:
+            case WEBSOCKET_EVENT_DATA:
             {
-                ESP_LOGI(TAG, "----- WebSocket Packet -----");
-                ESP_LOGI(TAG, "Opcode: %d", data->op_code);
-                ESP_LOGI(TAG, "Payload len: %d", data->data_len);
-                ESP_LOGI(TAG, "FIN: %d", data->fin);
-            
-                // Если текст
-                if (data->op_code == 1 || data->op_code == 0) {
-                 
-                    ESP_LOGI(TAG, "As string: %.*s", data->data_len, (char *)data->data_ptr);
-                }
-                // Если бинарные данные
-                else if (data->op_code == 2) {
-                    ESP_LOGI(TAG, "Binary message:");
-                    ESP_LOG_BUFFER_HEXDUMP(TAG, data->data_ptr, data->data_len, ESP_LOG_INFO);
+                if (data->data_len <= 0 || data->data_ptr == NULL) {
+                    return;
                 }
             
-                // Если FIN==1 — значит это последний фрагмент
-                if (data->fin) {
-                    ESP_LOGI(TAG, "----- End of packet -----");
+                // Копим фрагменты в буфер
+                if (ws_rx_len + data->data_len < sizeof(ws_rx_buf) - 1) {
+                    memcpy(ws_rx_buf + ws_rx_len, data->data_ptr, data->data_len);
+                    ws_rx_len += data->data_len;
+                    ws_rx_buf[ws_rx_len] = 0;
                 }
+            
+                // Ждём финальный фрагмент
+                if (!data->fin) {
+                    ESP_LOGD(TAG, "WS fragment received, waiting more...");
+                    return;
+                }
+            
+                ESP_LOGI(TAG, "----- WebSocket Packet (assembled) -----");
+                ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
+            
+                // === Парсинг hex_data ===
+                char *hex_ptr = strstr(ws_rx_buf, "\"hex_data\"");
+                if (hex_ptr) {
+                    char *start = strchr(hex_ptr, ':');
+                    if (start && (start = strchr(start, '"'))) {
+                        start++;
+                        char *end = strchr(start, '"');
+                        if (end && end > start) {
+                            char hex_str[128] = {0};
+                            int hex_len = end - start;
+                            if (hex_len < sizeof(hex_str)) {
+                                memcpy(hex_str, start, hex_len);
+                                ESP_LOGI(TAG, "✅ HEX string extracted: %s", hex_str);
+            
+                                char clean_hex[128] = {0};
+                                int j = 0;
+                                for (int i = 0; i < strlen(hex_str); i++) {
+                                    if (hex_str[i] != ' ') clean_hex[j++] = hex_str[i];
+                                }
+            
+                                ESP_LOGI(TAG, "🔧 Clean HEX: %s", clean_hex);
+            
+                                uint8_t bytes[64];
+                                int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
+            
+                                if (byte_len > 0) {
+                                    ESP_LOGI(TAG, "📤 Sending %d bytes to RS485:", byte_len);
+                                    ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
+                                    rs485_master_send(bytes, byte_len);
+                                } else {
+                                    ESP_LOGE(TAG, "❌ HEX parse error");
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    ESP_LOGW(TAG, "⚠️ No hex_data found in message");
+                }
+            
+                ESP_LOGI(TAG, "----- End of packet -----");
+            
+                // очищаем буфер для следующего сообщения
+                ws_rx_len = 0;
+                ws_rx_buf[0] = 0;
             }
             break;
     }
@@ -161,7 +207,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
 
     ESP_LOGI(TAG, "🚀 WebSocket client started: %s", uri);
 
-    xTaskCreate(websocket_send_task, "ws_send_task", 4096, NULL, 5, NULL);
+  //  xTaskCreate(websocket_send_task, "ws_send_task", 4096, NULL, 5, NULL);
 
     return ESP_OK;
 }

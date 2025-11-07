@@ -23,7 +23,7 @@
 
 static const char *TAG = "rs485_master";
 static esp_timer_handle_t s_de_off_timer = NULL;
-
+static void rs485_request_task(void *arg);
 static QueueHandle_t s_req_queue = NULL;
 
 typedef struct {
@@ -373,7 +373,7 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     s_running = true;
 
     s_req_queue = xQueueCreate(5, sizeof(rs485_req_t));
-
+    xTaskCreatePinnedToCore(rs485_request_task, "rs485_req_task", 4096, NULL, 7, NULL, 1);
 
     // create poll task
     if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
@@ -517,4 +517,20 @@ esp_err_t rs485_master_send(const uint8_t *data, size_t len)
     memcpy(req.data, data, len);
     req.len = len;
     return xQueueSend(s_req_queue, &req, 10) == pdTRUE ? ESP_OK : ESP_ERR_TIMEOUT;
+}
+
+
+static void rs485_request_task(void *arg)
+{
+    rs485_req_t req;
+    const int uart_num = RS485_UART_NUM;
+
+    while (1) {
+        if (xQueueReceive(s_req_queue, &req, portMAX_DELAY) == pdTRUE) {
+            ESP_LOGI(TAG, "Dequeued custom RS485 request (%d bytes)", req.len);
+
+            uint32_t char_time_us = char_time_us_from_baud(s_baud);
+            send_request_async(uart_num, req.data, req.len, char_time_us);
+        }
+    }
 }
