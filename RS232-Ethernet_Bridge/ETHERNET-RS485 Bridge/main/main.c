@@ -37,7 +37,7 @@ char password[64];
 user_settings_t user;
 network_settings_t net;
 system_settings_t sys;
-
+uart_settings_t uart_cfg;
 
 void app_main(void)
 {
@@ -116,6 +116,7 @@ void app_main(void)
     initialize_sntp();
    
     websocket_client_start(user.serial, user.account_login, user.account_password);
+    xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
 }
 
 

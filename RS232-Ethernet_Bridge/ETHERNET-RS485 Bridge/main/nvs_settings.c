@@ -85,6 +85,16 @@ static void set_default_system_settings(system_settings_t *s) {
 }
 
 
+static void set_default_uart_settings(uart_settings_t *s) {
+    memset(s, 0, sizeof(*s));
+    s->baud_rate    = 9600;
+    s->data_bits    = 8;
+    s->stop_bits    = 1;
+    s->parity       = 'N';
+    s->flow_control = false;
+    s->rs485_enable = true;
+}
+
 
 
 
@@ -205,3 +215,37 @@ esp_err_t nvs_load_system_settings(system_settings_t *settings) {
 esp_err_t nvs_clear_system_settings(void) {
     return nvs_clear_key("system");
 }
+
+
+
+// ========= UART настройки =========
+
+esp_err_t nvs_save_uart_settings(const uart_settings_t *settings) {
+    return nvs_save_blob("uart", settings, sizeof(uart_settings_t));
+}
+
+esp_err_t nvs_load_uart_settings(uart_settings_t *settings) {
+    esp_err_t err = nvs_load_blob("uart", settings, sizeof(uart_settings_t));
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "No UART settings found, loading defaults");
+        set_default_uart_settings(settings);
+        nvs_save_uart_settings(settings);
+        return ESP_OK;
+    }
+
+    // Простая защита от мусора в NVS (если baud_rate нереальный — считаем структуру битой)
+    if (settings->baud_rate < 300 || settings->baud_rate > 2000000) {
+        ESP_LOGW(TAG, "UART settings corrupted, resetting to defaults");
+        set_default_uart_settings(settings);
+        nvs_save_uart_settings(settings);
+        return ESP_OK;
+    }
+
+    return err;
+}
+
+esp_err_t nvs_clear_uart_settings(void) {
+    return nvs_clear_key("uart");
+}
+
+

@@ -21,38 +21,37 @@ static const char *TAG = "websocket_client";
 static esp_websocket_client_handle_t client = NULL;
 
 static bool ws_connected = false;
-static int reconnect_delay_sec = 3;
 static char ws_rx_buf[512];
 static int ws_rx_len = 0;
 
 static void websocket_start(void);
+ void websocket_reconnect_task(void *pvParameters);
 
 
-static void websocket_reconnect(void)
+ void websocket_reconnect_task(void *pvParameters)
 {
-    ws_connected = false;
+    const int reconnect_interval_ms = 6000; // 6 сек
+    for (;;)
+    {
+        if (!ws_connected)
+        {
+            ESP_LOGW(TAG, "🔁 WebSocket not connected, reconnecting...");
 
-    if (client) {
-        esp_websocket_client_close(client, 1000 / portTICK_PERIOD_MS);
-        esp_websocket_client_stop(client);
-        esp_websocket_client_destroy(client);
-        client = NULL;
+            if (client) {
+                esp_websocket_client_stop(client);
+                esp_websocket_client_destroy(client);
+                client = NULL;
+            }
+
+            websocket_client_start(user.serial, user.account_login, user.account_password);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(reconnect_interval_ms));
     }
-
-    ESP_LOGW(TAG, "🔁 Reconnecting to WebSocket in %d sec...", reconnect_delay_sec);
-    vTaskDelay(pdMS_TO_TICKS(reconnect_delay_sec * 1000));
-
-    reconnect_delay_sec *= 2;
-    if (reconnect_delay_sec > 30) reconnect_delay_sec = 30;
-
-    websocket_client_start(user.serial, user.account_login, user.account_password);
 }
 
-
-
-
 static int hex_to_bytes(const char *in, uint8_t *out, int max_len);
-static void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
+void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
 
 // переменные для авторизации
 static char ws_email[64];
@@ -79,17 +78,21 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
                 ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
             }
+            ws_connected = true;
         break;
 
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
-            websocket_reconnect();
+            ws_connected = false;
+          //  websocket_reconnect();
+           
             break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
-            websocket_reconnect();
+        //    websocket_reconnect();
+            ws_connected = false;
             break;
 
             case WEBSOCKET_EVENT_DATA:
@@ -294,7 +297,7 @@ static int hex_to_bytes(const char *in, uint8_t *out, int max_len)
 
 
 
-static void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size)
+ void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size)
 {
     int pos = 0;
     for (int i = 0; i < len; i++) {
@@ -311,10 +314,15 @@ bool websocket_send_text(const char *msg)
         return false;
     }
 
-    if (esp_websocket_client_send_text(client, msg, strlen(msg), 1000) != ESP_OK) {
-        ESP_LOGE(TAG, "❌ Send failed, reconnecting...");
-        websocket_reconnect();
+    esp_err_t ret = esp_websocket_client_send_text(client, msg, strlen(msg), portMAX_DELAY);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "❌ Send failed: %s", esp_err_to_name(ret));
         return false;
     }
+
     return true;
 }
+
+
+
+

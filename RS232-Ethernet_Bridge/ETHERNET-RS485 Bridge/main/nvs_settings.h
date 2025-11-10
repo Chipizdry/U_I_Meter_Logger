@@ -51,11 +51,22 @@ typedef struct {
     char build_date[32];       // 👈 дата и время сборки
 } system_settings_t;
 
-
+typedef struct {
+    
+    int      baud_rate;
+    uint8_t  data_bits;
+    uint8_t  stop_bits;
+    char     parity;        // 'N', 'E', 'O'
+    bool     flow_control;
+    bool     rs485_enable;
+  
+} uart_settings_t;
 
 extern user_settings_t user;
 extern network_settings_t net;
 extern system_settings_t sys;
+extern uart_settings_t uart_cfg;
+
 
 // Инициализация NVS
 esp_err_t nvs_settings_init(void);
@@ -74,6 +85,12 @@ esp_err_t nvs_clear_network_settings(void);
 esp_err_t nvs_save_system_settings(const system_settings_t *settings);
 esp_err_t nvs_load_system_settings(system_settings_t *settings);
 esp_err_t nvs_clear_system_settings(void);
+
+// ======== UART настройки ========
+esp_err_t nvs_save_uart_settings(const uart_settings_t *settings);
+esp_err_t nvs_load_uart_settings(uart_settings_t *settings);
+esp_err_t nvs_clear_uart_settings(void);
+
 
 #ifdef __cplusplus
 }

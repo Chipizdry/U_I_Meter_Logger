@@ -20,6 +20,7 @@
 #include "freertos/semphr.h"
 #include "esp_rom_sys.h" 
 #include "esp_timer.h"
+#include "websocket_client.h"
 
 static const char *TAG = "rs485_master";
 static esp_timer_handle_t s_de_off_timer = NULL;
@@ -114,16 +115,23 @@ static int build_read_request(uint8_t addr, uint16_t start, uint16_t count, uint
     return 8;
 }
 
-/* Чтение ответа синхронно: ожидаем конкретное количество байт.
-   expected_len = 1(addr)+1(func)+1(byte_count)+2*count(data)+2(crc)
-*/
-static int read_response_sync(int uart_num, uint8_t *buf, int expected_len, int timeout_ms)
-{
-    if (expected_len <= 0) return -1;
-    int to_read = expected_len;
-    int r = uart_read_bytes(uart_num, buf, to_read, pdMS_TO_TICKS(timeout_ms));
-    if (r < 0) return -1;
-    return r;
+/* Чтение ответа с таймаутом: читаем по одному байту, пока не наберём max или не выйдет таймаут */
+   
+
+int rs485_read_available(uint8_t *buf, int max, int timeout_ms) {
+    int len = 0;
+    int total = 0;
+    int t = 0;
+    while (t < timeout_ms && total < max) {
+        len = uart_read_bytes(RS485_UART_NUM, buf + total, 1, pdMS_TO_TICKS(10));
+        if (len > 0) {
+            total += len;
+            t = 0;  // сбрасываем таймер, если что-то пришло
+        } else {
+            t += 10;
+        }
+    }
+    return total;
 }
 
 /* Отправка запроса: берём uart_mutex чтобы избежать конкуренции, ставим DE=1, пишем, ждем TX done, даём DE=0 */
@@ -156,19 +164,7 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
       esp_timer_stop(s_de_off_timer);
       esp_timer_start_once(s_de_off_timer, total_time_us);
 
-    /*
-    // Запускаем одноразовый таймер, который опустит DE после total_time_us
-    const esp_timer_create_args_t targs = {
-        .callback = &de_off_timer_cb,
-        .arg = NULL,
-        .dispatch_method = ESP_TIMER_TASK,
-        .name = "de_off_timer"
-    };
-    esp_timer_handle_t timer;
-    ESP_ERROR_CHECK(esp_timer_create(&targs, &timer));
-    ESP_ERROR_CHECK(esp_timer_start_once(timer, total_time_us));
-*/
-
+  
 
     ESP_LOGI(TAG, "TX started (%d bytes), DE→1 for ~%" PRIu64 " us", req_len, total_time_us);
     ESP_LOG_BUFFER_HEX(TAG, req, req_len);
@@ -217,7 +213,10 @@ static void poll_slave(slave_entry_t *s)
     }
     memset(resp, 0, expected_len + 4);
 
-    int r = read_response_sync(uart_num, resp, expected_len, timeout_ms);
+    int r = rs485_read_available(resp, expected_len + 5, timeout_ms);
+    ESP_LOGI(TAG, "RX raw (%d bytes):", r);
+    ESP_LOG_BUFFER_HEX(TAG, resp, r);
+
     if (r <= 0) {
         s->data.last_error = -5; // timeout/no data
         heap_caps_free(resp);
@@ -376,11 +375,13 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     xTaskCreatePinnedToCore(rs485_request_task, "rs485_req_task", 4096, NULL, 7, NULL, 1);
 
     // create poll task
+    /*
     if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
         ESP_LOGE(TAG, "Failed to create poll task");
         s_running = false;
         return ESP_FAIL;
-    }
+    }  
+        */
 
     ESP_LOGI(TAG, "RS485 master init: baud=%d rx=%d tx=%d", s_baud, s_rx_buf, s_tx_buf);
     return ESP_OK;
@@ -490,7 +491,8 @@ esp_err_t rs485_master_send_raw(const uint8_t *tx, size_t tx_len, uint8_t *rx, s
     if (xSemaphoreTake(s_uart_mutex, pdMS_TO_TICKS(200)) != pdTRUE) return ESP_ERR_TIMEOUT;
 
     rs485_set_de(1);
-    uart_flush(RS485_UART_NUM);
+   // uart_flush(RS485_UART_NUM);
+    uart_flush_input(RS485_UART_NUM); 
     int written = uart_write_bytes(RS485_UART_NUM, (const char *)tx, tx_len);
     uart_wait_tx_done(RS485_UART_NUM, pdMS_TO_TICKS(100));
 
@@ -531,6 +533,29 @@ static void rs485_request_task(void *arg)
 
             uint32_t char_time_us = char_time_us_from_baud(s_baud);
             send_request_async(uart_num, req.data, req.len, char_time_us);
+
+            // --- Читаем ответ синхронно (например, 1000 ms таймаут) ---
+            uint8_t resp[128] = {0};
+            int rx_len = uart_read_bytes(uart_num, resp, sizeof(resp), pdMS_TO_TICKS(1000));
+
+            if (rx_len > 0) {
+                ESP_LOGI(TAG, "Received %d bytes from RS485:", rx_len);
+                ESP_LOG_BUFFER_HEX(TAG, resp, rx_len);
+
+                // --- Преобразуем в HEX строку для WS ---
+                char hex_resp[128] = {0};
+                bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));
+
+                char ws_msg[256];
+                snprintf(ws_msg, sizeof(ws_msg),
+                         "{\"hex_response\": \"%s\"}", hex_resp);
+
+                websocket_send_text(ws_msg); // отправляем обратно в WS
+                ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
+            } else {
+                ESP_LOGW(TAG, "No response from RS485 slave");
+            }
         }
     }
 }
+

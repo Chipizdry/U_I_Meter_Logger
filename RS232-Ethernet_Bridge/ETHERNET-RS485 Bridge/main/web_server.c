@@ -151,11 +151,12 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     user_settings_t user = {0};
     network_settings_t net = {0};
     system_settings_t sys = {0};
+    uart_settings_t uart_cfg = {0};
 
     nvs_load_user_settings(&user);
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);
-
+    nvs_load_uart_settings(&uart_cfg);
     
 
      // Если DHCP включен, берем текущие настройки с Ethernet
