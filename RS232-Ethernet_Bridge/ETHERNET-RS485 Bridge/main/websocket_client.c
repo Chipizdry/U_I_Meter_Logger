@@ -11,6 +11,8 @@
 #include "nvs_settings.h"
 #include "rs485_master.h"
 
+static TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
+static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секунд
 
 extern esp_err_t rs485_master_send(const uint8_t *data, size_t len);
 // Встроенный сертификат (объявляется линковщиком)
@@ -30,23 +32,42 @@ static void websocket_start(void);
 
  void websocket_reconnect_task(void *pvParameters)
 {
-    const int reconnect_interval_ms = 6000; // 6 сек
+    const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверяем каждую секунду
+
     for (;;)
     {
-        if (!ws_connected)
-        {
-            ESP_LOGW(TAG, "🔁 WebSocket not connected, reconnecting...");
+        bool need_reconnect = false;
 
-            if (client) {
-                esp_websocket_client_stop(client);
-                esp_websocket_client_destroy(client);
-                client = NULL;
+        if (!ws_connected) {
+            need_reconnect = true;
+        } else {
+            TickType_t now = xTaskGetTickCount();
+            if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
+                ESP_LOGW(TAG, "⚠️ No WS activity for 7 seconds, forcing reconnect");
+                need_reconnect = true;
             }
-
-            websocket_client_start(user.serial, user.account_login, user.account_password);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(reconnect_interval_ms));
+        if (need_reconnect) 
+        {
+            if (client) 
+            {
+                esp_websocket_client_stop(client);
+                vTaskDelay(pdMS_TO_TICKS(100));  // ждем корректного завершения
+                esp_websocket_client_destroy(client);
+                client = NULL;
+                ws_connected = false;
+            }
+
+            if (websocket_client_start(user.serial, user.account_login, user.account_password) == ESP_OK) 
+            {
+                ESP_LOGI(TAG, "✅ WebSocket reconnect initiated");
+            }
+
+            last_ws_event_tick = xTaskGetTickCount(); // сброс таймера после реконнекта
+        }
+
+        vTaskDelay(check_interval);
     }
 }
 
@@ -67,7 +88,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     {
         case WEBSOCKET_EVENT_CONNECTED:
         ESP_LOGI(TAG, "✅ Connected to WebSocket server");
-
+        last_ws_event_tick = xTaskGetTickCount(); // сброс таймера при подключении
             // отправляем авторизационное сообщение
             if (strlen(ws_email) > 0 && strlen(ws_password) > 0) {
                 char auth_msg[256];
@@ -97,6 +118,8 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
             case WEBSOCKET_EVENT_DATA:
             {
+
+                last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
                 if (data->data_len <= 0 || data->data_ptr == NULL) {
                     return;
                 }
@@ -137,7 +160,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                     if (hex_str[i] != ' ') clean_hex[j++] = hex_str[i];
                                 }
             
-                                ESP_LOGI(TAG, "🔧 Clean HEX: %s", clean_hex);
+                              //  ESP_LOGI(TAG, "🔧 Clean HEX: %s", clean_hex);
             
                                 uint8_t bytes[64];
                                 int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
@@ -239,7 +262,7 @@ void websocket_client_stop(void)
     }
 }
 
-
+/*
 static void websocket_send_task(void *pvParameters)
 {
     int counter = 0;
@@ -261,6 +284,9 @@ static void websocket_send_task(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(2000)); 
     }
 }
+*/
+
+
 
 void initialize_sntp(void)
 {
@@ -314,7 +340,7 @@ bool websocket_send_text(const char *msg)
         return false;
     }
 
-    esp_err_t ret = esp_websocket_client_send_text(client, msg, strlen(msg), portMAX_DELAY);
+    esp_err_t ret = websocket_client_send( msg);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "❌ Send failed: %s", esp_err_to_name(ret));
         return false;
@@ -322,7 +348,5 @@ bool websocket_send_text(const char *msg)
 
     return true;
 }
-
-
 
 
