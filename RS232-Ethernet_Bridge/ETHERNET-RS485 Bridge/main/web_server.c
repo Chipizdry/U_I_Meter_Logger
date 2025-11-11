@@ -21,7 +21,7 @@
 
 static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
-static char auth_token[64] = {0};
+ char auth_token[64] = {0};
 
 
 
@@ -45,11 +45,13 @@ static void generate_token(char *buf, size_t len)
     buf[len - 1] = '\0';
 }
 
-static bool check_token(httpd_req_t *req)
+ bool check_token(httpd_req_t *req)
 {
     ESP_LOGI(TAG, "Checking token...");
     size_t buf_len = httpd_req_get_hdr_value_len(req, "Authorization") + 1;
     ESP_LOGI(TAG, "Header len: %d", buf_len);
+    ESP_LOGI(TAG, "Server auth_token: '%s'", auth_token);
+    
     if (buf_len <= 1) return false;
 
     char *buf = malloc(buf_len);
@@ -58,6 +60,7 @@ static bool check_token(httpd_req_t *req)
     bool ok = false;
     if (strncmp(buf, "Bearer ", 7) == 0) {
         const char *client_token = buf + 7;
+    ESP_LOGI(TAG, "Client token: '%s'", client_token);
         if (strcmp(client_token, auth_token) == 0) {
             ok = true;
         }
@@ -349,6 +352,7 @@ esp_err_t web_server_start(void)
     config.max_uri_handlers = 15;  
     config.max_open_sockets = 6;
     config.stack_size = 8192;
+   
 
     if (httpd_start(&server, &config) == ESP_OK) {
         httpd_uri_t file_get_uri = {

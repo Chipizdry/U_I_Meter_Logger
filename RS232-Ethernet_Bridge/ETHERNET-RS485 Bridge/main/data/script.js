@@ -127,10 +127,7 @@ wifiForm.addEventListener("submit", async (e) => {
         mainScreen.classList.remove("hidden");
     }
 
-    function showLogin() {
-        loginForm.classList.remove("hidden");
-        mainScreen.classList.add("hidden");
-    }
+  
 
 
 

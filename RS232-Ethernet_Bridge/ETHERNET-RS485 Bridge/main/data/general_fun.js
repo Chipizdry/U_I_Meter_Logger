@@ -1,5 +1,8 @@
 
-
+function showLogin() {
+    loginForm.classList.remove("hidden");
+    mainScreen.classList.add("hidden");
+}
 
 
 function togglePassword(inputId, iconId) {

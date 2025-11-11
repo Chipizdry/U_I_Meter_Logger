@@ -7,7 +7,7 @@
 #include <string.h>
 #include <ctype.h>
 #include "mbedtls/md5.h"
-
+#include "web_server.h"
 
 #define OTA_CHUNK_SIZE 4096
 static const char *TAG = "OTA";
@@ -39,6 +39,13 @@ static void ota_cleanup(void) {
 }
 
 esp_err_t ota_post_handler(httpd_req_t *req) {
+
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
+
     ESP_LOGI(TAG, "=== OTA POST === len=%d total_received=%d ===", req->content_len, total_received);
 
     char *buffer = malloc(OTA_CHUNK_SIZE);

@@ -213,7 +213,9 @@
         async function sendNextChunk(retry = 0) {
             const chunk = file.slice(offset, offset + CHUNK_SIZE);
             const ab = await chunk.arrayBuffer();
-    
+            const token = sessionStorage.getItem("auth_token");
+            if (!token) return;
+
             const md5sum = md5(ab);
             console.log(`Chunk ${chunkNumber}: ${ab.byteLength} bytes, MD5=${md5sum}`);
     
@@ -224,7 +226,9 @@
             form.append("md5", md5sum);
             form.append("chunk", new Blob([ab]), "chunk.bin");
     
-            const response = await fetch("/ota", { method: "POST", body: form });
+            const response = await fetch("/ota", { method: "POST", headers: {
+                    "Authorization": `Bearer ${token}`
+                }, body: form });
     
             if (!response.ok) {
                 if (response.status === 409 && retry < MAX_RETRIES) {
