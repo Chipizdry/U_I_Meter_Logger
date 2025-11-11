@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>COR-Bridge Control Panel</title>
     <link rel="stylesheet" href="/style.css">
-    <link rel="stylesheet" href="/modal.css">
+   
 </head>
 <body>
     <div class="container">
@@ -15,8 +15,15 @@
             <h2>Авторизация</h2>
             <label>Login:</label>
             <input name="login" type="text" required placeholder="Введите логин"><br><br>
-            <label>Password:</label>
-            <input name="password" type="password" required placeholder="Введите пароль"><br><br>
+
+
+            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
+            <div class="password-container">
+                <input type="password" id="password" name="password" data-translate="password_placeholder"   required autocomplete="current-password">
+                <span id="eyeIcon" class="eye-icon" onclick="togglePassword('password', 'eyeIcon')"></span>
+            </div>
+          <!--  <label>Password:</label>
+            <input name="password" type="password" required placeholder="Введите пароль">  -->  <br><br>  
             <button type="submit">Войти</button>
         </form>
 
@@ -172,6 +179,7 @@
     </div>
 
     <script src="/script.js"></script>
+    <script src="/general_fun.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
     <script>
     const CHUNK_SIZE = 1024;

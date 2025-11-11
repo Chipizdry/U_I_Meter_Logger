@@ -7,6 +7,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const logoutBtn = document.getElementById("logoutBtn");
     const ipFields = ["ip", "mask", "gateway", "dns"];
     const dhcpCheckbox = document.getElementById("dhcp");
+    const eye = document.getElementById("eyeIcon");
+    updateEyeIcon(eye, false); // false = закрытый глаз
 
     let buildNumber = null;
     let buildDate = null;
