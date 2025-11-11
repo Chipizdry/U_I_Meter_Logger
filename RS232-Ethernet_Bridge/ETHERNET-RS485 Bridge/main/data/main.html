@@ -231,6 +231,11 @@
                     console.warn(`MD5 mismatch → retry chunk ${chunkNumber}`);
                     return sendNextChunk(retry + 1);
                 }
+
+                if (response.status === 401) {
+                    showTokenExpiredModal();
+                    return;
+                }
                 status.innerText = "Upload failed!";
                 throw new Error(`Chunk ${chunkNumber} failed.`);
             }

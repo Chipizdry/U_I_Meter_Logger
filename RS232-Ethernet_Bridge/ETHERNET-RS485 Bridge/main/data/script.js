@@ -94,9 +94,10 @@ wifiForm.addEventListener("submit", async (e) => {
 
         // Если сервер вернул 401 — токен недействителен
         if (response.status === 401) {
-            alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
+           // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
             sessionStorage.removeItem("auth_token");
-            showLogin();
+            showTokenExpiredModal();
+           // showLogin();
             return;
         }
 
@@ -271,8 +272,9 @@ function validateIP(ip) {
             });
 
             if (res.status === 401) {
-                alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
+               // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
                 sessionStorage.removeItem("auth_token");
+                showTokenExpiredModal();
                 showLogin();
                 return;
             }
