@@ -40,12 +40,6 @@ static void ota_cleanup(void) {
 
 esp_err_t ota_post_handler(httpd_req_t *req) {
 
-    if (!check_token(req)) {
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-        return ESP_FAIL;
-    }
-
-
     ESP_LOGI(TAG, "=== OTA POST === len=%d total_received=%d ===", req->content_len, total_received);
 
     char *buffer = malloc(OTA_CHUNK_SIZE);
@@ -65,6 +59,11 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         total_read += r;
     }
     int received = total_read;
+
+
+
+  
+
 
     // ============ Извлекаем boundary из заголовка ===============
     char ct[256] = {0};
@@ -115,6 +114,16 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
     p = chunk_ptr + 16;
     while (p < buffer+received && !isdigit((unsigned char)*p)) p++;
     int chunk_number = atoi(p);
+
+    
+      // ===== Проверка токена только для первого чанка =====
+      if (chunk_number == 1) {
+        if (!check_token(req)) {
+            httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+            free(buffer);
+            return ESP_FAIL;
+        }
+    }
 
     // 🔥 Не даём перезапустить OTA если она уже идёт
     if (ota_started && total_received > 0 && chunk_number == 1) {
@@ -233,7 +242,11 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
     // ========= Завершение OTA ==========
     if (total_received >= total_size && ota_started) {
         ESP_LOGI(TAG, "✅ OTA finalize...");
-
+        if (!check_token(req)) {
+            httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+            free(buffer);
+            return ESP_FAIL;
+        }
         esp_err_t err = esp_ota_end(ota_handle);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "esp_ota_end failed! err=0x%x", err);

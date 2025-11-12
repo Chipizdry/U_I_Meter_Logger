@@ -130,7 +130,7 @@ static esp_err_t login_post_handler(httpd_req_t *req)
 }
 
 
-
+/*
 // === GET /get_settings ===
 static esp_err_t get_settings_handler(httpd_req_t *req)
 {
@@ -143,7 +143,8 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     const char *uri = req->uri;
 
      
-    bool want_user = (strstr(uri, "/uart") != NULL);
+    bool want_uart = (strstr(uri, "/uart") != NULL);
+    bool want_user = (strstr(uri, "/user") != NULL);
     bool want_network = (strstr(uri, "/network") != NULL);
     bool want_system = (strstr(uri, "/system") != NULL);
     bool want_all = (!want_user && !want_network && !want_system);
@@ -212,6 +213,118 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
 
     return ESP_OK;
 }
+
+*/
+
+static esp_err_t get_settings_handler(httpd_req_t *req)
+{
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
+    // Определяем раздел прямо в локальном enum
+    enum { ALL, UART, USER, NETWORK, SYSTEM, UNKNOWN } section = ALL;
+
+    const char *uri = req->uri;
+    if      (strstr(uri, "/uart"))    section = UART;
+    else if (strstr(uri, "/user"))    section = USER;
+    else if (strstr(uri, "/network")) section = NETWORK;
+    else if (strstr(uri, "/system"))  section = SYSTEM;
+    else if (strstr(uri, "/get_settings")) section = ALL;
+    else section = UNKNOWN;
+
+    if (section == UNKNOWN) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unknown settings section");
+        return ESP_FAIL;
+    }
+
+    // Загружаем настройки
+    user_settings_t user = {0};
+    network_settings_t net = {0};
+    system_settings_t sys = {0};
+    uart_settings_t uart_cfg = {0};
+
+    nvs_load_user_settings(&user);
+    nvs_load_network_settings(&net);
+    nvs_load_system_settings(&sys);
+    nvs_load_uart_settings(&uart_cfg);
+
+
+    // Если DHCP включен, берем текущие настройки с Ethernet
+    if (net.dhcp_enabled) {
+        esp_netif_ip_info_t ip_info = ethernet_get_ip_info();
+        char ip[16], mask[16], gw[16];
+        inet_ntoa_r(ip_info.ip, ip, sizeof(ip));
+        inet_ntoa_r(ip_info.netmask, mask, sizeof(mask));
+        inet_ntoa_r(ip_info.gw, gw, sizeof(gw));
+
+        strncpy(net.ip, ip, sizeof(net.ip));
+        strncpy(net.mask, mask, sizeof(net.mask));
+        strncpy(net.gateway, gw, sizeof(net.gateway));
+        // DNS можно оставить как есть или брать с DHCP клиента
+    }
+
+
+    // Сбор JSON
+    cJSON *json = cJSON_CreateObject();
+
+    switch (section) {
+
+        case ALL:
+        case USER: {
+            cJSON *u = cJSON_CreateObject();
+            cJSON_AddStringToObject(u, "login", user.login);
+            cJSON_AddStringToObject(u, "account_login", user.account_login);  // ✅ имя аккаунта
+            cJSON_AddStringToObject(u, "language", user.language);
+            cJSON_AddStringToObject(u, "serial", user.serial);     // ✅ серийный номер            
+            cJSON_AddItemToObject(json, "user", u);
+            if (section != ALL) break;
+            [[fallthrough]]; 
+        }
+
+        case NETWORK: {
+            cJSON *n = cJSON_CreateObject();
+            cJSON_AddStringToObject(n, "ip", net.ip);
+            cJSON_AddStringToObject(n, "mask", net.mask);
+            cJSON_AddStringToObject(n, "gateway", net.gateway);
+            cJSON_AddNumberToObject(n, "port", net.port);
+            cJSON_AddBoolToObject(n, "dhcp_enabled", net.dhcp_enabled);
+            cJSON_AddItemToObject(json, "network", n);
+            if (section != ALL) break;
+            [[fallthrough]]; 
+        }
+
+        case SYSTEM: {
+            cJSON *s = cJSON_CreateObject();
+            cJSON_AddNumberToObject(s, "refresh", sys.refresh_interval);
+            cJSON_AddBoolToObject(s, "debug", sys.debug_mode);
+            cJSON_AddItemToObject(json, "system", s);
+            if (section != ALL) break;
+            [[fallthrough]]; 
+        }
+
+        case UART: {
+            cJSON *u = cJSON_CreateObject();
+           // cJSON_AddNumberToObject(u, "baud", uart_cfg.baud);
+            cJSON_AddNumberToObject(u, "parity", uart_cfg.parity);
+            cJSON_AddItemToObject(json, "uart", u);
+            break;
+        }
+
+        default: break;
+    }
+
+    const char *resp = cJSON_PrintUnformatted(json);
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, resp);
+
+    cJSON_Delete(json);
+    free((void*)resp);
+
+    return ESP_OK;
+}
+
 
 
 

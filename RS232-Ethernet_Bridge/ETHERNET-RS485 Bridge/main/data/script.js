@@ -142,21 +142,109 @@ menuButton.addEventListener("click", () => {
 const menuItems = document.querySelectorAll(".menu-item[data-tab]");
 const tabContents = document.querySelectorAll(".tab-content");
 
-menuItems.forEach(item => {
-    item.addEventListener("click", () => {
-        // Активируем выбранную вкладку
-        menuItems.forEach(i => i.classList.remove("active"));
-        tabContents.forEach(t => t.classList.remove("active"));
+    menuItems.forEach(item => {
+        item.addEventListener("click", async () => {
+            // Переключаем вкладки UI
+            menuItems.forEach(i => i.classList.remove("active"));
+            tabContents.forEach(t => t.classList.remove("active"));
 
-        item.classList.add("active");
-        document.getElementById(item.dataset.tab).classList.add("active");
+            item.classList.add("active");
+            const tabId = item.dataset.tab;
+            document.getElementById(tabId).classList.add("active");
 
-        // Автоматически закрываем меню на мобильных
-        sideMenu.classList.remove("open");
+            // Закрываем меню на мобилке
+            sideMenu.classList.remove("open");
+
+            // Загружаем настройки для конкретной вкладки
+            await loadTabSettings(tabId);
+        });
     });
 
 
-});
+    async function loadTabSettings(tab) {
+        const token = sessionStorage.getItem("auth_token");
+        if (!token) return;
+    
+        try {
+            const endpoints = {
+                "LAN": "/get_settings/network",
+                "wifi": "/get_settings/network",
+                "uart": "/get_settings/uart",
+                "user": "/get_settings/user",
+                "system": "/get_settings/system",
+                "account": "/get_settings/user"
+            };
+    
+            const url = endpoints[tab];
+            if (!url) return;
+    
+            const res = await fetch(url, {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+    
+            if (res.status === 401) {
+                sessionStorage.removeItem("auth_token");
+                showTokenExpiredModal();
+                return;
+            }
+    
+            if (!res.ok) {
+                console.warn(`Ошибка загрузки ${tab}:`, await res.text());
+                return;
+            }
+    
+            const data = await res.json();
+            console.log(`Настройки для ${tab}:`, data);
+    
+            applySettingsToForm(tab, data);
+    
+        } catch (err) {
+            console.error("Ошибка загрузки вкладки:", err);
+        }
+    }
+
+
+    function applySettingsToForm(tab, data) {
+        switch (tab) {
+            case "LAN":
+         /*       document.getElementById("ip").value = data.ip || "";
+                document.getElementById("mask").value = data.mask || "";
+                document.getElementById("gateway").value = data.gateway || "";
+                document.getElementById("dns").value = data.dns || "";
+                document.getElementById("dhcp").checked = !!data.dhcp;
+                document.getElementById("port").value = data.port || 80; */
+                break;
+    
+            case "wifi":
+                document.querySelector("[name='ssid']").value = data.ssid || "";
+                document.querySelector("[name='password']").value = data.password || "";
+                document.querySelector("[name='mode']").value = data.mode || "STA";
+                break;
+    
+            case "uart":
+                // Пример подстановки, если такие поля будут
+                document.querySelector("#uart input[type=number]").value = data.baud || 9600;
+                break;
+    
+            case "user":
+               
+                document.querySelector("[name='user-login']").value = data.user.login || "";
+                break;
+    
+            case "account":
+               
+                document.querySelector("[name='account-login']").value = data.user.account_login || "";
+                break;
+    
+            case "system":
+                // Тут заполняй по аналогии, если есть поля
+                break;
+        }
+    }
+    
 
 
  // Функция: форматирует IP (добавляет нули и точки)
@@ -301,20 +389,7 @@ function validateIP(ip) {
                 updateIPFieldsState();
             }
 
-            // === Можно также заполнить User и System настройки, если нужно ===
-            if (data.user) {
-                const user = data.user;
-                document.getElementById("login").value = user.login || "";
-                // Язык можно использовать для переключения локализации
-            }
-
-            if (data.system) {
-                const sys = data.system;
-                document.getElementById("refresh_interval").value = sys.refresh_interval || "";
-                document.getElementById("log_level").value = sys.log_level || "";
-                document.getElementById("debug_mode").checked = !!sys.debug_mode;
-            }
-
+       
         } catch (err) {
             alert("Ошибка соединения при получении настроек: " + err);
         }

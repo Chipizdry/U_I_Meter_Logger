@@ -1,9 +1,12 @@
 
-function showLogin() {
+/*
+window.showLogin = function() {
+    const loginForm = document.getElementById('loginForm');
+    const mainScreen = document.getElementById('mainScreen');
     loginForm.classList.remove("hidden");
     mainScreen.classList.add("hidden");
-}
-
+};
+*/
 
 function togglePassword(inputId, iconId) {
     const passwordInput = document.getElementById(inputId);
@@ -98,7 +101,7 @@ function updateEyeIcon(eyeIcon, isPasswordHidden) {
 }
 
 
-
+/*
 function showTokenExpiredModal() {
 
     // Очищаем всё содержимое body
@@ -181,3 +184,92 @@ function showTokenExpiredModal() {
     });
 
 }
+
+*/
+
+// Функция показа модального окна
+function showTokenExpiredModal(message) {
+    // Если модалка уже есть — не создаём новую
+    if (document.getElementById("token-expired-modal")) return;
+
+    const modalDiv = document.createElement("div");
+    modalDiv.id = "token-expired-modal";
+    modalDiv.innerHTML = `
+         <div  class="modal" 
+       style="height: auto; 
+       padding: 20px; 
+       display: flex; 
+       flex-direction: column;
+       position: fixed;
+       top: 50%;
+       left: 50%;
+       transform: translate(-50%, -50%);
+       z-index: 1000;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 15px; flex: 1; justify-content: center;">
+
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="80" height="80" rx="40" fill="white"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M40.0605 24.2002C41.6475 24.2002 43.0791 
+    25.0459 43.8896 26.4629L56.9111 49.1445C57.3018 49.8145 57.5088 50.5742 57.5088 51.3379C57.5088 
+    53.9648 55.6729 55.8008 53.0459 55.8008H27.0586C24.4316 55.8008 22.5977 53.9648 22.5977 
+    51.3379C22.5996 50.5723 22.8057 49.8184 23.1963 49.1582L36.2139 26.4639C37.041 25.0459 
+    38.4795 24.2002 40.0605 24.2002Z" fill="#DF1125"/>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M39.0374 33.7061C39.2815 33.458 39.636 
+    33.3213 40.0364 33.3213C40.4329 33.3213 40.7903 33.4619 41.0413 33.7188C41.2727 33.9551 
+    41.3968 34.2744 41.3899 34.6191L41.1526 43.5195C41.139 44.2734 40.7581 44.6738 40.053 
+    44.6738C39.3255 44.6738 38.9339 44.2734 38.9192 43.5176L38.6995 34.6025C38.6927 34.249 
+    38.8099 33.9385 39.0374 33.7061ZM41.6768 48.6055C41.6768 49.4629 40.9492 50.1621 40.0537 
+    50.1621C39.1729 50.1621 38.4297 49.4492 38.4297 48.6055C38.4297 47.748 39.1582 47.0488 
+    40.0537 47.0488C40.9639 47.0488 41.6768 47.7324 41.6768 48.6055Z" fill="white"/>
+   </svg>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <h1 style="font-size: 18px; margin: 0; color: #291161;">Срок действия сессии истёк</h1>
+        </div>
+        
+        <p style="margin: 0; color: #5B4296; text-align: center;">Пожалуйста, войдите снова, чтобы продолжить.</p>
+        
+        <button id="login-btn" style="
+            padding: 10px;
+            border: none;
+            margin: 10px 0;
+            background-color: #7527B2;
+            color: white;
+            cursor: pointer;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 200px;
+            height: 40px;
+            transition: background-color 0.3s;">Войти
+        </button>
+    </div>
+</div>
+    `;
+
+    document.body.appendChild(modalDiv);
+
+    // Обработчик кнопки "Войти"
+    document.getElementById("login-btn").addEventListener("click", () => {
+        closeTokenExpiredModal();
+        showLogin(); // ✅ теперь loginForm и mainScreen НЕ удалены и существуют
+    });
+}
+
+// Закрытие модалки и удаление её из DOM
+function closeTokenExpiredModal() {
+    const modal = document.getElementById("token-expired-modal");
+    if (modal) modal.remove();
+}
+
+// Безопасная реализация showLogin
+window.showLogin = function() {
+    const loginForm = document.getElementById('loginForm');
+    const mainScreen = document.getElementById('mainScreen');
+
+    if (loginForm && mainScreen) {
+        loginForm.classList.remove("hidden");
+        mainScreen.classList.add("hidden");
+    } else {
+        console.error("❌ loginForm или mainScreen не найдены в DOM!");
+    }
+};
