@@ -17,7 +17,7 @@
 #include "esp_system.h"
 #include <stdbool.h>
 #include "ota_update.h"
-
+#include "websocket_client.h"
 
 static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
@@ -129,92 +129,7 @@ static esp_err_t login_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-
-/*
-// === GET /get_settings ===
-static esp_err_t get_settings_handler(httpd_req_t *req)
-{
-    if (!check_token(req)) {
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
-        return ESP_FAIL;
-    }
-
-     // Определяем подмаршрут
-    const char *uri = req->uri;
-
-     
-    bool want_uart = (strstr(uri, "/uart") != NULL);
-    bool want_user = (strstr(uri, "/user") != NULL);
-    bool want_network = (strstr(uri, "/network") != NULL);
-    bool want_system = (strstr(uri, "/system") != NULL);
-    bool want_all = (!want_user && !want_network && !want_system);
-
-
-
-    // --- Загружаем все настройки из NVS ---
-    user_settings_t user = {0};
-    network_settings_t net = {0};
-    system_settings_t sys = {0};
-    uart_settings_t uart_cfg = {0};
-
-    nvs_load_user_settings(&user);
-    nvs_load_network_settings(&net);
-    nvs_load_system_settings(&sys);
-    nvs_load_uart_settings(&uart_cfg);
-    
-
-     // Если DHCP включен, берем текущие настройки с Ethernet
-     if (net.dhcp_enabled) {
-        esp_netif_ip_info_t ip_info = ethernet_get_ip_info();
-        char ip[16], mask[16], gw[16];
-        inet_ntoa_r(ip_info.ip, ip, sizeof(ip));
-        inet_ntoa_r(ip_info.netmask, mask, sizeof(mask));
-        inet_ntoa_r(ip_info.gw, gw, sizeof(gw));
-
-        strncpy(net.ip, ip, sizeof(net.ip));
-        strncpy(net.mask, mask, sizeof(net.mask));
-        strncpy(net.gateway, gw, sizeof(net.gateway));
-        // DNS можно оставить как есть или брать с DHCP клиента
-    }
-
-
-
-    // --- Формируем JSON ---
-    cJSON *json = cJSON_CreateObject();
-
-    cJSON *user_json = cJSON_CreateObject();
-    cJSON_AddStringToObject(user_json, "login", user.login);
-    cJSON_AddStringToObject(user_json, "language", user.language);
-    cJSON_AddItemToObject(json, "user", user_json);
-
-    cJSON *network_json = cJSON_CreateObject();
-    cJSON_AddStringToObject(network_json, "ip", net.ip);
-    cJSON_AddStringToObject(network_json, "gateway", net.gateway);
-    cJSON_AddStringToObject(network_json, "mask", net.mask);
-    cJSON_AddStringToObject(network_json, "dns", net.dns);
-    cJSON_AddNumberToObject(network_json, "port", net.port);
-    cJSON_AddBoolToObject(network_json, "dhcp_enabled", net.dhcp_enabled);
-    cJSON_AddStringToObject(network_json, "ssid", net.ap_ssid);
-    cJSON_AddStringToObject(network_json, "mode", wifi_mode_to_string(net.mode));
-    cJSON_AddItemToObject(json, "network", network_json);
-
-    cJSON *system_json = cJSON_CreateObject();
-    cJSON_AddNumberToObject(system_json, "refresh_interval", sys.refresh_interval);
-    cJSON_AddNumberToObject(system_json, "log_level", sys.log_level);
-    cJSON_AddBoolToObject(system_json, "debug_mode", sys.debug_mode);
-    cJSON_AddItemToObject(json, "system", system_json);
-
-    const char *response = cJSON_PrintUnformatted(json);
-    httpd_resp_set_type(req, "application/json");
-    httpd_resp_sendstr(req, response);
-
-    cJSON_Delete(json);
-    free((void*)response);
-
-    return ESP_OK;
-}
-
-*/
+/// GET /get_settings
 
 static esp_err_t get_settings_handler(httpd_req_t *req)
 {
@@ -286,7 +201,9 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddStringToObject(u, "login", user.login);
             cJSON_AddStringToObject(u, "account_login", user.account_login);  // ✅ имя аккаунта
             cJSON_AddStringToObject(u, "language", user.language);
-            cJSON_AddStringToObject(u, "serial", user.serial);     // ✅ серийный номер            
+            cJSON_AddStringToObject(u, "serial", user.serial);     // ✅ серийный номер      
+            cJSON_AddBoolToObject(u, "connected", ws_connected);
+            cJSON_AddStringToObject(u, "status", ws_status_msg);      
             cJSON_AddItemToObject(json, "user", u);
             if (section != ALL) break;
             [[fallthrough]]; 
@@ -309,6 +226,8 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON *s = cJSON_CreateObject();
             cJSON_AddNumberToObject(s, "refresh", sys.refresh_interval);
             cJSON_AddBoolToObject(s, "debug", sys.debug_mode);
+            cJSON_AddNumberToObject(s, "build_number", sys.build_number);
+            cJSON_AddStringToObject(s, "build_date", sys.build_date);
             cJSON_AddItemToObject(json, "system", s);
             if (section != ALL) break;
             [[fallthrough]]; 

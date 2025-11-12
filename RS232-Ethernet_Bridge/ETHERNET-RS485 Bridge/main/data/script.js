@@ -206,45 +206,71 @@ const tabContents = document.querySelectorAll(".tab-content");
         }
     }
 
-
     function applySettingsToForm(tab, data) {
         switch (tab) {
-            case "LAN":
-                document.getElementById("ip").value = data.net.ip || "";
-                document.getElementById("mask").value = data.net.mask || "";
-                document.getElementById("gateway").value = data.net.gateway || "";
-                document.getElementById("dns").value = data.net.dns || "";
-                document.getElementById("dhcp").checked = !!data.net.dhcp_enabled;
-                document.getElementById("port").value = data.net.port || 80; 
+            case "LAN": {
+                const net = data.network || {};
+                document.getElementById("ip").value = net.ip || "";
+                document.getElementById("mask").value = net.mask || "";
+                document.getElementById("gateway").value = net.gateway || "";
+                document.getElementById("dns").value = net.dns || "";
+                document.getElementById("dhcp").checked = !!net.dhcp_enabled;
+                document.getElementById("port").value = net.port || 80;
                 break;
+            }
     
-            case "wifi":
-                document.querySelector("[name='ssid']").value = data.ssid || "";
-                document.querySelector("[name='password']").value = data.password || "";
-                document.querySelector("[name='mode']").value = data.mode || "STA";
+            case "wifi": {
+                const wifi = data.wifi || {};
+                document.querySelector("[name='ssid']").value = wifi.ssid || "";
+                document.querySelector("[name='password']").value = wifi.password || "";
+                document.querySelector("[name='mode']").value = wifi.mode || "STA";
                 break;
+            }
     
-            case "uart":
-                // Пример подстановки, если такие поля будут
-                document.querySelector("#uart input[type=number]").value = data.baud || 9600;
+            case "uart": {
+                const uart = data.uart || {};
+                document.querySelector("#uart input[type=number]").value = uart.baud || 9600;
                 break;
+            }
     
-            case "user":
-               
-                document.querySelector("[name='user-login']").value = data.user.login || "";
+            case "user": {
+                const user = data.user || {};
+                document.querySelector("[name='user-login']").value = user.login || "";
                 break;
+            }
     
-            case "account":
-               
-                document.querySelector("[name='account-login']").value = data.user.account_login || "";
+            case "account": {
+                const account = data.user || {};
+                const wsDiv = document.getElementById('ws-status');
+                const color = account.connected ? 'green' : 'red';
+                const icon = account.connected ? '✅' : '❌';
+                document.querySelector("[name='account-login']").value = account.account_login || "";
+                wsDiv.innerHTML = `
+                    COR-ID: <span style="color:${color}">${icon} ${account.status || 'Unknown'}</span>
+                `;
                 break;
+            }
     
-            case "system":
-                // Тут заполняй по аналогии, если есть поля
+            case "system": {
+                const system = data.system || {};
+                // Здесь добавляйте поля для system, например:
+                // document.querySelector("[name='timezone']").value = system.timezone || "";
+                buildNumber = system.build_number;
+                buildDate = system.build_date;
+        
+                console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
+    
+                const buildInfoText = document.getElementById("buildInfoText");
+                if (buildInfoText) {
+                    buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
+                }
                 break;
+            }
+    
+            default:
+                console.warn(`Неизвестная вкладка: ${tab}`);
         }
     }
-    
 
 
  // Функция: форматирует IP (добавляет нули и точки)
@@ -382,8 +408,6 @@ function validateIP(ip) {
                 document.getElementById("dns").value = net.dns || "";
                 document.getElementById("dhcp").checked = !!net.dhcp_enabled;
                 document.getElementById("port").value = net.port;
-              //  document.getElementById("ssid").value = net.ssid || "";
-              //  document.getElementById("mode").value = net.mode || "";
 
                 // Обновляем состояние полей IP в зависимости от DHCP
                 updateIPFieldsState();

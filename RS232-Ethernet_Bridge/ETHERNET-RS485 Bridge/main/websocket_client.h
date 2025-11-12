@@ -6,6 +6,9 @@
 #include "esp_err.h"
 #include <stdbool.h>
 
+extern bool ws_connected;          // видимость флага
+extern char ws_status_msg[128];    // видимость строки состояния
+
 void initialize_sntp(void);
 //static void websocket_send_task(void *pvParameters);
 
