@@ -210,12 +210,12 @@ const tabContents = document.querySelectorAll(".tab-content");
     function applySettingsToForm(tab, data) {
         switch (tab) {
             case "LAN":
-         /*       document.getElementById("ip").value = data.ip || "";
-                document.getElementById("mask").value = data.mask || "";
-                document.getElementById("gateway").value = data.gateway || "";
-                document.getElementById("dns").value = data.dns || "";
-                document.getElementById("dhcp").checked = !!data.dhcp;
-                document.getElementById("port").value = data.port || 80; */
+                document.getElementById("ip").value = data.net.ip || "";
+                document.getElementById("mask").value = data.net.mask || "";
+                document.getElementById("gateway").value = data.net.gateway || "";
+                document.getElementById("dns").value = data.net.dns || "";
+                document.getElementById("dhcp").checked = !!data.net.dhcp_enabled;
+                document.getElementById("port").value = data.net.port || 80; 
                 break;
     
             case "wifi":

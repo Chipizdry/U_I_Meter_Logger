@@ -263,6 +263,15 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         strncpy(net.mask, mask, sizeof(net.mask));
         strncpy(net.gateway, gw, sizeof(net.gateway));
         // DNS можно оставить как есть или брать с DHCP клиента
+
+        esp_netif_t *eth_if = esp_netif_get_handle_from_ifkey("ETH_DEF"); // или ваш Ethernet интерфейс
+        esp_netif_dns_info_t dns_info;
+        
+        if (esp_netif_get_dns_info(eth_if, ESP_NETIF_DNS_MAIN, &dns_info) == ESP_OK) {
+            inet_ntoa_r(dns_info.ip.u_addr.ip4, net.dns, sizeof(net.dns));
+        } else {
+            strcpy(net.dns, "0.0.0.0");
+        }
     }
 
 
@@ -288,6 +297,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddStringToObject(n, "ip", net.ip);
             cJSON_AddStringToObject(n, "mask", net.mask);
             cJSON_AddStringToObject(n, "gateway", net.gateway);
+            cJSON_AddStringToObject(n, "dns", net.dns); 
             cJSON_AddNumberToObject(n, "port", net.port);
             cJSON_AddBoolToObject(n, "dhcp_enabled", net.dhcp_enabled);
             cJSON_AddItemToObject(json, "network", n);
