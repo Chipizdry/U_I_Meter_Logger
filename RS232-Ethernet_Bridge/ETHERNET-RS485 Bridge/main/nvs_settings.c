@@ -92,7 +92,6 @@ static void set_default_uart_settings(uart_settings_t *s) {
     s->stop_bits    = 1;
     s->parity       = 'N';
     s->flow_control = false;
-    s->rs485_enable = true;
 }
 
 

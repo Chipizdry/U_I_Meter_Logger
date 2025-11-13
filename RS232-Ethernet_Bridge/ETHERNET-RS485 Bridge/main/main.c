@@ -55,7 +55,7 @@ void app_main(void)
     ESP_LOGW("BOOT", "Running size       : 0x%lx", running->size);
     ESP_LOGW("BOOT", "==============================");
 
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    vTaskDelay(pdMS_TO_TICKS(500));
 
     ESP_ERROR_CHECK(nvs_settings_init());
     ESP_ERROR_CHECK(esp_netif_init());
@@ -64,10 +64,12 @@ void app_main(void)
     nvs_load_user_settings(&user);
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);
+    nvs_load_uart_settings(&uart_cfg);
 
     ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
+    ESP_LOGI("MAIN", "Loaded UART config: baudrate:%d , DataBits:%d ,StopBits:%d ,Parity: %d", uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity);
 
     ESP_ERROR_CHECK(gpio_manager_init());
 
@@ -77,6 +79,7 @@ void app_main(void)
  
 
     rs485_master_init(9600, 2048, 1024);
+   // rs485_master_init_from_cfg(&uart_cfg, 2048, 1024);
 
     rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 10, .poll_interval_ms = 500 };
     rs485_master_add_slave(&s1);

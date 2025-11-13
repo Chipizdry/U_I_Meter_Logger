@@ -20,7 +20,9 @@
 #include "freertos/semphr.h"
 #include "esp_rom_sys.h" 
 #include "esp_timer.h"
+
 #include "websocket_client.h"
+#include "nvs_settings.h" 
 
 static const char *TAG = "rs485_master";
 static esp_timer_handle_t s_de_off_timer = NULL;

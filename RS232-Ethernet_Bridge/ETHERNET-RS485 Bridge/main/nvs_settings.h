@@ -58,8 +58,6 @@ typedef struct {
     uint8_t  stop_bits;
     char     parity;        // 'N', 'E', 'O'
     bool     flow_control;
-    bool     rs485_enable;
-  
 } uart_settings_t;
 
 extern user_settings_t user;
