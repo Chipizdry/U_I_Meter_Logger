@@ -74,19 +74,31 @@
                 <div class="tab-content" id="uart">
                     <h2>Настройки Modbus</h2>
                     <label>Скорость передачи (baud rate):</label>
-                    <input type="number" value="9600"><br>
+                    <input type="number" id="uart-baud" value="9600"><br>
+                
                     <label>Чётность:</label>
-                    <select>
-                        <option>None</option>
-                        <option>Even</option>
-                        <option>Odd</option>    
-
+                    <select id="uart-parity">
+                        <option value="0">None</option>
+                        <option value="2">Even</option>
+                        <option value="1">Odd</option>    
                     </select><br>
+                
                     <label>Стоп-биты:</label>
-                    <select>
-                        <option>1</option>
-                        <option>2</option>
+                    <select id="uart-stop-bits">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="15">1.5</option>
                     </select><br>
+                
+                    <label>Данные (Data bits):</label>
+                    <select id="uart-data-bits">
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8" selected>8</option>
+                    </select><br><br>
+                
+                    <button type="button" onclick="saveUARTSettings()">💾 Сохранить</button>
                 </div>
         
                 <!-- Пользователь -->

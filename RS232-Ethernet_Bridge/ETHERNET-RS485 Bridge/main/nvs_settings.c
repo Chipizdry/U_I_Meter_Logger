@@ -9,6 +9,9 @@
 #include <stdio.h>
 #include "esp_mac.h"
 
+
+#include "driver/uart.h"
+
 #ifndef BUILD_NUMBER
 #define BUILD_NUMBER 0
 #endif
@@ -88,9 +91,9 @@ static void set_default_system_settings(system_settings_t *s) {
 static void set_default_uart_settings(uart_settings_t *s) {
     memset(s, 0, sizeof(*s));
     s->baud_rate    = 9600;
-    s->data_bits    = 8;
-    s->stop_bits    = 1;
-    s->parity       = 'N';
+    s->data_bits    = UART_DATA_8_BITS;      // вместо 8
+    s->stop_bits    = UART_STOP_BITS_1;      // вместо 1
+    s->parity       = UART_PARITY_DISABLE;   // вместо 'N'
     s->flow_control = false;
 }
 

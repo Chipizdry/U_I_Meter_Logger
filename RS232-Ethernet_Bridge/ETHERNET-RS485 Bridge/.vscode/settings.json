@@ -18,6 +18,8 @@
   "idf.monitorPort": "COM3",
   "files.associations": {
     "websocket_client.h": "c",
-    "esp_http_server.h": "c"
+    "esp_http_server.h": "c",
+    "uart.h": "c",
+    "uart_types.h": "c"
   }
 }

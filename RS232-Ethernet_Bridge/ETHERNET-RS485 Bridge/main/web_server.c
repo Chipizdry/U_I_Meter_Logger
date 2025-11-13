@@ -18,6 +18,10 @@
 #include <stdbool.h>
 #include "ota_update.h"
 #include "websocket_client.h"
+#include "rs485_master.h"
+
+#include "driver/uart.h"
+
 
 static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
@@ -234,8 +238,28 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         }
 
         case UART: {
+
+            int real_data_bits = 8; // по умолчанию
+            switch (uart_cfg.data_bits) {
+                case UART_DATA_5_BITS: real_data_bits = 5; break;
+                case UART_DATA_6_BITS: real_data_bits = 6; break;
+                case UART_DATA_7_BITS: real_data_bits = 7; break;
+                case UART_DATA_8_BITS: real_data_bits = 8; break;
+            }
+            
+            int real_stop_bits = 1;
+            switch (uart_cfg.stop_bits) {
+                case UART_STOP_BITS_1:   real_stop_bits = 1; break;
+                case UART_STOP_BITS_1_5: real_stop_bits = 15; break; // 1.5 бит
+                case UART_STOP_BITS_2:   real_stop_bits = 2; break;
+            }
+
             cJSON *u = cJSON_CreateObject();
-           // cJSON_AddNumberToObject(u, "baud", uart_cfg.baud);
+            cJSON_AddNumberToObject(u, "baud", uart_cfg.baud_rate);
+    //      cJSON_AddNumberToObject(u, "data_bits", uart_cfg.data_bits);
+            cJSON_AddNumberToObject(u, "data_bits", real_data_bits);
+            cJSON_AddNumberToObject(u, "stop_bits", real_stop_bits);
+     //     cJSON_AddNumberToObject(u, "stop_bits", uart_cfg.stop_bits);
             cJSON_AddNumberToObject(u, "parity", uart_cfg.parity);
             cJSON_AddItemToObject(json, "uart", u);
             break;
@@ -315,6 +339,118 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
         httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
         return ESP_FAIL;
     }
+
+
+    const char *uri = req->uri;
+    enum { SECTION_USER, SECTION_NETWORK, SECTION_UART, SECTION_SYSTEM, SECTION_UNKNOWN } section = SECTION_UNKNOWN;
+
+    if (strstr(uri, "/save_settings/user"))    section = SECTION_USER;
+    else if (strstr(uri, "/save_settings/network")) section = SECTION_NETWORK;
+    else if (strstr(uri, "/save_settings/uart"))    section = SECTION_UART;
+    else if (strstr(uri, "/save_settings/system"))  section = SECTION_SYSTEM;
+    else section = SECTION_UNKNOWN;
+
+    if (section == SECTION_UNKNOWN) {
+        httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "Unknown settings section");
+        return ESP_FAIL;
+    }
+
+
+    
+
+
+    if (section == SECTION_UART) {
+        char body[512] = {0};
+        int ret = httpd_req_recv(req, body, sizeof(body)-1);
+        if (ret <= 0) {
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
+            return ESP_FAIL;
+        }
+        body[ret] = '\0';
+    
+        cJSON *json = cJSON_Parse(body);
+        if (!json) {
+            httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+            return ESP_FAIL;
+        }
+    
+        uart_settings_t uart_cfg = {0};
+        nvs_load_uart_settings(&uart_cfg);
+    
+        cJSON *baud = cJSON_GetObjectItem(json, "baud");
+        cJSON *data_bits = cJSON_GetObjectItem(json, "data_bits");
+        cJSON *stop_bits = cJSON_GetObjectItem(json, "stop_bits");
+        cJSON *parity = cJSON_GetObjectItem(json, "parity");
+    
+        if (baud && cJSON_IsNumber(baud)) uart_cfg.baud_rate = baud->valueint;
+        if (data_bits && cJSON_IsNumber(data_bits)) {
+            switch (data_bits->valueint) {
+                case 5: uart_cfg.data_bits = UART_DATA_5_BITS; break;
+                case 6: uart_cfg.data_bits = UART_DATA_6_BITS; break;
+                case 7: uart_cfg.data_bits = UART_DATA_7_BITS; break;
+                case 8: uart_cfg.data_bits = UART_DATA_8_BITS; break;
+                default: uart_cfg.data_bits = UART_DATA_8_BITS; break;
+            }
+        }
+        if (stop_bits && cJSON_IsNumber(stop_bits)) {
+            switch (stop_bits->valueint) {
+                case 1: uart_cfg.stop_bits = UART_STOP_BITS_1; break;
+                case 2: uart_cfg.stop_bits = UART_STOP_BITS_2; break;
+                case 15: uart_cfg.stop_bits = UART_STOP_BITS_1_5; break; // 1.5 -> 15
+                default: uart_cfg.stop_bits = UART_STOP_BITS_1; break;
+            }
+        }
+        if (parity && cJSON_IsNumber(parity)) {
+            switch (parity->valueint) {
+                case UART_PARITY_DISABLE:
+                case UART_PARITY_EVEN:
+                case UART_PARITY_ODD:
+                    uart_cfg.parity = parity->valueint;
+                    break;
+                default:
+                    uart_cfg.parity = UART_PARITY_DISABLE;
+                    break;
+            }
+        }
+    
+        // --- Логгирование полученных настроек ---
+        ESP_LOGI("UART_SETTINGS", "Received UART config: baud=%d, data_bits=%d, stop_bits=%d, parity=%d",uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity);
+
+        nvs_save_uart_settings(&uart_cfg);
+        cJSON_Delete(json);
+    
+          // --- Применяем новые настройки сразу ---
+        rs485_master_deinit();                              // останавливаем текущий UART/RS485 master
+       
+        rs485_master_init_from_cfg(&uart_cfg, 2048, 1024);  // инициализируем заново с новыми параметрами
+
+        httpd_resp_sendstr(req, "UART settings saved successfully 💾");
+        return ESP_OK;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     char buf[256];
     int len = req->content_len;
@@ -426,6 +562,13 @@ esp_err_t web_server_start(void)
             .uri = "/get_settings/*",
             .method = HTTP_GET,
             .handler = get_settings_handler,
+            .user_ctx = NULL
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/save_settings/*",
+            .method = HTTP_POST,
+            .handler = save_settings_post_handler,
             .user_ctx = NULL
         });
 

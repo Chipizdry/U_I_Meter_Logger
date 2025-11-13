@@ -303,15 +303,15 @@ static void poll_task(void *arg)
 
 /* --- Публичные API --- */
 
-esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
+esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size, int tx_buf_size)
 {
     if (s_running) return ESP_ERR_INVALID_STATE;
 
-    s_baud = (baud > 0) ? baud : 9600;
+    s_baud = (cfg && cfg->baud_rate > 0) ? cfg->baud_rate : 9600;
     s_rx_buf = (rx_buf_size > 0) ? rx_buf_size : 1024;
     s_tx_buf = (tx_buf_size > 0) ? tx_buf_size : 512;
 
-    // configure DE pin
+    // Настройка DE-пина
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << RS485_DE_PIN),
         .mode = GPIO_MODE_OUTPUT,
@@ -322,22 +322,20 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     gpio_config(&io_conf);
     gpio_set_level(RS485_DE_PIN, 0);
 
-    // init uart
+    // Конфигурация UART
     uart_config_t uart_conf = {
-        .baud_rate = s_baud,
-        .data_bits = UART_DATA_8_BITS,
-        .parity = UART_PARITY_DISABLE,
-        .stop_bits = UART_STOP_BITS_1,
-        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
-#if defined(UART_SCLK_DEFAULT)
-        .source_clk = UART_SCLK_APB,
-#endif
+        .baud_rate = (cfg) ? cfg->baud_rate : 9600,                  // скорость
+        .data_bits = (cfg) ? cfg->data_bits : UART_DATA_8_BITS,      // 5..8 бит
+        .parity    = (cfg) ? cfg->parity : UART_PARITY_DISABLE,      // none, odd, even
+        .stop_bits = (cfg) ? cfg->stop_bits : UART_STOP_BITS_1,      // 1, 1.5, 2
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,                       // flow control не используем
+    #if defined(UART_SCLK_DEFAULT)
+        .source_clk = UART_SCLK_APB,                                 // источник тактирования
+    #endif
     };
 
     ESP_ERROR_CHECK(uart_param_config(RS485_UART_NUM, &uart_conf));
     ESP_ERROR_CHECK(uart_set_pin(RS485_UART_NUM, RS485_TX_PIN, RS485_RX_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
-
-
 
     const esp_timer_create_args_t targs = {
         .callback = &de_off_timer_cb,
@@ -347,19 +345,15 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     };
     ESP_ERROR_CHECK(esp_timer_create(&targs, &s_de_off_timer));
 
-
-
-
-    // install driver without event queue (we read synchronously)
+    // Установка драйвера UART
     esp_err_t r = uart_driver_install(RS485_UART_NUM, s_rx_buf, s_tx_buf, 0, NULL, 0);
     if (r != ESP_OK) {
         ESP_LOGE(TAG, "uart_driver_install failed: %s", esp_err_to_name(r));
         return r;
     }
 
-     // --- diagnostic info ---
-     ESP_LOGI(TAG, "uart_driver_install ok on uart %d", RS485_UART_NUM);
-     ESP_LOGI(TAG, "uart pins: TX=%d RX=%d DE=%d", RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
+    ESP_LOGI(TAG, "uart_driver_install ok on uart %d", RS485_UART_NUM);
+    ESP_LOGI(TAG, "uart pins: TX=%d RX=%d DE=%d", RS485_TX_PIN, RS485_RX_PIN, RS485_DE_PIN);
 
     s_data_mutex = xSemaphoreCreateMutex();
     s_uart_mutex = xSemaphoreCreateMutex();
@@ -368,7 +362,6 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
         return ESP_FAIL;
     }
 
-    // clear slave table
     memset(s_slaves, 0, sizeof(s_slaves));
     s_slave_count = 0;
     s_running = true;
@@ -376,18 +369,11 @@ esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size)
     s_req_queue = xQueueCreate(5, sizeof(rs485_req_t));
     xTaskCreatePinnedToCore(rs485_request_task, "rs485_req_task", 4096, NULL, 7, NULL, 1);
 
-    // create poll task
-    /*
-    if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
-        ESP_LOGE(TAG, "Failed to create poll task");
-        s_running = false;
-        return ESP_FAIL;
-    }  
-        */
-
     ESP_LOGI(TAG, "RS485 master init: baud=%d rx=%d tx=%d", s_baud, s_rx_buf, s_tx_buf);
     return ESP_OK;
 }
+
+
 
 int rs485_master_add_slave(const rs485_slave_cfg_t *cfg)
 {

@@ -35,6 +35,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (token) {
         showMainScreen();
         fetchSettings();
+        const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+        loadTabSettings(activeTab);
     } else {
         showLogin();
     }
@@ -66,6 +68,10 @@ document.addEventListener("DOMContentLoaded", () => {
             alert('Авторизация успешна ✅');
             fetchSettings();
             showMainScreen();
+             // Загружаем настройки сразу после входа
+            const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+            await loadTabSettings(activeTab);
+
         } else {
             const text = await res.text();
             alert('Ошибка входа 💩: ' + text);
@@ -230,6 +236,9 @@ const tabContents = document.querySelectorAll(".tab-content");
             case "uart": {
                 const uart = data.uart || {};
                 document.querySelector("#uart input[type=number]").value = uart.baud || 9600;
+                document.querySelector("#uart-data-bits").value = uart.data_bits || 8;
+                document.querySelector("#uart-stop-bits").value = uart.stop_bits || 1;
+                document.querySelector("#uart-parity").value = uart.parity || 0;
                 break;
             }
     
@@ -422,6 +431,33 @@ function validateIP(ip) {
 
 
 
+
 });
+
+
+
+async function saveUARTSettings() {
+   
+    const token = sessionStorage.getItem("auth_token");
+    const payload = {
+        baud: parseInt(document.getElementById('uart-baud').value),
+        parity: parseInt(document.getElementById('uart-parity').value),
+        stop_bits: parseInt(document.getElementById('uart-stop-bits').value),
+        data_bits: parseInt(document.getElementById('uart-data-bits').value)
+    };
+    const res = await fetch('/save_settings/uart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+        alert('UART настройки сохранены ✅');
+    } else {
+        alert('Ошибка при сохранении UART настроек ❌');
+    }
+}
 
 

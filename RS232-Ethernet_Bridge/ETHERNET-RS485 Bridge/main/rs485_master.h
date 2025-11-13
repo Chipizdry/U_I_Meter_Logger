@@ -15,6 +15,8 @@
 #include <stdint.h>
 #include "esp_err.h"
 
+#include "nvs_settings.h" 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,7 +48,8 @@ typedef struct {
 // Инициализация модуля RS485 master:
 //  baud - скорость (например 9600, 57600)
 //  rx_buf_size, tx_buf_size - размеры аппаратных буферов (байты)
-esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size);
+//esp_err_t rs485_master_init(int baud, int rx_buf_size, int tx_buf_size);
+esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size, int tx_buf_size);
 
 esp_err_t rs485_master_send_raw(const uint8_t *tx, size_t tx_len, uint8_t *rx, size_t max_rx_len, int *out_rx_len, int timeout_ms);
 esp_err_t rs485_master_send(const uint8_t *data, size_t len);
