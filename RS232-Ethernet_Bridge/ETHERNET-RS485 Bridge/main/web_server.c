@@ -27,7 +27,8 @@ static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
  char auth_token[64] = {0};
 
-
+ #define MAX_CLIENTS 8
+ static int ws_clients[MAX_CLIENTS] = {0};
 
 
 static const char* wifi_mode_to_string(wifi_mode_t mode) { 
@@ -256,10 +257,8 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
 
             cJSON *u = cJSON_CreateObject();
             cJSON_AddNumberToObject(u, "baud", uart_cfg.baud_rate);
-    //      cJSON_AddNumberToObject(u, "data_bits", uart_cfg.data_bits);
             cJSON_AddNumberToObject(u, "data_bits", real_data_bits);
             cJSON_AddNumberToObject(u, "stop_bits", real_stop_bits);
-     //     cJSON_AddNumberToObject(u, "stop_bits", uart_cfg.stop_bits);
             cJSON_AddNumberToObject(u, "parity", uart_cfg.parity);
             cJSON_AddItemToObject(json, "uart", u);
             break;
@@ -342,9 +341,10 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
 
     const char *uri = req->uri;
-    enum { SECTION_USER, SECTION_NETWORK, SECTION_UART, SECTION_SYSTEM, SECTION_UNKNOWN } section = SECTION_UNKNOWN;
+    enum { SECTION_USER,SECTION_ACCOUNT, SECTION_NETWORK, SECTION_UART, SECTION_SYSTEM, SECTION_UNKNOWN } section = SECTION_UNKNOWN;
 
     if (strstr(uri, "/save_settings/user"))    section = SECTION_USER;
+    else if (strstr(uri, "/save_settings/account")) section = SECTION_ACCOUNT;
     else if (strstr(uri, "/save_settings/network")) section = SECTION_NETWORK;
     else if (strstr(uri, "/save_settings/uart"))    section = SECTION_UART;
     else if (strstr(uri, "/save_settings/system"))  section = SECTION_SYSTEM;
@@ -520,19 +520,107 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
 
 
+/* ------------------------ CLIENT LIST ------------------------ */
+
+static void add_client(int sockfd) {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i] == 0) {
+            ws_clients[i] = sockfd;
+            ESP_LOGI(TAG, "Client connected: %d", sockfd);
+            return;
+        }
+    }
+    ESP_LOGW(TAG, "Client list full!");
+}
+
+static void remove_client(int sockfd) {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i] == sockfd) {
+            ws_clients[i] = 0;
+            ESP_LOGI(TAG, "Client disconnected: %d", sockfd);
+            return;
+        }
+    }
+}
+
+int websocket_server_get_client_count(void) {
+    int n = 0;
+    for (int i = 0; i < MAX_CLIENTS; i++)
+        if (ws_clients[i] > 0) n++;
+    return n;
+}
+/* ------------------------ WEBSOCKET HANDLER ------------------------ */
+
+
+
+
+static esp_err_t ws_handler(httpd_req_t *req)
+{
+    /* Устанавливаем клиента при рукопожатии */
+    if (req->method == HTTP_GET) {
+        int sockfd = httpd_req_to_sockfd(req);
+        add_client(sockfd);
+        ESP_LOGI(TAG, "WS handshake completed");
+        return ESP_OK;
+    }
+
+    httpd_ws_frame_t frame = {0};
+    frame.type = HTTPD_WS_TYPE_TEXT;
+
+    /* 1 — Узнать длину сообщения */
+    esp_err_t ret = httpd_ws_recv_frame(req, &frame, 0);
+    if (ret != ESP_OK) return ret;
+
+    uint8_t *buf = calloc(frame.len + 1, 1);
+    if (!buf) return ESP_ERR_NO_MEM;
+
+    frame.payload = buf;
+
+    /* 2 — Прочитать содержимое */
+    ret = httpd_ws_recv_frame(req, &frame, frame.len);
+    if (ret != ESP_OK) {
+        free(buf);
+        return ret;
+    }
+
+    ESP_LOGI(TAG, "WS received: %s", buf);
+
+    /* 3 — Ответ */
+    httpd_ws_frame_t tx = {
+        .type = HTTPD_WS_TYPE_TEXT,
+        .payload = buf,
+        .len = frame.len
+    };
+
+    httpd_ws_send_frame(req, &tx);
+
+    free(buf);
+    return ESP_OK;
+}
+
 
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
 {
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+
     config.uri_match_fn = httpd_uri_match_wildcard;
+    config.ctrl_port = 32768;
     config.server_port = net.port;
-    config.max_uri_handlers = 15;  
+    config.max_uri_handlers = 20;  
     config.max_open_sockets = 6;
     config.stack_size = 8192;
+    config.enable_so_linger = true;
+    config.linger_timeout = 5;
+    config.open_fn  = NULL;
+    config.close_fn = NULL;
    
 
     if (httpd_start(&server, &config) == ESP_OK) {
+
+          // === Отмена старой регистрации WebSocket, если есть ===
+        httpd_unregister_uri(server, "/ws");
+
         httpd_uri_t file_get_uri = {
             .uri = "/*",
             .method = HTTP_GET,
@@ -578,12 +666,20 @@ esp_err_t web_server_start(void)
             .handler = ota_post_handler,
             .user_ctx = NULL
         };
+
+        httpd_uri_t ws_uri = {
+            .uri        = "/ws",
+            .method     = HTTP_GET,
+            .handler    = ws_handler,
+            .user_ctx   = NULL
+        };
         
         httpd_register_uri_handler(server, &ota_uri);
         httpd_register_uri_handler(server, &get_settings_uri);
         httpd_register_uri_handler(server, &file_get_uri);
         httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &login_uri);
+        httpd_register_uri_handler(server, &ws_uri);
         ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
         return ESP_OK;
     }
