@@ -520,6 +520,29 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
 
 
+
+static void ws_broadcast(const char *json_string) {
+    if (!server) return;
+
+    httpd_ws_frame_t frame = {
+        .final = true,
+        .fragmented = false,
+        .type = HTTPD_WS_TYPE_TEXT,
+        .payload = (uint8_t *)json_string,
+        .len = strlen(json_string)
+    };
+
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        int fd = ws_clients[i];
+        if (fd <= 0) continue;
+
+        esp_err_t err = httpd_ws_send_frame_async(server, fd, &frame);
+        if (err != ESP_OK) {
+            ESP_LOGW(TAG, "WS async send failed to fd=%d: %s", fd, esp_err_to_name(err));
+        }
+    }
+}
+
 /* ------------------------ CLIENT LIST ------------------------ */
 
 static void add_client(int sockfd) {
@@ -551,39 +574,50 @@ int websocket_server_get_client_count(void) {
 }
 /* ------------------------ WEBSOCKET HANDLER ------------------------ */
 
-
 static esp_err_t ws_handler(httpd_req_t *req)
 {
-    httpd_ws_frame_t ws_pkt;
-    memset(&ws_pkt, 0, sizeof(ws_pkt));
-    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+    if (req->method == HTTP_GET) {
+        int client_fd = httpd_req_to_sockfd(req);
 
-    // Узнаем длину сообщения
-    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
-    if (ret != ESP_OK) return ret;
+        // Добавляем клиента
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (ws_clients[i] == 0) {
+                ws_clients[i] = client_fd;
+                ESP_LOGI(TAG, "WS client added: fd=%d", client_fd);
+                break;
+            }
+        }
+        return ESP_OK;
+    }
 
-    uint8_t *buf = calloc(ws_pkt.len + 1, 1);
-    if (!buf) return ESP_ERR_NO_MEM;
-    ws_pkt.payload = buf;
+    // === Получение данных от клиента ===
+    httpd_ws_frame_t frame;
+    memset(&frame, 0, sizeof(frame));
+    frame.type = HTTPD_WS_TYPE_TEXT;
 
-    // Читаем само сообщение
-    ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+    esp_err_t ret = httpd_ws_recv_frame(req, &frame, 0);
     if (ret != ESP_OK) {
-        free(buf);
+        ESP_LOGE(TAG, "Failed to receive WS frame size: %s", esp_err_to_name(ret));
         return ret;
     }
 
-    ESP_LOGI(TAG, "WS received: %s", buf);
+    if (frame.len > 0) {
+        uint8_t *buf = malloc(frame.len + 1);
+        frame.payload = buf;
 
-    // Отправляем обратно
-    httpd_ws_frame_t tx_pkt = {
-        .type = HTTPD_WS_TYPE_TEXT,
-        .payload = buf,
-        .len = ws_pkt.len
-    };
-    ret = httpd_ws_send_frame(req, &tx_pkt);
-    free(buf);
-    return ret;
+        ret = httpd_ws_recv_frame(req, &frame, frame.len);
+        if (ret == ESP_OK) {
+            buf[frame.len] = 0;
+            ESP_LOGI(TAG, "WS received: %s", buf);
+
+            // Рассылаем ВСЕМ
+            ws_broadcast((char*)buf);
+        }
+
+        free(buf);
+    }
+
+    return ESP_OK;
 }
 
 
