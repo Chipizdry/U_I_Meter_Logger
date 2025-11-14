@@ -552,32 +552,22 @@ int websocket_server_get_client_count(void) {
 /* ------------------------ WEBSOCKET HANDLER ------------------------ */
 
 
-
-
 static esp_err_t ws_handler(httpd_req_t *req)
 {
-    /* Устанавливаем клиента при рукопожатии */
-    if (req->method == HTTP_GET) {
-        int sockfd = httpd_req_to_sockfd(req);
-        add_client(sockfd);
-        ESP_LOGI(TAG, "WS handshake completed");
-        return ESP_OK;
-    }
+    httpd_ws_frame_t ws_pkt;
+    memset(&ws_pkt, 0, sizeof(ws_pkt));
+    ws_pkt.type = HTTPD_WS_TYPE_TEXT;
 
-    httpd_ws_frame_t frame = {0};
-    frame.type = HTTPD_WS_TYPE_TEXT;
-
-    /* 1 — Узнать длину сообщения */
-    esp_err_t ret = httpd_ws_recv_frame(req, &frame, 0);
+    // Узнаем длину сообщения
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
     if (ret != ESP_OK) return ret;
 
-    uint8_t *buf = calloc(frame.len + 1, 1);
+    uint8_t *buf = calloc(ws_pkt.len + 1, 1);
     if (!buf) return ESP_ERR_NO_MEM;
+    ws_pkt.payload = buf;
 
-    frame.payload = buf;
-
-    /* 2 — Прочитать содержимое */
-    ret = httpd_ws_recv_frame(req, &frame, frame.len);
+    // Читаем само сообщение
+    ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
     if (ret != ESP_OK) {
         free(buf);
         return ret;
@@ -585,17 +575,15 @@ static esp_err_t ws_handler(httpd_req_t *req)
 
     ESP_LOGI(TAG, "WS received: %s", buf);
 
-    /* 3 — Ответ */
-    httpd_ws_frame_t tx = {
+    // Отправляем обратно
+    httpd_ws_frame_t tx_pkt = {
         .type = HTTPD_WS_TYPE_TEXT,
         .payload = buf,
-        .len = frame.len
+        .len = ws_pkt.len
     };
-
-    httpd_ws_send_frame(req, &tx);
-
+    ret = httpd_ws_send_frame(req, &tx_pkt);
     free(buf);
-    return ESP_OK;
+    return ret;
 }
 
 
@@ -608,7 +596,7 @@ esp_err_t web_server_start(void)
     config.ctrl_port = 32768;
     config.server_port = net.port;
     config.max_uri_handlers = 20;  
-    config.max_open_sockets = 6;
+    config.max_open_sockets = 10;
     config.stack_size = 8192;
     config.enable_so_linger = true;
     config.linger_timeout = 5;
@@ -618,8 +606,13 @@ esp_err_t web_server_start(void)
 
     if (httpd_start(&server, &config) == ESP_OK) {
 
-          // === Отмена старой регистрации WebSocket, если есть ===
-        httpd_unregister_uri(server, "/ws");
+        httpd_uri_t ws_uri = {
+            .uri = "/ws",
+            .method = HTTP_GET,
+            .handler = ws_handler,
+            .user_ctx = NULL,
+            .is_websocket = true
+        };
 
         httpd_uri_t file_get_uri = {
             .uri = "/*",
@@ -667,19 +660,14 @@ esp_err_t web_server_start(void)
             .user_ctx = NULL
         };
 
-        httpd_uri_t ws_uri = {
-            .uri        = "/ws",
-            .method     = HTTP_GET,
-            .handler    = ws_handler,
-            .user_ctx   = NULL
-        };
         
+        
+        httpd_register_uri_handler(server, &ws_uri);  
         httpd_register_uri_handler(server, &ota_uri);
         httpd_register_uri_handler(server, &get_settings_uri);
         httpd_register_uri_handler(server, &file_get_uri);
         httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &login_uri);
-        httpd_register_uri_handler(server, &ws_uri);
         ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
         return ESP_OK;
     }

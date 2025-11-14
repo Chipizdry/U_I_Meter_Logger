@@ -198,6 +198,8 @@
     const CHUNK_SIZE = 1024;
     const MAX_RETRIES = 8;
     
+    let ws;
+
     function md5(arrayBuffer) {
         const bytes = new Uint8Array(arrayBuffer);
         const words = [];
@@ -270,6 +272,67 @@
     
         sendNextChunk();
     }
+
+    function initWebSocket() {
+    const token = sessionStorage.getItem("auth_token"); 
+    if (!token) return console.error("No auth token");
+
+    const wsUrl = `ws://${location.host}/ws`;
+    const ws = new WebSocket(wsUrl);
+
+    
+    ws.onopen = () => {
+        console.log("WS connected");
+        document.getElementById("ws-status").innerText = "Connected";
+        // Можно отправить токен при подключении, если сервер требует
+        ws.send(JSON.stringify({ type: "auth", token }));
+    };
+
+    ws.onmessage = (event) => {
+        console.log("WS received:", event.data);
+        // Разбор JSON или команд
+        try {
+            const msg = JSON.parse(event.data);
+            handleWsMessage(msg);
+        } catch (e) {
+            console.warn("Invalid WS message:", event.data);
+        }
+    };
+
+    ws.onclose = () => {
+        console.log("WS disconnected, retry in 5s");
+        document.getElementById("ws-status").innerText = "Disconnected";
+        setTimeout(initWebSocket, 5000); // авто-переподключение
+    };
+
+    ws.onerror = (err) => console.error("WS error", err);
+}
+
+function handleWsMessage(msg) {
+    // msg = { type: "update", payload: {...} }
+    if (msg.type === "update") {
+        // Обновляем UI
+        if (msg.payload.status) {
+            document.getElementById("ws-status").innerText = msg.payload.status;
+        }
+    }
+}
+
+// Отправка команды на сервер
+function sendWsCommand(cmd, payload={}) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: cmd, payload }));
+    } else {
+        console.warn("WS not connected");
+    }
+}
+
+window.addEventListener("load", initWebSocket);
+
+
+
+
+
     </script>
         
        
