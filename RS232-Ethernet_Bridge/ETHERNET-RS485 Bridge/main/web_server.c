@@ -27,6 +27,9 @@ static const char *TAG = "web_server";
 static httpd_handle_t server = NULL;
  char auth_token[64] = {0};
 
+static void remove_client(int sockfd);
+static void add_client(int sockfd);
+
  #define MAX_CLIENTS 8
  static int ws_clients[MAX_CLIENTS] = {0};
 
@@ -520,8 +523,8 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
 
 
-
-static void ws_broadcast(const char *json_string) {
+static void ws_broadcast(const char *json_string)
+{
     if (!server) return;
 
     httpd_ws_frame_t frame = {
@@ -538,35 +541,45 @@ static void ws_broadcast(const char *json_string) {
 
         esp_err_t err = httpd_ws_send_frame_async(server, fd, &frame);
         if (err != ESP_OK) {
-            ESP_LOGW(TAG, "WS async send failed to fd=%d: %s", fd, esp_err_to_name(err));
+            ESP_LOGW(TAG, "Removing dead WS client fd=%d, err=%d", fd, err);
+            remove_client(fd);
         }
     }
 }
 
 /* ------------------------ CLIENT LIST ------------------------ */
 
-static void add_client(int sockfd) {
+/* ---------------- CLIENT MANAGEMENT ---------------- */
+static void add_client(int sockfd)
+{
+    // Защита от дублирования
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i] == sockfd) return;
+    }
+
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (ws_clients[i] == 0) {
             ws_clients[i] = sockfd;
-            ESP_LOGI(TAG, "Client connected: %d", sockfd);
+            ESP_LOGI(TAG, "Client added: fd=%d", sockfd);
             return;
         }
     }
     ESP_LOGW(TAG, "Client list full!");
 }
 
-static void remove_client(int sockfd) {
+static void remove_client(int sockfd)
+{
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (ws_clients[i] == sockfd) {
             ws_clients[i] = 0;
-            ESP_LOGI(TAG, "Client disconnected: %d", sockfd);
+            ESP_LOGI(TAG, "Client removed: fd=%d", sockfd);
             return;
         }
     }
 }
 
-int websocket_server_get_client_count(void) {
+int websocket_server_get_client_count(void)
+{
     int n = 0;
     for (int i = 0; i < MAX_CLIENTS; i++)
         if (ws_clients[i] > 0) n++;
@@ -576,44 +589,35 @@ int websocket_server_get_client_count(void) {
 
 static esp_err_t ws_handler(httpd_req_t *req)
 {
-    if (req->method == HTTP_GET) {
-        int client_fd = httpd_req_to_sockfd(req);
+    int client_fd = httpd_req_to_sockfd(req);
 
-        // Добавляем клиента
-        for (int i = 0; i < MAX_CLIENTS; i++) {
-            if (ws_clients[i] == 0) {
-                ws_clients[i] = client_fd;
-                ESP_LOGI(TAG, "WS client added: fd=%d", client_fd);
-                break;
-            }
-        }
+    if (req->method == HTTP_GET) {
+        add_client(client_fd);
         return ESP_OK;
     }
 
-    // === Получение данных от клиента ===
     httpd_ws_frame_t frame;
     memset(&frame, 0, sizeof(frame));
     frame.type = HTTPD_WS_TYPE_TEXT;
 
     esp_err_t ret = httpd_ws_recv_frame(req, &frame, 0);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to receive WS frame size: %s", esp_err_to_name(ret));
-        return ret;
+        ESP_LOGW(TAG, "Client disconnected: fd=%d, err=%d", client_fd, ret);
+        remove_client(client_fd);
+        return ESP_FAIL;
     }
 
     if (frame.len > 0) {
         uint8_t *buf = malloc(frame.len + 1);
+        if (!buf) return ESP_ERR_NO_MEM;
         frame.payload = buf;
 
         ret = httpd_ws_recv_frame(req, &frame, frame.len);
         if (ret == ESP_OK) {
             buf[frame.len] = 0;
             ESP_LOGI(TAG, "WS received: %s", buf);
-
-            // Рассылаем ВСЕМ
             ws_broadcast((char*)buf);
         }
-
         free(buf);
     }
 
@@ -632,8 +636,8 @@ esp_err_t web_server_start(void)
     config.max_uri_handlers = 20;  
     config.max_open_sockets = 10;
     config.stack_size = 8192;
-    config.enable_so_linger = true;
-    config.linger_timeout = 5;
+    config.enable_so_linger = false;
+    config.linger_timeout = 0;
     config.open_fn  = NULL;
     config.close_fn = NULL;
    

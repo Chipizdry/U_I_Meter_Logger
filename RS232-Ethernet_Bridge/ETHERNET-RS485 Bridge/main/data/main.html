@@ -193,12 +193,13 @@
 
     <script src="/script.js"></script>
     <script src="/general_fun.js"></script>
+    <script src="/ws.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
     <script>
     const CHUNK_SIZE = 1024;
     const MAX_RETRIES = 8;
     
-    let ws = null;
+    //let ws = null;
 
     function md5(arrayBuffer) {
         const bytes = new Uint8Array(arrayBuffer);
@@ -273,6 +274,8 @@
         sendNextChunk();
     }
 
+
+    /*
     function initWebSocket() {
     const token = sessionStorage.getItem("auth_token");
     if (!token) return console.error("No auth token");
@@ -333,7 +336,7 @@ function sendWsCommand(cmd, payload={}) {
 }
 
 window.addEventListener("load", initWebSocket);
-
+*/
 
 
 
