@@ -31,8 +31,13 @@ static void remove_client(int sockfd);
 static void add_client(int sockfd);
 
  #define MAX_CLIENTS 8
- static int ws_clients[MAX_CLIENTS] = {0};
 
+typedef struct {
+    int fd;
+    bool authorized;
+} ws_client_t;
+
+static ws_client_t ws_clients[MAX_CLIENTS] = {{0, false}};
 
 static const char* wifi_mode_to_string(wifi_mode_t mode) { 
     switch (mode) { case WIFI_MODE_NULL: return "WIFI_MODE_NULL";
@@ -521,106 +526,275 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+/// POST /logout
 
-
-static void ws_broadcast(const char *json_string)
+static esp_err_t logout_post_handler(httpd_req_t *req)
 {
-    if (!server) return;
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+    ESP_LOGI(TAG, "Logout called with header: %s", auth_token);
+   
+    // ===== 1. Обнуляем текущий токен =====
+    memset(auth_token, 0, sizeof(auth_token));
+    ESP_LOGI(TAG, "User token cleared (logout)");
 
+    // ===== 2. Закрываем все WS-соединения =====
+    /*
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i] > 0) {
+            ESP_LOGI(TAG, "Closing WS client: sock=%d", ws_clients[i]);
+            httpd_ws_client_disconnect(server, ws_clients[i]);
+            ws_clients[i] = 0;
+        }
+    }   */
+
+    // ===== 3. Отправляем ответ =====
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, "{\"status\":\"ok\"}");
+
+    return ESP_OK;
+}
+
+
+static void ws_send(int client_fd, const char* text) {
     httpd_ws_frame_t frame = {
         .final = true,
         .fragmented = false,
         .type = HTTPD_WS_TYPE_TEXT,
-        .payload = (uint8_t *)json_string,
-        .len = strlen(json_string)
+        .payload = (uint8_t*)text,
+        .len = strlen(text)
     };
-
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        int fd = ws_clients[i];
-        if (fd <= 0) continue;
-
-        esp_err_t err = httpd_ws_send_frame_async(server, fd, &frame);
-        if (err != ESP_OK) {
-            ESP_LOGW(TAG, "Removing dead WS client fd=%d, err=%d", fd, err);
-            remove_client(fd);
-        }
-    }
+    httpd_ws_send_frame_async(server, client_fd, &frame);
 }
+
 
 /* ------------------------ CLIENT LIST ------------------------ */
 
 /* ---------------- CLIENT MANAGEMENT ---------------- */
 static void add_client(int sockfd)
 {
-    // Защита от дублирования
+    // Проверяем, есть ли уже такой fd
     for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (ws_clients[i] == sockfd) return;
-    }
-
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (ws_clients[i] == 0) {
-            ws_clients[i] = sockfd;
-            ESP_LOGI(TAG, "Client added: fd=%d", sockfd);
+        if (ws_clients[i].fd == sockfd) {
+            ESP_LOGI(TAG, "WS: client already added, fd=%d (slot %d)", sockfd, i);
             return;
         }
     }
-    ESP_LOGW(TAG, "Client list full!");
+
+    // Добавляем нового клиента
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i].fd == 0) {
+            ws_clients[i].fd = sockfd;
+            ws_clients[i].authorized = false;
+            ESP_LOGI(TAG, "WS: client added, fd=%d (slot %d)", sockfd, i);
+            return;
+        }
+    }
+    ESP_LOGW(TAG, "WS: no free client slots!");
 }
 
 static void remove_client(int sockfd)
 {
     for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (ws_clients[i] == sockfd) {
-            ws_clients[i] = 0;
-            ESP_LOGI(TAG, "Client removed: fd=%d", sockfd);
+        if (ws_clients[i].fd == sockfd) {
+            ESP_LOGI(TAG, "WS: client removed, fd=%d (slot %d)", sockfd, i);
+            ws_clients[i].fd = 0;
+            ws_clients[i].authorized = false;
             return;
         }
     }
 }
 
-int websocket_server_get_client_count(void)
+static ws_client_t* get_client(int sockfd)
 {
-    int n = 0;
-    for (int i = 0; i < MAX_CLIENTS; i++)
-        if (ws_clients[i] > 0) n++;
-    return n;
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i].fd == sockfd)
+            return &ws_clients[i];
+    }
+    return NULL;
 }
+
+
+
+void handle_ws_custom_message(int client_fd, cJSON *msg) {
+    if (!msg) return;
+
+    // Главное поле — "action"
+    cJSON *action = cJSON_GetObjectItem(msg, "action");
+    if (!action || !cJSON_IsString(action)) {
+        ESP_LOGW("WS", "WS JSON without 'action' from fd=%d", client_fd);
+        return;
+    }
+
+    const char *act = action->valuestring;
+    ESP_LOGI("WS", "Handling action='%s' from fd=%d", act, client_fd);
+
+    // === ACTION: test_account ===
+    if (strcmp(act, "test_account") == 0) {
+
+        cJSON *login = cJSON_GetObjectItem(msg, "account_login");
+        cJSON *password = cJSON_GetObjectItem(msg, "account_password");
+
+        if (!login || !password || !cJSON_IsString(login) || !cJSON_IsString(password)) {
+            ws_send(client_fd, "{\"error\":\"invalid test_account payload\"}");
+            return;
+        }
+
+        ESP_LOGI("WS", "TEST ACCOUNT login='%s', password='%s'",
+                 login->valuestring,
+                 password->valuestring);
+
+        // здесь делаешь свою проверку аккаунта
+        // ...
+
+        ws_send(client_fd, "{\"status\":\"test_account ok\"}");
+        return;
+    }
+
+    // === НЕИЗВЕСТНОЕ ДЕЙСТВИЕ ===
+    else {
+        ESP_LOGW("WS", "Unknown WS action '%s'", act);
+        ws_send(client_fd, "{\"error\":\"unknown action\"}");
+    }
+}
+
+
 /* ------------------------ WEBSOCKET HANDLER ------------------------ */
 
 static esp_err_t ws_handler(httpd_req_t *req)
 {
     int client_fd = httpd_req_to_sockfd(req);
 
+     // ==== ЛОГИРОВАНИЕ ВСЕХ WS КЛИЕНТОВ ====
+     ESP_LOGI(TAG, "------ WS CLIENT LIST ------");
+     for (int i = 0; i < MAX_CLIENTS; i++) {
+         if (ws_clients[i].fd != 0) {
+             ESP_LOGI(TAG, "slot %d: fd=%d  authorized=%s",
+                      i,
+                      ws_clients[i].fd,
+                      ws_clients[i].authorized ? "true" : "false");
+         }
+     }
+     ESP_LOGI(TAG, "--------------------------------");
+
+    // === 1. Если это GET — клиент открывает WebSocket ===
     if (req->method == HTTP_GET) {
         add_client(client_fd);
+        ESP_LOGI(TAG, "WS client connected, fd=%d", client_fd);
         return ESP_OK;
     }
 
+    // === 2. Получение фрейма ===
     httpd_ws_frame_t frame;
     memset(&frame, 0, sizeof(frame));
     frame.type = HTTPD_WS_TYPE_TEXT;
 
     esp_err_t ret = httpd_ws_recv_frame(req, &frame, 0);
     if (ret != ESP_OK) {
-        ESP_LOGW(TAG, "Client disconnected: fd=%d, err=%d", client_fd, ret);
+        ESP_LOGW(TAG, "WS: recv error (size) fd=%d err=%d", client_fd, ret);
         remove_client(client_fd);
         return ESP_FAIL;
     }
 
-    if (frame.len > 0) {
-        uint8_t *buf = malloc(frame.len + 1);
-        if (!buf) return ESP_ERR_NO_MEM;
-        frame.payload = buf;
-
-        ret = httpd_ws_recv_frame(req, &frame, frame.len);
-        if (ret == ESP_OK) {
-            buf[frame.len] = 0;
-            ESP_LOGI(TAG, "WS received: %s", buf);
-            ws_broadcast((char*)buf);
-        }
-        free(buf);
+    if (frame.len == 0) {
+        // Пустые сообщения игнорируем
+        return ESP_OK;
     }
 
+    uint8_t *buf = malloc(frame.len + 1);
+    if (!buf) return ESP_ERR_NO_MEM;
+
+    frame.payload = buf;
+    ret = httpd_ws_recv_frame(req, &frame, frame.len);
+    if (ret != ESP_OK) {
+        ESP_LOGW(TAG, "WS: recv error (payload) fd=%d err=%d", client_fd, ret);
+        free(buf);
+        remove_client(client_fd);
+        return ESP_FAIL;
+    }
+    buf[frame.len] = 0;
+
+    // === 3. Обработка ping/pong ===
+    if (strcmp((char *)buf, "ping") == 0) {
+        ws_send(client_fd, "pong");   // отвечаем
+        free(buf);
+        return ESP_OK;
+    }
+    if (strcmp((char *)buf, "pong") == 0) {
+        // можно обновить timestamp here
+        free(buf);
+        return ESP_OK;
+    }
+
+    // === 4. Парсим JSON ===
+    cJSON *msg = cJSON_Parse((char *)buf);
+    free(buf);
+
+    if (!msg) {
+        ESP_LOGW(TAG, "WS invalid JSON from fd=%d", client_fd);
+        return ESP_OK;  // не разрываем связь
+    }
+
+    // тип сообщения
+    cJSON *type = cJSON_GetObjectItem(msg, "type");
+  
+    // === 5. Авторизация ===
+    if (type && strcmp(type->valuestring, "auth") == 0) {
+
+        cJSON *token = cJSON_GetObjectItem(msg, "token");
+        if (token && strcmp(token->valuestring, auth_token) == 0) {
+
+            // авторизация успешна
+            for (int i = 0; i < MAX_CLIENTS; i++) {
+                if (ws_clients[i].fd == client_fd) {
+                    ws_clients[i].authorized = true;
+                    break;
+                }
+            }
+            ESP_LOGI(TAG, "WS: client authorized fd=%d", client_fd);
+        }
+        else {
+            ESP_LOGW(TAG, "WS: unauthorized client fd=%d", client_fd);
+
+            remove_client(client_fd);
+
+            // корректно закрываем WS
+            httpd_ws_frame_t close_frame = {
+                .final = true,
+                .fragmented = false,
+                .type = HTTPD_WS_TYPE_CLOSE,
+                .payload = NULL,
+                .len = 0
+            };
+            httpd_ws_send_frame_async(server, client_fd, &close_frame);
+        }
+      
+        cJSON_Delete(msg);
+        return ESP_OK;
+    }
+
+    // === 6. Любые другие сообщения (только если авторизован) ===
+    bool allowed = false;
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i].fd == client_fd && ws_clients[i].authorized) {
+            allowed = true;
+            break;
+        }
+    }
+
+    if (!allowed) {
+        ESP_LOGW(TAG, "WS: message from unauthorized fd=%d", client_fd);
+        cJSON_Delete(msg);
+        return ESP_OK;
+    }
+
+    // здесь твоя обработка WS JSON
+    ESP_LOGI(TAG, "WS message fd=%d: %s", client_fd, cJSON_PrintUnformatted(msg));
+     handle_ws_custom_message(client_fd, msg);
+
+    cJSON_Delete(msg);
     return ESP_OK;
 }
 
@@ -698,6 +872,12 @@ esp_err_t web_server_start(void)
             .user_ctx = NULL
         };
 
+        httpd_uri_t logout_uri = {
+            .uri = "/logout",
+            .method = HTTP_POST,
+            .handler = logout_post_handler,
+            .user_ctx = NULL
+        };
         
         
         httpd_register_uri_handler(server, &ws_uri);  
@@ -706,6 +886,7 @@ esp_err_t web_server_start(void)
         httpd_register_uri_handler(server, &file_get_uri);
         httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &login_uri);
+        httpd_register_uri_handler(server, &logout_uri);
         ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
         return ESP_OK;
     }

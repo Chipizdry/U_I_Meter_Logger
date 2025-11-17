@@ -119,13 +119,32 @@ function sendWsCommand(type, payload = {}) {
 }
 
 function handleWsMessage(msg) {
-    if (msg.type === "update") {
-        if (msg.payload.status) updateStatus(msg.payload.status);
+    // Обработка account_status (ESP32)
+    if (msg.account_status) {
+        const s = document.getElementById("ws-status");
+
+        if (msg.account_status === "checking") {
+            s.textContent = "⏳ Проверка...";
+            s.style.color = "blue";
+        } else if (msg.account_status === "ok") {
+            s.textContent = "✅ Успешно!";
+            s.style.color = "green";
+        } else if (msg.account_status === "error") {
+            s.textContent = "❌ Ошибка: " + (msg.reason || "неизвестная");
+            s.style.color = "red";
+        }
     }
 
-    // любые другие типы:
+    // Пример обработки обычных типов сообщений
+    if (msg.type === "update") {
+        if (msg.payload?.status) updateStatus(msg.payload.status);
+    }
+
+    // Любые другие сообщения
     console.log("WS msg:", msg);
 }
+
+
 
 function updateStatus(text) {
     const el = document.getElementById("ws-status");

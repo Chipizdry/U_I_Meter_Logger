@@ -35,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (token) {
         showMainScreen();
         fetchSettings();
+        initWebSocket();  
         const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
         loadTabSettings(activeTab);
     } else {
@@ -64,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (buildInfoText) {
                 buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
             }
-    
+            initWebSocket();
             alert('Авторизация успешна ✅');
             fetchSettings();
             showMainScreen();
@@ -120,12 +121,54 @@ wifiForm.addEventListener("submit", async (e) => {
 });
 
 
-    // === Выход из аккаунта ===
-    logoutBtn.addEventListener("click", () => {
-        sessionStorage.removeItem("auth_token");
-        alert("Вы вышли из системы 👋");
-        showLogin();
-    });
+   // === Выход из аккаунта ===
+logoutBtn.addEventListener("click", async () => {
+    console.log("Logout...");
+
+    const token = sessionStorage.getItem("auth_token");
+
+    // 1) Уведомляем сервер (если есть токен)
+    if (token) {
+        try {
+            await fetch("/logout", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+        } catch (e) {
+            console.warn("Logout request failed:", e);
+        }
+    }
+
+    // 2) Удаляем токен
+    sessionStorage.removeItem("auth_token");
+
+    // 3) Останавливаем heartbeat
+    if (typeof stopHeartbeat === "function") {
+        stopHeartbeat();
+    }
+
+    // 4) Отменяем реконнект
+    if (window.reconnectTimer) {
+        clearTimeout(window.reconnectTimer);
+        window.reconnectTimer = null;
+    }
+
+    // 5) Отключаем WS
+    if (window.ws) {
+        console.log("Closing WebSocket on logout");
+        ws.onclose = null; // 🔥 отключаем авто-реконнект
+        ws.close();
+        window.ws = null;
+    }
+
+    // 6) Возврат к экрану логина
+    alert("Вы вышли из системы 👋");
+    showLogin();
+});
+
+
 
     // === Функции отображения ===
     function showMainScreen() {
@@ -460,4 +503,25 @@ async function saveUARTSettings() {
     }
 }
 
+
+document.getElementById("testAccountBtn").addEventListener("click", () => {
+    const login = document.querySelector("input[name='account-login']").value.trim();
+    const password = document.querySelector("input[name='account-password']").value.trim();
+    const statusDiv = document.getElementById("ws-status");
+
+    if (!login || !password) {
+        statusDiv.textContent = "⚠️ Заполните логин и пароль";
+        statusDiv.style.color = "orange";
+        return;
+    }
+
+    statusDiv.textContent = "⏳ Отправка...";
+    statusDiv.style.color = "blue";
+
+    ws.send(JSON.stringify({
+        action: "test_account",
+        account_login: login,
+        account_password: password
+    }));
+});
 
