@@ -15,12 +15,18 @@
 #include "lwip/inet.h" 
 #include "esp_ota_ops.h"
 #include "esp_system.h"
+#include "esp_websocket_client.h"
 #include <stdbool.h>
 #include "ota_update.h"
 #include "websocket_client.h"
 #include "rs485_master.h"
 
 #include "driver/uart.h"
+
+extern char ws_email[64];
+extern char ws_password[64];
+extern esp_websocket_client_handle_t client;
+extern uint32_t last_ws_event_tick;
 
 
 static const char *TAG = "web_server";
@@ -645,9 +651,37 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
         ESP_LOGI("WS", "TEST ACCOUNT login='%s', password='%s'",
                  login->valuestring,
                  password->valuestring);
+        // 1️⃣ Обновляем данные авторизации для облака
+        strncpy(ws_email, login->valuestring, sizeof(ws_email) - 1);
+        strncpy(ws_password, password->valuestring, sizeof(ws_password) - 1);
 
-        // здесь делаешь свою проверку аккаунта
-        // ...
+        // 2️⃣ Останавливаем текущий облачный WS, если есть
+        if (client) {
+            ESP_LOGW("WS", "🔄 Restarting cloud WebSocket due to new credentials");
+
+            esp_websocket_client_stop(client);
+            vTaskDelay(pdMS_TO_TICKS(100));
+
+            esp_websocket_client_destroy(client);
+            client = NULL;
+        }
+
+        ws_connected = false;                // сброс статуса
+        last_ws_event_tick = 0;              // сброс таймера активности
+        strncpy(ws_status_msg, "Reconnecting", sizeof(ws_status_msg));
+
+        // 3️⃣ Перезапуск WebSocket клиента с новыми данными
+        esp_err_t err = websocket_client_start(
+            user.serial,
+            ws_email,
+            ws_password
+        );
+
+        if (err == ESP_OK) {
+            ESP_LOGI("WS", "🚀 Cloud WS reconnect started successfully");
+        } else {
+            ESP_LOGE("WS", "❌ Cloud WS reconnect failed: %s", esp_err_to_name(err));
+        }
 
         ws_send(client_fd, "{\"status\":\"test_account ok\"}");
         return;

@@ -11,8 +11,14 @@
 #include "nvs_settings.h"
 #include "rs485_master.h"
 
-static TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
+ TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
 static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секунд
+// переменные для авторизации
+ char ws_email[64];
+ char ws_password[64];
+
+
+
 
 extern esp_err_t rs485_master_send(const uint8_t *data, size_t len);
 // Встроенный сертификат (объявляется линковщиком)
@@ -20,7 +26,7 @@ extern const uint8_t ca_cert_pem_start[] asm("_binary_ca_cert_pem_start");
 extern const uint8_t ca_cert_pem_end[]   asm("_binary_ca_cert_pem_end");
 
 static const char *TAG = "websocket_client";
-static esp_websocket_client_handle_t client = NULL;
+ esp_websocket_client_handle_t client = NULL;
 
 bool ws_connected = false;
 char ws_status_msg[128] = "Idle";
@@ -74,10 +80,6 @@ static void websocket_start(void);
 
 static int hex_to_bytes(const char *in, uint8_t *out, int max_len);
 void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
-
-// переменные для авторизации
-static char ws_email[64];
-static char ws_password[64];
 
 
 
