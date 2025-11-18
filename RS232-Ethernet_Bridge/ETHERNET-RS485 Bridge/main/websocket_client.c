@@ -10,6 +10,7 @@
 
 #include "nvs_settings.h"
 #include "rs485_master.h"
+#include "ws_server.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
 static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секунд
@@ -18,7 +19,7 @@ static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секун�
  char ws_password[64];
 
 
-
+extern bool test_account_active;// из ws_server.c 
 
 extern esp_err_t rs485_master_send(const uint8_t *data, size_t len);
 // Встроенный сертификат (объявляется линковщиком)
@@ -66,10 +67,18 @@ static void websocket_start(void);
                 ws_connected = false;
             }
 
+
+             const char *email_to_use = test_account_active ? ws_email : user.account_login;
+             const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
+
+             if (websocket_client_start(user.serial, email_to_use, pass_to_use) == ESP_OK) {
+                ESP_LOGI(TAG, "✅ WebSocket reconnect initiated");
+            }
+       /*
             if (websocket_client_start(user.serial, user.account_login, user.account_password) == ESP_OK) 
             {
                 ESP_LOGI(TAG, "✅ WebSocket reconnect initiated");
-            }
+            }  */
 
             last_ws_event_tick = xTaskGetTickCount(); // сброс таймера после реконнекта
         }

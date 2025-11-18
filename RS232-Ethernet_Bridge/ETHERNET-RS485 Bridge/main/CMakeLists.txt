@@ -12,7 +12,8 @@ idf_component_register(
         "wifi_manager.c"
         "gpio_manager.c"
         "ota_update.c"
-       
+        "ws_server.c"
+
     INCLUDE_DIRS "."
     REQUIRES 
         esp_netif 

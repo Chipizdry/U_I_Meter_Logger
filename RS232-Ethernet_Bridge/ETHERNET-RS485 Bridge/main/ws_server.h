@@ -1,0 +1,12 @@
+
+
+#pragma once
+#include "esp_http_server.h"
+#include "esp_err.h"
+
+void ws_server_init(httpd_handle_t httpd);
+
+//void ws_send(int fd, const char *text);
+void ws_broadcast(const char *text);
+
+esp_err_t ws_handler(httpd_req_t *req);

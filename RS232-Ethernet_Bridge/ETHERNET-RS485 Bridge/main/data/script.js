@@ -12,6 +12,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let buildNumber = null;
     let buildDate = null;
+  
+    
 
     ipFields.forEach(id => {
         const field = document.getElementById(id);
@@ -503,25 +505,104 @@ async function saveUARTSettings() {
     }
 }
 
+/*
+let testAccountActive = false; // флаг тестового режима
 
 document.getElementById("testAccountBtn").addEventListener("click", () => {
-    const login = document.querySelector("input[name='account-login']").value.trim();
-    const password = document.querySelector("input[name='account-password']").value.trim();
+    const loginInput = document.querySelector("input[name='account-login']");
+    const passwordInput = document.querySelector("input[name='account-password']");
     const statusDiv = document.getElementById("ws-status");
 
-    if (!login || !password) {
-        statusDiv.textContent = "⚠️ Заполните логин и пароль";
-        statusDiv.style.color = "orange";
-        return;
+    if (!testAccountActive) {
+        // Включаем тестовый режим
+        const login = loginInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        if (!login || !password) {
+            statusDiv.textContent = "⚠️ Заполните логин и пароль";
+            statusDiv.style.color = "orange";
+            return;
+        }
+
+        statusDiv.textContent = "⏳ Включение тестового режима...";
+        statusDiv.style.color = "blue";
+
+        ws.send(JSON.stringify({
+            action: "test_account",
+            account_login: login,
+            account_password: password
+        }));
+
+        testAccountActive = true;
+        statusDiv.textContent = "✅ Тестовый режим включен";
+        statusDiv.style.color = "green";
+       // this.textContent = "Выйти из тестового режима"; // меняем текст кнопки
+        btn.textContent = "Выйти из тестового режима";
+
+    } else {
+        // Выключаем тестовый режим
+        statusDiv.textContent = "⏳ Выключение тестового режима...";
+        statusDiv.style.color = "blue";
+
+        ws.send(JSON.stringify({
+            action: "cancel_test_account" // на сервере нужно обработать отмену
+        }));
+
+        testAccountActive = false;
+        statusDiv.textContent = "✅ Тестовый режим отключен";
+        statusDiv.style.color = "green";
+      //  this.textContent = "Включить тестовый режим"; // возвращаем текст кнопки
+        btn.textContent = "Включить тестовый режим";
     }
-
-    statusDiv.textContent = "⏳ Отправка...";
-    statusDiv.style.color = "blue";
-
-    ws.send(JSON.stringify({
-        action: "test_account",
-        account_login: login,
-        account_password: password
-    }));
 });
+*/
 
+let testAccountActive = false; // флаг тестового режима
+
+const btn = document.getElementById("testAccountBtn"); // ← вот сюда
+
+btn.addEventListener("click", () => {
+    const loginInput = document.querySelector("input[name='account-login']");
+    const passwordInput = document.querySelector("input[name='account-password']");
+    const statusDiv = document.getElementById("ws-status");
+
+    if (!testAccountActive) {
+        // Включаем тестовый режим
+        const login = loginInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        if (!login || !password) {
+            statusDiv.textContent = "⚠️ Заполните логин и пароль";
+            statusDiv.style.color = "orange";
+            return;
+        }
+
+        statusDiv.textContent = "⏳ Включение тестового режима...";
+        statusDiv.style.color = "blue";
+
+        ws.send(JSON.stringify({
+            action: "test_account",
+            account_login: login,
+            account_password: password
+        }));
+
+        testAccountActive = true;
+        statusDiv.textContent = "✅ Тестовый режим включен";
+        statusDiv.style.color = "green";
+        btn.textContent = "Выйти из тестового режима"; // ← теперь работает
+
+    } else {
+        // Выключаем тестовый режим
+        statusDiv.textContent = "⏳ Выключение тестового режима...";
+        statusDiv.style.color = "blue";
+
+        ws.send(JSON.stringify({
+            action: "cancel_test_account"
+        }));
+
+        testAccountActive = false;
+        statusDiv.textContent = "✅ Тестовый режим отключен";
+        statusDiv.style.color = "green";
+        btn.textContent = "Включить тестовый режим"; // ← теперь тоже работает
+    }
+});
