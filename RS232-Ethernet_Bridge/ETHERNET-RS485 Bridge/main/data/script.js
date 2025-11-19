@@ -68,16 +68,29 @@ document.addEventListener("DOMContentLoaded", () => {
                 buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
             }
             initWebSocket();
-            alert('Авторизация успешна ✅');
-            fetchSettings();
-            showMainScreen();
-             // Загружаем настройки сразу после входа
-            const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
-            await loadTabSettings(activeTab);
+           // Показ успешного сообщения
+           loginStatus.textContent = "Вход выполнен";
+           loginStatus.style.color = "#4CAF50"; // зелёный
+           loginStatus.classList.remove("hidden");
+           fetchSettings();
+            setTimeout(async () => {
+              
+                showMainScreen();
+                // Загружаем настройки сразу после входа
+                const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+                await loadTabSettings(activeTab);
+            }, 1000);
 
         } else {
             const text = await res.text();
-            alert('Ошибка входа 💩: ' + text);
+               // Показ  сообщения
+           loginStatus.textContent = "Ошибка входа";
+           loginStatus.style.color = "red"; // красный
+           loginStatus.classList.remove("hidden");
+           setTimeout(async () => {
+            loginStatus.classList.add("hidden");
+           }, 1000);
+        
         }
     });
 
@@ -166,8 +179,9 @@ logoutBtn.addEventListener("click", async () => {
     }
 
     // 6) Возврат к экрану логина
-    alert("Вы вышли из системы 👋");
+    //alert("Вы вышли из системы 👋");
     showLogin();
+    loginStatus.classList.add("hidden");
 });
 
 
@@ -212,119 +226,6 @@ const tabContents = document.querySelectorAll(".tab-content");
     });
 
 
-    async function loadTabSettings(tab) {
-        const token = sessionStorage.getItem("auth_token");
-        if (!token) return;
-    
-        try {
-            const endpoints = {
-                "LAN": "/get_settings/network",
-                "wifi": "/get_settings/network",
-                "uart": "/get_settings/uart",
-                "user": "/get_settings/user",
-                "system": "/get_settings/system",
-                "account": "/get_settings/user"
-            };
-    
-            const url = endpoints[tab];
-            if (!url) return;
-    
-            const res = await fetch(url, {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-    
-            if (res.status === 401) {
-                sessionStorage.removeItem("auth_token");
-                showTokenExpiredModal();
-                return;
-            }
-    
-            if (!res.ok) {
-                console.warn(`Ошибка загрузки ${tab}:`, await res.text());
-                return;
-            }
-    
-            const data = await res.json();
-            console.log(`Настройки для ${tab}:`, data);
-    
-            applySettingsToForm(tab, data);
-    
-        } catch (err) {
-            console.error("Ошибка загрузки вкладки:", err);
-        }
-    }
-
-    function applySettingsToForm(tab, data) {
-        switch (tab) {
-            case "LAN": {
-                const net = data.network || {};
-                document.getElementById("ip").value = net.ip || "";
-                document.getElementById("mask").value = net.mask || "";
-                document.getElementById("gateway").value = net.gateway || "";
-                document.getElementById("dns").value = net.dns || "";
-                document.getElementById("dhcp").checked = !!net.dhcp_enabled;
-                document.getElementById("port").value = net.port || 80;
-                break;
-            }
-    
-            case "wifi": {
-                const wifi = data.wifi || {};
-                document.querySelector("[name='ssid']").value = wifi.ssid || "";
-                document.querySelector("[name='password']").value = wifi.password || "";
-                document.querySelector("[name='mode']").value = wifi.mode || "STA";
-                break;
-            }
-    
-            case "uart": {
-                const uart = data.uart || {};
-                document.querySelector("#uart input[type=number]").value = uart.baud || 9600;
-                document.querySelector("#uart-data-bits").value = uart.data_bits || 8;
-                document.querySelector("#uart-stop-bits").value = uart.stop_bits || 1;
-                document.querySelector("#uart-parity").value = uart.parity || 0;
-                break;
-            }
-    
-            case "user": {
-                const user = data.user || {};
-                document.querySelector("[name='user-login']").value = user.login || "";
-                break;
-            }
-    
-            case "account": {
-                const account = data.user || {};
-                const wsDiv = document.getElementById('ws-status');
-                const color = account.connected ? 'green' : 'red';
-                const icon = account.connected ? '✅' : '❌';
-                document.querySelector("[name='account-login']").value = account.account_login || "";
-                wsDiv.innerHTML = `
-                    COR-ID: <span style="color:${color}">${icon} ${account.status || 'Unknown'}</span>
-                `;
-                break;
-            }
-    
-            case "system": {
-                const system = data.system || {};
-                // Здесь добавляйте поля для system, например:
-                // document.querySelector("[name='timezone']").value = system.timezone || "";
-                buildNumber = system.build_number;
-                buildDate = system.build_date;
-        
-                console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
-    
-                const buildInfoText = document.getElementById("buildInfoText");
-                if (buildInfoText) {
-                    buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
-                }
-                break;
-            }
-    
-            default:
-                console.warn(`Неизвестная вкладка: ${tab}`);
-        }
-    }
 
 
  // Функция: форматирует IP (добавляет нули и точки)
@@ -508,6 +409,124 @@ async function saveUARTSettings() {
 
 let testAccountActive = false; // флаг тестового режима
 
+
+async function loadTabSettings(tab) {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) return;
+
+    try {
+        const endpoints = {
+            "LAN": "/get_settings/network",
+            "wifi": "/get_settings/network",
+            "uart": "/get_settings/uart",
+            "user": "/get_settings/user",
+            "system": "/get_settings/system",
+            "account": "/get_settings/user"
+        };
+
+        const url = endpoints[tab];
+        if (!url) return;
+
+        const res = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+        }
+
+        if (!res.ok) {
+            console.warn(`Ошибка загрузки ${tab}:`, await res.text());
+            return;
+        }
+
+        const data = await res.json();
+        console.log(`Настройки для ${tab}:`, data);
+
+        applySettingsToForm(tab, data);
+
+    } catch (err) {
+        console.error("Ошибка загрузки вкладки:", err);
+    }
+}
+
+
+
+function applySettingsToForm(tab, data) {
+    switch (tab) {
+        case "LAN": {
+            const net = data.network || {};
+            document.getElementById("ip").value = net.ip || "";
+            document.getElementById("mask").value = net.mask || "";
+            document.getElementById("gateway").value = net.gateway || "";
+            document.getElementById("dns").value = net.dns || "";
+            document.getElementById("dhcp").checked = !!net.dhcp_enabled;
+            document.getElementById("port").value = net.port || 80;
+            break;
+        }
+
+        case "wifi": {
+            const wifi = data.wifi || {};
+            document.querySelector("[name='ssid']").value = wifi.ssid || "";
+            document.querySelector("[name='password']").value = wifi.password || "";
+            document.querySelector("[name='mode']").value = wifi.mode || "STA";
+            break;
+        }
+
+        case "uart": {
+            const uart = data.uart || {};
+            document.querySelector("#uart input[type=number]").value = uart.baud || 9600;
+            document.querySelector("#uart-data-bits").value = uart.data_bits || 8;
+            document.querySelector("#uart-stop-bits").value = uart.stop_bits || 1;
+            document.querySelector("#uart-parity").value = uart.parity || 0;
+            break;
+        }
+
+        case "user": {
+            const user = data.user || {};
+            document.querySelector("[name='user-login']").value = user.login || "";
+            break;
+        }
+
+        case "account": {
+            const account = data.user || {};
+            const wsDiv = document.getElementById('ws-status');
+            const color = account.connected ? 'green' : 'red';
+            const icon = account.connected ? '✅' : '❌';
+            document.querySelector("[name='account-login']").value = account.account_login || "";
+            wsDiv.innerHTML = `
+                COR-ID: <span style="color:${color}">${icon} ${account.status || 'Unknown'}</span>
+            `;
+            break;
+        }
+
+        case "system": {
+            const system = data.system || {};
+            // Здесь добавляйте поля для system, например:
+            // document.querySelector("[name='timezone']").value = system.timezone || "";
+            buildNumber = system.build_number;
+            buildDate = system.build_date;
+    
+            console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
+
+            const buildInfoText = document.getElementById("buildInfoText");
+            if (buildInfoText) {
+                buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
+            }
+            break;
+        }
+
+        default:
+            console.warn(`Неизвестная вкладка: ${tab}`);
+    }
+}
+
+
 const btn = document.getElementById("testAccountBtn"); // ← вот сюда
 
 btn.addEventListener("click", () => {
@@ -544,7 +563,7 @@ btn.addEventListener("click", () => {
         // Выключаем тестовый режим
         statusDiv.textContent = "⏳ Выключение тестового режима...";
         statusDiv.style.color = "blue";
-
+        loadTabSettings("account");
         ws.send(JSON.stringify({
             action: "cancel_test_account"
         }));

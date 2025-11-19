@@ -188,33 +188,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
      // === ACTION: cancel_test_account ===
      if (strcmp(act, "cancel_test_account") == 0) {
         ESP_LOGI("WS", "Cancel TEST ACCOUNT, restoring normal credentials");
-
-        // восстанавливаем обычные креды из NVS (user.account_login / user.account_password)
-       // strncpy(ws_email, user.account_login, sizeof(ws_email) - 1);
-       // strncpy(ws_password, user.account_password, sizeof(ws_password) - 1);
-       // test_account_active = false;
         cancel_test_account();
-        // перезапуск WS с обычными данными
-        /**
-        if (client) {
-            ESP_LOGW("WS", "🔄 Restarting cloud WebSocket to restore normal account");
-            esp_websocket_client_stop(client);
-            vTaskDelay(pdMS_TO_TICKS(100));
-            esp_websocket_client_destroy(client);
-            client = NULL;
-        }
-
-        ws_connected = false;
-        last_ws_event_tick = 0;
-        strncpy(ws_status_msg, "Reconnecting", sizeof(ws_status_msg));
-
-        esp_err_t err = websocket_client_start(user.serial, ws_email, ws_password);
-        if (err == ESP_OK) {
-            ESP_LOGI("WS", "✅ Cloud WS restored to normal account");
-        } else {
-            ESP_LOGE("WS", "❌ Cloud WS reconnect failed: %s", esp_err_to_name(err));
-        }
-        */
         ws_send(client_fd, "{\"status\":\"test_account cancelled\"}");
         return;
     }

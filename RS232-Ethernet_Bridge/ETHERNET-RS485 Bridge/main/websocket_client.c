@@ -20,6 +20,8 @@ static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секун�
 
 
 extern bool test_account_active;// из ws_server.c 
+extern void ws_broadcast(const char *text);
+extern httpd_handle_t server;
 
 extern esp_err_t rs485_master_send(const uint8_t *data, size_t len);
 // Встроенный сертификат (объявляется линковщиком)
@@ -120,13 +122,14 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
             ws_connected = false;
             strncpy(ws_status_msg, "Disconnected", sizeof(ws_status_msg));
-           
+            ws_broadcast("{\"cloud_status\":\"disconnected\"}");
             break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
             ws_connected = false;
             strncpy(ws_status_msg, "Error", sizeof(ws_status_msg));
+            ws_broadcast("{\"cloud_status\":\"error\"}");
             break;
 
             case WEBSOCKET_EVENT_DATA:
@@ -153,6 +156,13 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "----- WebSocket Packet (assembled) -----");
                 ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
             
+                // === Ретрансляция статусов от облака ===
+                if (strstr(ws_rx_buf, "\"status\"") || 
+                strstr(ws_rx_buf, "\"cloud_status\"")) 
+                {
+                ESP_LOGI(TAG, "📡 Broadcasting cloud status to local WS clients: %s", ws_rx_buf);
+                ws_broadcast(ws_rx_buf);
+                }
                 // === Парсинг hex_data ===
                 char *hex_ptr = strstr(ws_rx_buf, "\"hex_data\"");
                 if (hex_ptr) {
