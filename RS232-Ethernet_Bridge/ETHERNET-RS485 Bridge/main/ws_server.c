@@ -24,7 +24,6 @@ extern esp_websocket_client_handle_t client;
 extern uint32_t last_ws_event_tick;
 
 extern bool ws_connected;
-extern char ws_status_msg[128];
 extern user_settings_t user;   // из get_settings()
 
 static const char *TAG = "ws_server";
@@ -169,7 +168,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
 
         ws_connected = false;                // сброс статуса
         last_ws_event_tick = 0;              // сброс таймера активности
-        strncpy(ws_status_msg, "Reconnecting", sizeof(ws_status_msg));
+    
 
         // 3️⃣ Перезапуск WebSocket клиента с новыми данными
         esp_err_t err = websocket_client_start(user.serial,ws_email,ws_password);
@@ -180,7 +179,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
             ESP_LOGE("WS", "❌ Cloud WS reconnect failed: %s", esp_err_to_name(err));
         }
 
-        ws_send(client_fd, "{\"status\":\"test_account ok\"}");
+        ws_send(client_fd, "{\"cloud_status\":\"test_account ok\"}");
         return;
     }
 
@@ -189,7 +188,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
      if (strcmp(act, "cancel_test_account") == 0) {
         ESP_LOGI("WS", "Cancel TEST ACCOUNT, restoring normal credentials");
         cancel_test_account();
-        ws_send(client_fd, "{\"status\":\"test_account cancelled\"}");
+        ws_send(client_fd, "{\"cloud_status\":\"test_account cancelled\"}");
         return;
     }
     // === НЕИЗВЕСТНОЕ ДЕЙСТВИЕ ===

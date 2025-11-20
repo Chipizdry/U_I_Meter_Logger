@@ -78,6 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 showMainScreen();
                 // Загружаем настройки сразу после входа
                 const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+                sideMenu.classList.remove("open");
                 await loadTabSettings(activeTab);
             }, 1000);
 
@@ -499,16 +500,12 @@ function applySettingsToForm(tab, data) {
             const color = account.connected ? 'green' : 'red';
             const icon = account.connected ? '✅' : '❌';
             document.querySelector("[name='account-login']").value = account.account_login || "";
-            wsDiv.innerHTML = `
-                COR-ID: <span style="color:${color}">${icon} ${account.status || 'Unknown'}</span>
-            `;
+            wsDiv.innerHTML = `COR-ID: <span style="color:${color}">${icon} ${account.status}</span> `;
             break;
         }
 
         case "system": {
             const system = data.system || {};
-            // Здесь добавляйте поля для system, например:
-            // document.querySelector("[name='timezone']").value = system.timezone || "";
             buildNumber = system.build_number;
             buildDate = system.build_date;
     

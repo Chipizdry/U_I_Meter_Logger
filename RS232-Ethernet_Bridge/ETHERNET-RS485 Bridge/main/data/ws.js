@@ -118,32 +118,38 @@ function sendWsCommand(type, payload = {}) {
     }
 }
 
-function handleWsMessage(msg) {
-    // Обработка account_status (ESP32)
-    if (msg.account_status) {
-        const s = document.getElementById("ws-status");
 
-        if (msg.account_status === "checking") {
-            s.textContent = "⏳ Проверка...";
-            s.style.color = "blue";
-        } else if (msg.account_status === "ok") {
-            s.textContent = "✅ Успешно!";
-            s.style.color = "green";
-        } else if (msg.account_status === "error") {
-            s.textContent = "❌ Ошибка: " + (msg.reason || "неизвестная");
-            s.style.color = "red";
-        }
+function handleWsMessage(msg) {
+    const cloudEl = document.getElementById("ws-status");
+   
+
+    // === Статусы соединения с облаком ===
+    if (msg.cloud_status) {
+        // Можно использовать другой элемент для облака, например ws-cloud-status
+       
+            if (msg.cloud_status === "connected") {
+                cloudEl.textContent = "☁️ Подключено к облаку";
+                cloudEl.style.color = "green";
+            } else if (msg.cloud_status === "disconnected") {
+                cloudEl.textContent = "⚠️ Отключено от облака";
+                cloudEl.style.color = "red";
+            } else if (msg.cloud_status === "error") {
+                cloudEl.textContent = "❌ Ошибка облака";
+                cloudEl.style.color = "red";
+            } else {
+                cloudEl.textContent = msg.cloud_status;
+                cloudEl.style.color = "blue";
+            }
+        
     }
 
-    // Пример обработки обычных типов сообщений
+  
+    // === Другие типы сообщений ===
     if (msg.type === "update") {
         if (msg.payload?.status) updateStatus(msg.payload.status);
     }
 
-    // Любые другие сообщения
-    console.log("WS msg:", msg);
 }
-
 
 
 function updateStatus(text) {

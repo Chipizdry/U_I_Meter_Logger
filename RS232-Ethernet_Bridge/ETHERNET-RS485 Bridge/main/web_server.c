@@ -24,6 +24,7 @@
 #include "driver/uart.h"
 
 static const char *TAG = "web_server";
+extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 char auth_token[64] = {0};
 static const char* wifi_mode_to_string(wifi_mode_t mode) { 
@@ -202,8 +203,8 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddStringToObject(u, "account_login", user.account_login);  // ✅ имя аккаунта
             cJSON_AddStringToObject(u, "language", user.language);
             cJSON_AddStringToObject(u, "serial", user.serial);     // ✅ серийный номер      
-            cJSON_AddBoolToObject(u, "connected", ws_connected);
-            cJSON_AddStringToObject(u, "status", ws_status_msg);      
+            cJSON_AddBoolToObject(u, "connected", ws_connected); 
+            cJSON_AddStringToObject(u, "status", cloud_status_msg);
             cJSON_AddItemToObject(json, "user", u);
             if (section != ALL) break;
             [[fallthrough]]; 

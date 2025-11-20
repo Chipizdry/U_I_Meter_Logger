@@ -32,7 +32,7 @@ static const char *TAG = "websocket_client";
  esp_websocket_client_handle_t client = NULL;
 
 bool ws_connected = false;
-char ws_status_msg[128] = "Idle";
+char cloud_status_msg[32] = "Idle";   // статус по умолчанию
 static char ws_rx_buf[512];
 static int ws_rx_len = 0;
 
@@ -101,7 +101,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     switch (event_id)
     {
         case WEBSOCKET_EVENT_CONNECTED:
-        ESP_LOGI(TAG, "✅ Connected to WebSocket server");
+        ESP_LOGI(TAG, "✅ Connecting to WebSocket server...");
         last_ws_event_tick = xTaskGetTickCount(); // сброс таймера при подключении
             // отправляем авторизационное сообщение
             if (strlen(ws_email) > 0 && strlen(ws_password) > 0) {
@@ -114,21 +114,22 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
             }
             ws_connected = true;
-            strncpy(ws_status_msg, "Connected", sizeof(ws_status_msg));
+          //  strncpy(ws_status_msg, "Connected", sizeof(ws_status_msg));
+            ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
         break;
 
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
             ws_connected = false;
-            strncpy(ws_status_msg, "Disconnected", sizeof(ws_status_msg));
+           // strncpy(ws_status_msg, "Disconnected", sizeof(ws_status_msg));
             ws_broadcast("{\"cloud_status\":\"disconnected\"}");
             break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
             ws_connected = false;
-            strncpy(ws_status_msg, "Error", sizeof(ws_status_msg));
+          //  strncpy(ws_status_msg, "Error", sizeof(ws_status_msg));
             ws_broadcast("{\"cloud_status\":\"error\"}");
             break;
 
@@ -157,11 +158,30 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
             
                 // === Ретрансляция статусов от облака ===
-                if (strstr(ws_rx_buf, "\"status\"") || 
-                strstr(ws_rx_buf, "\"cloud_status\"")) 
+                if (strstr(ws_rx_buf, "\"cloud_status\"")) 
+               
                 {
                 ESP_LOGI(TAG, "📡 Broadcasting cloud status to local WS clients: %s", ws_rx_buf);
                 ws_broadcast(ws_rx_buf);
+
+                      // ---- NEW: сохранить статус для get_settings ----
+                    char *ptr = strstr(ws_rx_buf, "\"cloud_status\"");
+                    if (ptr) {
+                        char *start = strchr(ptr, ':');
+                        if (start && (start = strchr(start, '"'))) {
+                            start++;
+                            char *end = strchr(start, '"');
+                            if (end && end > start) {
+                                size_t len = end - start;
+                                if (len < sizeof(cloud_status_msg)) {
+                                    memcpy(cloud_status_msg, start, len);
+                                    cloud_status_msg[len] = 0;
+                                    ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
+                                }
+                            }
+                        }
+                    }
+
                 }
                 // === Парсинг hex_data ===
                 char *hex_ptr = strstr(ws_rx_buf, "\"hex_data\"");
