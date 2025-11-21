@@ -480,11 +480,17 @@ function applySettingsToForm(tab, data) {
         }
 
         case "uart": {
+            
             const uart = data.uart || {};
+              // конвертация true/false → "0"/"1"
+            const rawMode = uart.rs485_mode;
+            const mode = rawMode ? "1" : "0";
             document.querySelector("#uart input[type=number]").value = uart.baud || 9600;
             document.querySelector("#uart-data-bits").value = uart.data_bits || 8;
             document.querySelector("#uart-stop-bits").value = uart.stop_bits || 1;
             document.querySelector("#uart-parity").value = uart.parity || 0;
+            const rb = document.querySelector(`input[name='uart-mode'][value='${mode}']`);
+            if (rb) rb.checked = true;
             break;
         }
 

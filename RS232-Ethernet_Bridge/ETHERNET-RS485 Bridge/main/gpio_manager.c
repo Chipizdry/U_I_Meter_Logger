@@ -50,7 +50,8 @@ esp_err_t gpio_manager_init(void)
     gpio_config_t led_conf = {
         .pin_bit_mask = (1ULL << GPIO_STATUS_LED) |
                         (1ULL << GPIO_NET_LED) |
-                        (1ULL << GPIO_ERROR_LED),
+                        (1ULL << GPIO_ERROR_LED)|
+                        (1ULL << GPIO_MODE_CHANGE),
         .mode = GPIO_MODE_OUTPUT,
         .pull_up_en = GPIO_PULLUP_DISABLE,
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -62,6 +63,7 @@ esp_err_t gpio_manager_init(void)
     gpio_set_level(GPIO_STATUS_LED, 0);
     gpio_set_level(GPIO_NET_LED, 0);
     gpio_set_level(GPIO_ERROR_LED, 0);
+    gpio_set_level(GPIO_MODE_CHANGE, 0);
 
     ESP_LOGI(TAG, "GPIOs configured: RESET as input, LEDs as outputs");
 
@@ -149,14 +151,21 @@ void gpio_led_selftest(void)
     vTaskDelay(pdMS_TO_TICKS(delay));
     gpio_set_level(GPIO_ERROR_LED, 0);
 
+    gpio_set_level(GPIO_MODE_CHANGE, 1);
+    vTaskDelay(pdMS_TO_TICKS(delay));
+    gpio_set_level(GPIO_MODE_CHANGE, 0);
+
+
     // 2. Все вместе — короткая вспышка
     gpio_set_level(GPIO_STATUS_LED, 1);
     gpio_set_level(GPIO_NET_LED, 1);
     gpio_set_level(GPIO_ERROR_LED, 1);
+    gpio_set_level(GPIO_MODE_CHANGE, 1);
     vTaskDelay(pdMS_TO_TICKS(200));
     gpio_set_level(GPIO_STATUS_LED, 0);
     gpio_set_level(GPIO_NET_LED, 0);
     gpio_set_level(GPIO_ERROR_LED, 0);
+    gpio_set_level(GPIO_MODE_CHANGE, 0);
 
     ESP_LOGI(TAG, "LED self-test completed");
 }

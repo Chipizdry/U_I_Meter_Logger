@@ -256,6 +256,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddNumberToObject(u, "data_bits", real_data_bits);
             cJSON_AddNumberToObject(u, "stop_bits", real_stop_bits);
             cJSON_AddNumberToObject(u, "parity", uart_cfg.parity);
+            cJSON_AddBoolToObject(u, "rs485_mode", uart_cfg.rs485_mode);
             cJSON_AddItemToObject(json, "uart", u);
             break;
         }

@@ -95,6 +95,7 @@ static void set_default_uart_settings(uart_settings_t *s) {
     s->stop_bits    = UART_STOP_BITS_1;      // вместо 1
     s->parity       = UART_PARITY_DISABLE;   // вместо 'N'
     s->flow_control = false;
+    s->rs485_mode   = true;                  // RS485 по умолчанию  
 }
 
 

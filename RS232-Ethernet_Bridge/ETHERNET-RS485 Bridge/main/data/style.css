@@ -921,3 +921,25 @@ select#deviceType:checked {
         padding: 15px;
     }
 }
+
+.uart-mode-box {
+    display: flex;
+    gap: 48px;
+    margin: 8px 0 12px;
+}
+
+.uart-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    line-height: 18px;
+}
+
+.uart-option input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+    margin-top: 1px;
+}

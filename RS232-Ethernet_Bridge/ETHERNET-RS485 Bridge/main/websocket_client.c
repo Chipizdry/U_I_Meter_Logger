@@ -114,7 +114,6 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
             }
             ws_connected = true;
-          //  strncpy(ws_status_msg, "Connected", sizeof(ws_status_msg));
             ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
         break;
 
@@ -122,14 +121,12 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
             ws_connected = false;
-           // strncpy(ws_status_msg, "Disconnected", sizeof(ws_status_msg));
             ws_broadcast("{\"cloud_status\":\"disconnected\"}");
             break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
             ws_connected = false;
-          //  strncpy(ws_status_msg, "Error", sizeof(ws_status_msg));
             ws_broadcast("{\"cloud_status\":\"error\"}");
             break;
 

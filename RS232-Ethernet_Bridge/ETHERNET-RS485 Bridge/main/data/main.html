@@ -74,6 +74,19 @@
                 <!--UART -->
                 <div class="tab-content" id="uart">
                     <h2>Настройки Modbus</h2>
+
+                    
+                    <label>Тип интерфейса:</label><br>
+                    <div class="uart-mode-box">
+                        <label class="uart-option">
+                            <input type="radio" name="uart-mode" value="0"> RS232
+                        </label>
+
+                        <label class="uart-option">
+                            <input type="radio" name="uart-mode" value="1"> RS485
+                        </label>
+                    </div>
+                    
                     <label>Скорость передачи (baud rate):</label>
                     <input type="number" id="uart-baud" value="9600"><br>
                 

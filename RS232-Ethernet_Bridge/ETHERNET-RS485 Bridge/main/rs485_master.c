@@ -23,10 +23,12 @@
 
 #include "websocket_client.h"
 #include "nvs_settings.h" 
+#include "gpio_manager.h"
 
 static const char *TAG = "rs485_master";
 static esp_timer_handle_t s_de_off_timer = NULL;
 static void rs485_request_task(void *arg);
+static void de_off_timer_cb(void *arg);
 static QueueHandle_t s_req_queue = NULL;
 
 typedef struct {
@@ -322,6 +324,8 @@ esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size
     gpio_config(&io_conf);
     gpio_set_level(RS485_DE_PIN, 0);
 
+      // Устанавливаем уровень в зависимости от режима
+    gpio_set_level(GPIO_MODE_CHANGE, cfg && cfg->rs485_mode ? 1 : 0);
     // Конфигурация UART
     uart_config_t uart_conf = {
         .baud_rate = (cfg) ? cfg->baud_rate : 9600,                  // скорость
@@ -329,6 +333,7 @@ esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size
         .parity    = (cfg) ? cfg->parity : UART_PARITY_DISABLE,      // none, odd, even
         .stop_bits = (cfg) ? cfg->stop_bits : UART_STOP_BITS_1,      // 1, 1.5, 2
         .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,                       // flow control не используем
+        
     #if defined(UART_SCLK_DEFAULT)
         .source_clk = UART_SCLK_APB,                                 // источник тактирования
     #endif
@@ -369,7 +374,7 @@ esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size
     s_req_queue = xQueueCreate(5, sizeof(rs485_req_t));
     xTaskCreatePinnedToCore(rs485_request_task, "rs485_req_task", 4096, NULL, 7, NULL, 1);
 
-    ESP_LOGI(TAG, "RS485 master init: baud=%d rx=%d tx=%d", s_baud, s_rx_buf, s_tx_buf);
+    ESP_LOGI(TAG, "RS485 master init: baud=%d rx=%d tx=%d mode=%s",s_baud, s_rx_buf, s_tx_buf,(cfg && cfg->rs485_mode) ? "RS485" : "RS232");
     return ESP_OK;
 }
 

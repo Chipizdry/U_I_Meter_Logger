@@ -16,6 +16,7 @@ extern "C" {
 #define GPIO_STATUS_LED     12   // Светодиод статуса
 #define GPIO_NET_LED        14   // Светодиод сети 
 #define GPIO_ERROR_LED      15   // Светодиод ошибок 
+#define GPIO_MODE_CHANGE     2   // Переключение режима RS485-RS232 
 
 // ===== Время удержания для сброса =====
 #define RESET_HOLD_TIME_MS  5000
