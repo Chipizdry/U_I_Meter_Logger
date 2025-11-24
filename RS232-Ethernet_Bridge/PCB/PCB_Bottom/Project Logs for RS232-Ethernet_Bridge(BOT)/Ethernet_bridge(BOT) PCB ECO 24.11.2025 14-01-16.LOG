@@ -1,0 +1,166 @@
+Removed Member From Class: ClassName=Ethernet_bridge Member=TP1
+Removed Member From Class: ClassName=Ethernet_bridge Member=TP2
+Added Component: Designator=C18(CAP-0805)
+Added Component: Designator=C19(CAP-0805)
+Added Component: Designator=C20(CAP-0805)
+Added Component: Designator=C21(CAP-0805)
+Added Component: Designator=C22(CAP-0805)
+Added Component: Designator=C23(CAP_SMD_Size_E)
+Added Component: Designator=C24(CAP-0805)
+Added Component: Designator=C25(CAP-0805)
+Added Component: Designator=C26(CAP-0805)
+Added Component: Designator=C27(CAP-0805)
+Added Component: Designator=C28(CAP-0805)
+Added Component: Designator=D6(DO-214-AC)
+Added Component: Designator=R14(RES-0603)
+Added Component: Designator=R15(RES-0603)
+Added Component: Designator=R22(RES-0603)
+Added Component: Designator=R23(RES-0603)
+Added Component: Designator=R24(RES-0603)
+Added Component: Designator=R25(RES-0603)
+Added Component: Designator=R26(RES-0603)
+Added Component: Designator=R27(RES-0603)
+Added Component: Designator=R29(RES-0603)
+Added Component: Designator=R30(RES-0603)
+Added Component: Designator=R31(RES-0603)
+Added Component: Designator=R34(RES-0603)
+Added Component: Designator=R36(RES-0603)
+Added Component: Designator=TP6(Test_Point)
+Added Component: Designator=TP7(Test_Point)
+Added Component: Designator=TP8(Test_Point)
+Added Component: Designator=TP9(Test_Point)
+Added Component: Designator=TP10(Test_Point)
+Added Component: Designator=TP11(Test_Point)
+Added Component: Designator=TP12(Test_Point)
+Added Component: Designator=TP13(Test_Point)
+Added Component: Designator=TP14(Test_Point)
+Added Component: Designator=U7(B1212S-3WR2)
+Added Component: Designator=U8(B0505S-1W)
+Added Component: Designator=ZD1(DO-214AA)
+Added Component: Designator=ZD2(DO-214AA)
+Added Component: Designator=ZD3(DO-214AA)
+Added Pin To Net: NetName=NetC18_1 Pin=C18-1
+Added Pin To Net: NetName=NetC18_2 Pin=C18-2
+Added Pin To Net: NetName=NetC19_1 Pin=C19-1
+Added Pin To Net: NetName=NetC19_2 Pin=C19-2
+Added Pin To Net: NetName=GND_2 Pin=C20-1
+Added Pin To Net: NetName=NetC20_2 Pin=C20-2
+Added Pin To Net: NetName=GND_2 Pin=C21-1
+Added Pin To Net: NetName=NetC21_2 Pin=C21-2
+Added Pin To Net: NetName=GND_2 Pin=C22-1
+Added Pin To Net: NetName=NetC22_2 Pin=C22-2
+Added Pin To Net: NetName=NetC22_2 Pin=C23-1
+Added Pin To Net: NetName=GND_2 Pin=C23-2
+Added Pin To Net: NetName=GND Pin=C24-1
+Added Pin To Net: NetName=+5V Pin=C24-2
+Added Pin To Net: NetName=GND_2 Pin=C25-1
+Added Pin To Net: NetName=+5V_ISO Pin=C25-2
+Added Pin To Net: NetName=GND_2 Pin=C26-1
+Added Pin To Net: NetName=+5V_ISO Pin=C26-2
+Added Pin To Net: NetName=GND_2 Pin=C27-1
+Added Pin To Net: NetName=+5V_ISO Pin=C27-2
+Added Pin To Net: NetName=+5V_ISO Pin=C28-1
+Added Pin To Net: NetName=GND_2 Pin=C28-2
+Added Pin To Net: NetName=NetD6_1 Pin=D6-1
+Added Pin To Net: NetName=VCC Pin=D6-2
+Added Pin To Net: NetName=NetR14_1 Pin=R14-1
+Added Pin To Net: NetName=NetR14_2 Pin=R14-2
+Added Pin To Net: NetName=NetR15_1 Pin=R15-1
+Added Pin To Net: NetName=NetR15_2 Pin=R15-2
+Added Pin To Net: NetName=NetP2_1 Pin=R22-1
+Added Pin To Net: NetName=+5V_ISO Pin=R22-2
+Added Pin To Net: NetName=+3V3_MCU Pin=R23-2
+Added Pin To Net: NetName=NetR24_1 Pin=R24-1
+Added Pin To Net: NetName=+5V_ISO Pin=R24-2
+Added Pin To Net: NetName=NetR25_1 Pin=R25-1
+Added Pin To Net: NetName=+5V_ISO Pin=R25-2
+Added Pin To Net: NetName=+3V3_MCU Pin=R26-2
+Added Pin To Net: NetName=NetR24_1 Pin=R27-1
+Added Pin To Net: NetName=NetR27_2 Pin=R27-2
+Added Pin To Net: NetName=NetR25_1 Pin=R29-1
+Added Pin To Net: NetName=NetR29_2 Pin=R29-2
+Added Pin To Net: NetName=GND Pin=R30-1
+Added Pin To Net: NetName=GND Pin=R31-1
+Added Pin To Net: NetName=GND_2 Pin=R34-1
+Added Pin To Net: NetName=NetP2_3 Pin=R34-2
+Added Pin To Net: NetName=GND_2 Pin=R36-1
+Added Pin To Net: NetName=NetR36_2 Pin=R36-2
+Added Pin To Net: NetName=+5V_ISO Pin=TP6-1
+Added Pin To Net: NetName=NetR24_1 Pin=TP8-1
+Added Pin To Net: NetName=NetR36_2 Pin=TP11-1
+Added Pin To Net: NetName=NetR25_1 Pin=TP13-1
+Added Pin To Net: NetName=GND_2 Pin=TP14-1
+Added Pin To Net: NetName=NetC22_2 Pin=U7-1
+Added Pin To Net: NetName=GND_2 Pin=U7-2
+Added Pin To Net: NetName=GND Pin=U7-4
+Added Pin To Net: NetName=NetD6_1 Pin=U7-6
+Added Pin To Net: NetName=GND Pin=U8-1
+Added Pin To Net: NetName=+5V Pin=U8-2
+Added Pin To Net: NetName=GND_2 Pin=U8-3
+Added Pin To Net: NetName=+5V_ISO Pin=U8-4
+Added Pin To Net: NetName=NetP2_3 Pin=ZD1-1
+Added Pin To Net: NetName=NetP2_1 Pin=ZD1-2
+Added Pin To Net: NetName=GND_2 Pin=ZD2-1
+Added Pin To Net: NetName=NetP2_1 Pin=ZD2-2
+Added Pin To Net: NetName=GND_2 Pin=ZD3-1
+Added Pin To Net: NetName=NetP2_3 Pin=ZD3-2
+Added Pin To Net: NetName=NetJ5_2 Pin=J5-2
+Added Pin To Net: NetName=NetJ5_2 Pin=R31-2
+Added Pin To Net: NetName=NetJ5_2 Pin=TP9-1
+Added Pin To Net: NetName=NetJ5_2 Pin=U10-3
+Added Net: Name=NetJ5_2
+Added Pin To Net: NetName=NetJ5_3 Pin=J5-3
+Added Pin To Net: NetName=NetJ5_3 Pin=R26-1
+Added Pin To Net: NetName=NetJ5_3 Pin=TP10-1
+Added Pin To Net: NetName=NetJ5_3 Pin=U10-4
+Added Net: Name=NetJ5_3
+Added Pin To Net: NetName=NetJ5_4 Pin=J5-4
+Added Pin To Net: NetName=NetJ5_4 Pin=R23-1
+Added Pin To Net: NetName=NetJ5_4 Pin=TP12-1
+Added Pin To Net: NetName=NetJ5_4 Pin=U10-6
+Added Net: Name=NetJ5_4
+Added Pin To Net: NetName=NetJ5_5 Pin=J5-5
+Added Pin To Net: NetName=NetJ5_5 Pin=R30-2
+Added Pin To Net: NetName=NetJ5_5 Pin=TP7-1
+Added Pin To Net: NetName=NetJ5_5 Pin=U10-5
+Added Net: Name=NetJ5_5
+Change Class Name : Old Net Name=Ethernet_bridge New Net Name=Ethernet_bridge(BOT)
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C18 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C19 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C20 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C21 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C22 100nF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C23 330uF 25V
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C24 100nF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C25 100nF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C26 100nF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C27 100nF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component C28 0.47uF
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component D6 SS14
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R14 33R
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R15 33R
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R22 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R23 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R24 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R25 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R26 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R27 100
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R29 100
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R30 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R31 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R34 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component R36 10K
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP6 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP7 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP8 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP9 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP10 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP11 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP12 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP13
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component TP14 Test_Point_PCB
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component U7 B1212S-3WR2
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component U8 B0505S-1W
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component ZD1 P6SMB16CA
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component ZD2 P6SMB16CA
+Added Member To Class: ClassName=Ethernet_bridge(BOT) Member=Component ZD3 P6SMB16CA
