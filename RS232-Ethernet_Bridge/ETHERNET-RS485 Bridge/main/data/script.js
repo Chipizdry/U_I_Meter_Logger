@@ -416,7 +416,15 @@ async function saveUARTSettings() {
     });
     if (res.ok) {
         alert('UART настройки сохранены ✅');
-    } else {
+    } 
+    
+    else if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+    }
+
+    else {
         alert('Ошибка при сохранении UART настроек ❌');
     }
 }
