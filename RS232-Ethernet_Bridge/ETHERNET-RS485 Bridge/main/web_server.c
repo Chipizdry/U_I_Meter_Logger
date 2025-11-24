@@ -373,12 +373,13 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     
         uart_settings_t uart_cfg = {0};
         nvs_load_uart_settings(&uart_cfg);
-    
+       
+       
         cJSON *baud = cJSON_GetObjectItem(json, "baud");
         cJSON *data_bits = cJSON_GetObjectItem(json, "data_bits");
         cJSON *stop_bits = cJSON_GetObjectItem(json, "stop_bits");
         cJSON *parity = cJSON_GetObjectItem(json, "parity");
-    
+        cJSON *mode = cJSON_GetObjectItem(json, "mode");
         if (baud && cJSON_IsNumber(baud)) uart_cfg.baud_rate = baud->valueint;
         if (data_bits && cJSON_IsNumber(data_bits)) {
             switch (data_bits->valueint) {
@@ -409,9 +410,11 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
                     break;
             }
         }
-    
+        if (mode && cJSON_IsNumber(mode)) {
+           uart_cfg.rs485_mode = mode->valueint;   // 0 = RS232, 1 = RS485
+        }
         // --- Логгирование полученных настроек ---
-        ESP_LOGI("UART_SETTINGS", "Received UART config: baud=%d, data_bits=%d, stop_bits=%d, parity=%d",uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity);
+        ESP_LOGI("UART_SETTINGS", "Received UART config: baud=%d, data_bits=%d, stop_bits=%d, parity=%d  ,mode=%s ",uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
 
         nvs_save_uart_settings(&uart_cfg);
         cJSON_Delete(json);

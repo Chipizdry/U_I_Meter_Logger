@@ -39,6 +39,9 @@ document.addEventListener("DOMContentLoaded", () => {
         fetchSettings();
         initWebSocket();  
         const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+        if (activeTab) {
+        applySettingsToForm(activeTab, data);
+        }
         loadTabSettings(activeTab);
     } else {
         showLogin();
@@ -353,6 +356,7 @@ function validateIP(ip) {
             }
 
             const data = await res.json();
+            window.allSettings = data; // Сохраняем глобально
             console.log("Полученные настройки:", data);
 
             // === Заполняем форму LAN ===
@@ -369,7 +373,15 @@ function validateIP(ip) {
                 updateIPFieldsState();
             }
 
-       
+               // === Автоматически применяем настройки на активную вкладку ===
+            const activeTab = document.querySelector(".menu-item.active")?.dataset.tab;
+            if (activeTab) {
+                applySettingsToForm(activeTab, data);
+            }
+
+        return data; // <---- ОБЯЗАТЕЛЬНО
+
+
         } catch (err) {
             alert("Ошибка соединения при получении настроек: " + err);
         }
@@ -386,7 +398,9 @@ function validateIP(ip) {
 async function saveUARTSettings() {
    
     const token = sessionStorage.getItem("auth_token");
+    const mode = parseInt(document.querySelector('input[name="uart-mode"]:checked')?.value || 0);
     const payload = {
+        mode: mode,
         baud: parseInt(document.getElementById('uart-baud').value),
         parity: parseInt(document.getElementById('uart-parity').value),
         stop_bits: parseInt(document.getElementById('uart-stop-bits').value),
@@ -484,7 +498,7 @@ function applySettingsToForm(tab, data) {
             const uart = data.uart || {};
               // конвертация true/false → "0"/"1"
             const rawMode = uart.rs485_mode;
-            const mode = rawMode ? "1" : "0";
+            const mode = rawMode ? "1" : "0"; 
             document.querySelector("#uart input[type=number]").value = uart.baud || 9600;
             document.querySelector("#uart-data-bits").value = uart.data_bits || 8;
             document.querySelector("#uart-stop-bits").value = uart.stop_bits || 1;
