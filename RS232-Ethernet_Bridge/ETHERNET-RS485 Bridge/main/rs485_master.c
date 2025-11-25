@@ -514,44 +514,49 @@ esp_err_t rs485_master_send(const uint8_t *data, size_t len)
     return xQueueSend(s_req_queue, &req, 10) == pdTRUE ? ESP_OK : ESP_ERR_TIMEOUT;
 }
 
-
 static void rs485_request_task(void *arg)
 {
     rs485_req_t req;
     const int uart_num = RS485_UART_NUM;
 
     while (1) {
+        char ws_msg[256];          // <── создаётся один раз на итерацию, можно переиспользовать
+        char hex_resp[128];        // <── тоже тут
+
         if (xQueueReceive(s_req_queue, &req, portMAX_DELAY) == pdTRUE) {
+
             ESP_LOGI(TAG, "Dequeued custom RS485 request (%d bytes)", req.len);
 
             uint32_t char_time_us = char_time_us_from_baud(s_baud);
             send_request_async(uart_num, req.data, req.len, char_time_us);
 
-            // --- Читаем ответ синхронно (например, 1000 ms таймаут) ---
             uint8_t resp[128] = {0};
             int rx_len = uart_read_bytes(uart_num, resp, sizeof(resp), pdMS_TO_TICKS(1000));
 
             if (rx_len > 0) {
+
                 ESP_LOGI(TAG, "Received %d bytes from RS485:", rx_len);
                 ESP_LOG_BUFFER_HEX(TAG, resp, rx_len);
 
-                // --- Преобразуем в HEX строку для WS ---
-                char hex_resp[128] = {0};
                 bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));
 
-                char ws_msg[256];
+                // --- переиспользуем ws_msg здесь ---
                 snprintf(ws_msg, sizeof(ws_msg),
                          "{\"hex_response\": \"%s\"}", hex_resp);
 
-                websocket_send_text(ws_msg); // отправляем обратно в WS
+                websocket_send_text(ws_msg);
                 ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
+
             } else {
                 ESP_LOGW(TAG, "No response from RS485 slave");
+
+                // --- переиспользуем ws_msg снова ---
+                snprintf(ws_msg, sizeof(ws_msg), "{\"hex_response\":\"No response from RS485\"}");
+                websocket_send_text(ws_msg);
             }
         }
     }
 }
-
 
 
 
