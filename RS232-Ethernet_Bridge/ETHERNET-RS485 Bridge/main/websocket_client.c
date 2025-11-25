@@ -302,30 +302,6 @@ void websocket_client_stop(void)
     }
 }
 
-/*
-static void websocket_send_task(void *pvParameters)
-{
-    int counter = 0;
-    while (1)
-    {
-        if (esp_websocket_client_is_connected(client))
-        {
-            char message[128];
-            snprintf(message, sizeof(message), "{\"msg_id\": %d, \"text\": \"Hello from ESP32 #%d\"}", counter, counter);
-            esp_websocket_client_send_text(client, message, strlen(message), portMAX_DELAY);
-            ESP_LOGI(TAG, "📤 Sent test message: %s", message);
-            counter++;
-        }
-        else
-        {
-            ESP_LOGW(TAG, "⚠️ WebSocket not connected, skipping send");
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(2000)); 
-    }
-}
-*/
-
 
 
 void initialize_sntp(void)

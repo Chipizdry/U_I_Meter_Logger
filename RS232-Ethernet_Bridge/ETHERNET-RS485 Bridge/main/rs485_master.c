@@ -8,6 +8,8 @@
 
 
 
+
+
 #include "rs485_master.h"
 #include <string.h>
 #include <stdlib.h>
@@ -557,4 +559,3 @@ static void rs485_request_task(void *arg)
         }
     }
 }
-
