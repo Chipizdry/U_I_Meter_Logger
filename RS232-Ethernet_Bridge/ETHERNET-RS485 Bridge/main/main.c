@@ -99,7 +99,7 @@ void app_main(void)
     strncpy(wifi_cfg.ap_ssid, net.ap_ssid, sizeof(wifi_cfg.ap_ssid));
     strncpy(wifi_cfg.ap_password, net.ap_password, sizeof(wifi_cfg.ap_password));
     
-    ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
+    //ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
 
 
     if (ethernet_init() == ESP_OK) {

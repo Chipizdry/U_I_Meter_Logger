@@ -18,7 +18,7 @@ static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секун�
  char ws_email[64];
  char ws_password[64];
 
-
+static bool ws_reconnect_in_progress = false;
 extern bool test_account_active;// из ws_server.c 
 extern void ws_broadcast(const char *text);
 extern httpd_handle_t server;
@@ -59,31 +59,34 @@ static void websocket_start(void);
         }
 
         if (need_reconnect) 
-        {
-            if (client) 
-            {
-                esp_websocket_client_stop(client);
-                vTaskDelay(pdMS_TO_TICKS(100));  // ждем корректного завершения
-                esp_websocket_client_destroy(client);
-                client = NULL;
-                ws_connected = false;
-            }
+{
+    if (ws_reconnect_in_progress) {
+        vTaskDelay(check_interval);
+        continue;
+    }
 
+    ws_reconnect_in_progress = true;
 
-             const char *email_to_use = test_account_active ? ws_email : user.account_login;
-             const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
+    if (client) {
+        esp_websocket_client_stop(client);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        esp_websocket_client_destroy(client);
+        client = NULL;
+        ws_connected = false;
+    }
 
-             if (websocket_client_start(user.serial, email_to_use, pass_to_use) == ESP_OK) {
-                ESP_LOGI(TAG, "✅ WebSocket reconnect initiated");
-            }
-       /*
-            if (websocket_client_start(user.serial, user.account_login, user.account_password) == ESP_OK) 
-            {
-                ESP_LOGI(TAG, "✅ WebSocket reconnect initiated");
-            }  */
+    const char *email_to_use = test_account_active ? ws_email : user.account_login;
+    const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
 
-            last_ws_event_tick = xTaskGetTickCount(); // сброс таймера после реконнекта
-        }
+    esp_err_t ok = websocket_client_start(user.serial, email_to_use, pass_to_use);
+    if (ok == ESP_OK) {
+        ESP_LOGI(TAG, "Reconnect started");
+    } else {
+        ESP_LOGE(TAG, "Reconnect failed: %s", esp_err_to_name(ok));
+    }
+
+    ws_reconnect_in_progress = false;
+}
 
         vTaskDelay(check_interval);
     }
@@ -130,7 +133,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
             ws_broadcast("{\"cloud_status\":\"error\"}");
             break;
 
-            case WEBSOCKET_EVENT_DATA:
+             case WEBSOCKET_EVENT_DATA:
             {
 
                 last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
@@ -221,6 +224,63 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
             
                 ESP_LOGI(TAG, "----- End of packet -----");
             
+
+
+
+
+             // === Парсинг pi30 ===
+char *pi30_ptr = strstr(ws_rx_buf, "\"pi30\"");
+if (pi30_ptr) {
+    char *start = strchr(pi30_ptr, ':');
+    if (start && (start = strchr(start, '"'))) {
+        start++;
+        char *end = strchr(start, '"');
+        if (end && end > start) {
+            char hex_str[128] = {0};
+            int hex_len = end - start;
+            if (hex_len < sizeof(hex_str)) {
+                memcpy(hex_str, start, hex_len);
+                ESP_LOGI(TAG, "🔶 PI30 HEX extracted: %s", hex_str);
+
+                // Удаляем пробелы → "5150494753B7A90D"
+                char clean_hex[128] = {0};
+                int j = 0;
+                for (int i = 0; i < strlen(hex_str); i++) {
+                    if (hex_str[i] != ' ' && hex_str[i] != '\n') {
+                        clean_hex[j++] = hex_str[i];
+                    }
+                }
+
+                // Переводим в байты
+                uint8_t bytes[64];
+                int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
+
+                if (byte_len > 0) {
+                    // ASCII лог (печатаемые символы)
+                    char ascii[128];
+                    int ai = 0;
+                    for (int i = 0; i < byte_len; i++) {
+                        char c = bytes[i];
+                        ascii[ai++] = (c >= 32 && c < 127) ? c : '.';
+                    }
+                    ascii[ai] = 0;
+
+                    ESP_LOGI(TAG, "🔤 PI30 ASCII: %s", ascii);
+                    ESP_LOGI(TAG, "📤 Sending %d bytes to UART (PI30)...", byte_len);
+                    ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
+
+                    rs485_master_send(bytes, byte_len);
+                } else {
+                    ESP_LOGE(TAG, "❌ PI30 HEX parse error");
+                }
+            }
+        }
+    }
+}
+
+
+
+
                 // очищаем буфер для следующего сообщения
                 ws_rx_len = 0;
                 ws_rx_buf[0] = 0;
@@ -250,7 +310,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
         .cert_pem = (const char *)ca_cert_pem_start,
-        .reconnect_timeout_ms = 5000,
+        .reconnect_timeout_ms = 0,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
     };
@@ -266,6 +326,12 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     );
 
     esp_err_t err = esp_websocket_client_start(client);
+
+    if (client != NULL) {
+    ESP_LOGW(TAG, "⚠️ websocket_client_start: already running");
+    return ESP_FAIL;
+    }
+
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));
         return err;

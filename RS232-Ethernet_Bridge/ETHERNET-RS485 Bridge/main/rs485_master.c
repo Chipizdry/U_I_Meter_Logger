@@ -550,7 +550,7 @@ static void rs485_request_task(void *arg)
                 ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
 
             } else {
-                ESP_LOGW(TAG, "No response from RS485 slave");
+                ESP_LOGW(TAG, "No response from slave");
 
                 // --- переиспользуем ws_msg снова ---
                 snprintf(ws_msg, sizeof(ws_msg), "{\"hex_response\":\"No response from RS485\"}");
