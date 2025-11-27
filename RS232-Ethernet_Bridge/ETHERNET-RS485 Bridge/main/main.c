@@ -36,6 +36,7 @@ char password[64];
 
 user_settings_t user;
 network_settings_t net;
+wifi_settings_t wifi_cfg;
 system_settings_t sys;
 uart_settings_t uart_cfg;
 
@@ -63,11 +64,13 @@ void app_main(void)
    
     nvs_load_user_settings(&user);
     nvs_load_network_settings(&net);
+    nvs_load_wifi_settings(&wifi_cfg);
     nvs_load_system_settings(&sys);
     nvs_load_uart_settings(&uart_cfg);
 
     ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
+   // ESP_LOGI("MAIN", "WiFi: Mode=(%s) AP SSID=%s ", wifi_mode_to_string(wifi_cfg.mode), wifi_cfg.ap_ssid);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
     ESP_LOGI("MAIN", "Loaded UART config: baudrate:%d , DataBits:%d ,StopBits:%d ,Parity: %d, Mode:(%s) ", uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
 
@@ -94,12 +97,12 @@ void app_main(void)
         .ap_channel = 6
     };
     
-    strncpy(wifi_cfg.ssid, net.sta_ssid, sizeof(wifi_cfg.ssid));
-    strncpy(wifi_cfg.password, net.sta_password, sizeof(wifi_cfg.password));
+    strncpy(wifi_cfg.sta_ssid, net.sta_ssid, sizeof(wifi_cfg.sta_ssid));
+    strncpy(wifi_cfg.sta_password, net.sta_password, sizeof(wifi_cfg.sta_password));
     strncpy(wifi_cfg.ap_ssid, net.ap_ssid, sizeof(wifi_cfg.ap_ssid));
     strncpy(wifi_cfg.ap_password, net.ap_password, sizeof(wifi_cfg.ap_password));
     
-    //ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
+    ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
 
 
     if (ethernet_init() == ESP_OK) {

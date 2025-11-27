@@ -64,7 +64,7 @@ static void set_default_user_settings(user_settings_t *s) {
 static void set_default_network_settings(network_settings_t *s) {
     memset(s, 0, sizeof(*s));
     s->version = NETWORK_SETTINGS_VERSION;
-    strcpy(s->ap_ssid, "COR-Admin");
+    strcpy(s->ap_ssid, "COR-Bridge");
     strcpy(s->ap_password, "12345678");
     strcpy(s->sta_ssid, " ");
     strcpy(s->sta_password, " ");
@@ -76,6 +76,20 @@ static void set_default_network_settings(network_settings_t *s) {
     s->port =80;
     s->dhcp_enabled = true;
 }
+
+static void set_default_wifi_settings(wifi_settings_t *s) {
+    memset(s, 0, sizeof(*s));
+    strcpy(s->ap_ssid, "COR-Bridge");
+    strcpy(s->ap_password, "12345678");
+    strcpy(s->sta_ssid, " ");
+    strcpy(s->sta_password, " ");
+    s->mode = WIFI_MODE_AP;
+    strcpy(s->ip, " 192.168.1.1 ");
+    strcpy(s->gateway, " 192.168.1.1 ");
+    strcpy(s->mask, "255.255.255.0");
+    strcpy(s->dns, "8.8.8.8.");
+    s->dhcp_enabled = true;
+}   
 
 static void set_default_system_settings(system_settings_t *s) {
     memset(s, 0, sizeof(*s));
@@ -251,4 +265,23 @@ esp_err_t nvs_clear_uart_settings(void) {
     return nvs_clear_key("uart");
 }
 
+
+// ========= WiFi настройки =========
+
+esp_err_t nvs_save_wifi_settings(const wifi_settings_t *settings) {
+    return nvs_save_blob("wifi", settings, sizeof(wifi_settings_t));
+}
+esp_err_t nvs_load_wifi_settings(wifi_settings_t *settings) {
+    esp_err_t err = nvs_load_blob("wifi", settings, sizeof(wifi_settings_t));
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "No WiFi settings found, loading defaults");
+        set_default_wifi_settings(settings);
+        nvs_save_wifi_settings(settings);
+        return ESP_OK;
+    }
+    return err;
+}
+esp_err_t nvs_clear_wifi_settings(void) {
+    return nvs_clear_key("wifi");
+}
 

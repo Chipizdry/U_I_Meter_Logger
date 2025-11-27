@@ -140,12 +140,13 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     }
 
     // Определяем раздел прямо в локальном enum
-    enum { ALL, UART, USER, NETWORK, SYSTEM, UNKNOWN } section = ALL;
+    enum { ALL, UART, USER, NETWORK,WIFI, SYSTEM, UNKNOWN } section = ALL;
 
     const char *uri = req->uri;
     if      (strstr(uri, "/uart"))    section = UART;
     else if (strstr(uri, "/user"))    section = USER;
     else if (strstr(uri, "/network")) section = NETWORK;
+    else if (strstr(uri, "/wifi")) section = WIFI;
     else if (strstr(uri, "/system"))  section = SYSTEM;
     else if (strstr(uri, "/get_settings")) section = ALL;
     else section = UNKNOWN;
@@ -211,6 +212,19 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         }
 
         case NETWORK: {
+            cJSON *n = cJSON_CreateObject();
+            cJSON_AddStringToObject(n, "ip", net.ip);
+            cJSON_AddStringToObject(n, "mask", net.mask);
+            cJSON_AddStringToObject(n, "gateway", net.gateway);
+            cJSON_AddStringToObject(n, "dns", net.dns); 
+            cJSON_AddNumberToObject(n, "port", net.port);
+            cJSON_AddBoolToObject(n, "dhcp_enabled", net.dhcp_enabled);
+            cJSON_AddItemToObject(json, "network", n);
+            if (section != ALL) break;
+            [[fallthrough]]; 
+        }
+
+          case WIFI: {
             cJSON *n = cJSON_CreateObject();
             cJSON_AddStringToObject(n, "ip", net.ip);
             cJSON_AddStringToObject(n, "mask", net.mask);

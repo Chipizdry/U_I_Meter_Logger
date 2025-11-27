@@ -77,8 +77,8 @@ esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
 
     wifi_config_t sta_cfg = { 0 };
-    strncpy((char *)sta_cfg.sta.ssid, cfg->ssid, sizeof(sta_cfg.sta.ssid));
-    strncpy((char *)sta_cfg.sta.password, cfg->password, sizeof(sta_cfg.sta.password));
+    strncpy((char *)sta_cfg.sta.ssid, cfg->ap_ssid, sizeof(sta_cfg.sta.ssid));
+    strncpy((char *)sta_cfg.sta.password, cfg->ap_password, sizeof(sta_cfg.sta.password));
 
     wifi_config_t ap_cfg = { 0 };
     strncpy((char *)ap_cfg.ap.ssid, cfg->ap_ssid, sizeof(ap_cfg.ap.ssid));

@@ -963,13 +963,15 @@ select#deviceType:checked {
 
 .file-btn {
     padding: 10px;
-    background-color: #7527B2;
-    color: white;
-    border: none;
+    background-color: white !important;
+    color: #7528B2;
+    border: 2px !important;
+    border-color: #7528B2 !important;
     border-radius: 12px;
     cursor: pointer;
     width: 200px;
 }
+
 
 .file-btn:hover {
     background-color: #7B43F2;

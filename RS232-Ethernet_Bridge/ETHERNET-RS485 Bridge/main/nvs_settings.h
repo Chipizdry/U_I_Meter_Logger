@@ -43,6 +43,21 @@ typedef struct {
 } network_settings_t;
 
 typedef struct {
+    char ip[16];
+    char gateway[16];
+    char mask[16];
+    char dns[16];
+    bool dhcp_enabled;
+    char sta_ssid[64];
+    char sta_password[32];
+    char ap_ssid[64];
+    char ap_password[32];
+    int ap_channel;
+    wifi_mode_t mode;  
+
+} wifi_settings_t;
+
+typedef struct {
     uint8_t version;
     int refresh_interval;
     int log_level;
@@ -63,6 +78,7 @@ typedef struct {
 
 extern user_settings_t user;
 extern network_settings_t net;
+extern wifi_settings_t wifi_cfg;    
 extern system_settings_t sys;
 extern uart_settings_t uart_cfg;
 
@@ -89,6 +105,12 @@ esp_err_t nvs_clear_system_settings(void);
 esp_err_t nvs_save_uart_settings(const uart_settings_t *settings);
 esp_err_t nvs_load_uart_settings(uart_settings_t *settings);
 esp_err_t nvs_clear_uart_settings(void);
+
+// ======== WiFi настройки ========
+esp_err_t nvs_save_wifi_settings(const wifi_settings_t *settings);
+esp_err_t nvs_load_wifi_settings(wifi_settings_t *settings);
+esp_err_t nvs_clear_wifi_settings(void);
+
 
 
 #ifdef __cplusplus
