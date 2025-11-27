@@ -23,8 +23,7 @@
                 <input type="password" id="password" name="password" data-translate="password_placeholder"   required autocomplete="current-password">
                 <span id="eyeIcon" class="eye-icon" onclick="togglePassword('password', 'eyeIcon')"></span>
             </div>
-          <!--  <label>Password:</label>
-            <input name="password" type="password" required placeholder="Введите пароль">  -->  <br><br>  
+         <br><br>  
             <button type="submit">Войти</button>
         </form>
 
@@ -140,10 +139,19 @@
                     </select><br>
 
                     <button>💾 Сохранить</button>
-                    <form id="uploadForm" enctype="multipart/form-data">
-                        <h3>Upload Firmware</h3>
-                        <input type="file" id="firmwareFile" name="firmware" accept=".bin">
-                        <br><br>
+                    <form id="uploadForm" class="file-upload-form" enctype="multipart/form-data">
+                        <h3>Обновление </h3>
+
+                        <div class="file-input-box">
+                            <button type="button" class="file-btn" onclick="document.getElementById('firmwareFile').click()">
+                                Выберите файл
+                            </button>
+
+                            <input type="file" id="firmwareFile" name="firmware" accept=".bin" style="display:none">
+
+                            <span id="fileName" class="file-name">Файл не выбран</span>
+                        </div>
+
                         <button type="button" onclick="uploadFirmware()">Upload Firmware</button>
                         <p id="status"></p>
                     </form>

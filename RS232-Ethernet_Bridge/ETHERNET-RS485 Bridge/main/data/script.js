@@ -599,3 +599,13 @@ btn.addEventListener("click", () => {
         btn.textContent = "Включить тестовый режим"; // ← теперь тоже работает
     }
 });
+
+
+document.getElementById("firmwareFile").addEventListener("change", function () {
+    const nameBox = document.getElementById("fileName");
+    if (this.files.length > 0) {
+        nameBox.textContent = this.files[0].name;
+    } else {
+        nameBox.textContent = "Файл не выбран";
+    }
+});
