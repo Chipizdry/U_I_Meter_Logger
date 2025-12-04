@@ -77,26 +77,32 @@ esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
 
     wifi_config_t sta_cfg = { 0 };
-    strncpy((char *)sta_cfg.sta.ssid, cfg->ap_ssid, sizeof(sta_cfg.sta.ssid));
-    strncpy((char *)sta_cfg.sta.password, cfg->ap_password, sizeof(sta_cfg.sta.password));
+    strncpy((char *)sta_cfg.sta.ssid, cfg->sta_ssid, sizeof(sta_cfg.sta.ssid));
+    strncpy((char *)sta_cfg.sta.password, cfg->sta_password, sizeof(sta_cfg.sta.password));
+    sta_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    sta_cfg.sta.sae_pwe_h2e = WPA3_SAE_PWE_UNSPECIFIED;
 
     wifi_config_t ap_cfg = { 0 };
     strncpy((char *)ap_cfg.ap.ssid, cfg->ap_ssid, sizeof(ap_cfg.ap.ssid));
     strncpy((char *)ap_cfg.ap.password, cfg->ap_password, sizeof(ap_cfg.ap.password));
     ap_cfg.ap.ssid_len = strlen(cfg->ap_ssid);
-    ap_cfg.ap.channel = cfg->ap_channel;
+    ap_cfg.ap.channel = cfg->ap_channel > 0 ? cfg->ap_channel : 1; // минимальный 1
     ap_cfg.ap.max_connection = 4;
     ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA_WPA2_PSK : WIFI_AUTH_OPEN;
 
+
     ESP_ERROR_CHECK(esp_wifi_set_mode(cfg->mode));
-    if (cfg->mode == WIFI_MODE_STA) {
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
-    } else if (cfg->mode == WIFI_MODE_AP) {
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
-    } else if (cfg->mode == WIFI_MODE_APSTA) {
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
-        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
-    }
+
+        if (cfg->mode == WIFI_MODE_STA) {
+            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+        }
+        else if (cfg->mode == WIFI_MODE_AP) {
+            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+        }
+        else if (cfg->mode == WIFI_MODE_APSTA) {
+            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+            ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+        }
 
     ESP_ERROR_CHECK(esp_wifi_start());
     ESP_LOGI(TAG, "Wi-Fi initialized in mode %d", cfg->mode);

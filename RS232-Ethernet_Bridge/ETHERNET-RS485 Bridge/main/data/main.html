@@ -11,7 +11,7 @@
 <body>
     <div class="container" id="appContainer">
         <!-- === Форма входа === -->
-        <form id="loginForm"  method="POST" action="/login">
+        <form id="loginForm"  method="POST" >
             <h2>Авторизация</h2>
             <div id="loginStatus" class="login-status hidden message"></div>
             <label>Login:</label>
@@ -54,10 +54,11 @@
                     <h2>Wi-Fi настройки</h2>
                     <form id="wifiForm" method="POST" action="/save_settings">
                         <label>Mode:
-                            <select name="mode">
-                                <option value="STA">STA</option>
-                                <option value="AP">AP</option>
-                                <option value="STA_AP">STA+AP</option>
+                            <select name="mode" id="wifiMode">
+                                <option value="0">OFF</option>
+                                <option value="1">STA</option>
+                                <option value="2">AP</option>
+                                <option value="3">APSTA</option>
                             </select>
                         </label><br>
 

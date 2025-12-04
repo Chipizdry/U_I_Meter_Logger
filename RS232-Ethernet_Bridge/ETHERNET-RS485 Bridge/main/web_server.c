@@ -161,12 +161,13 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     network_settings_t net = {0};
     system_settings_t sys = {0};
     uart_settings_t uart_cfg = {0};
+    wifi_settings_t wifi_cfg= {0};    
 
     nvs_load_user_settings(&user);
     nvs_load_network_settings(&net);
     nvs_load_system_settings(&sys);
     nvs_load_uart_settings(&uart_cfg);
-
+    nvs_load_wifi_settings(&wifi_cfg);
 
     // Если DHCP включен, берем текущие настройки с Ethernet
     if (net.dhcp_enabled) {
@@ -225,14 +226,24 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         }
 
           case WIFI: {
-            cJSON *n = cJSON_CreateObject();
-            cJSON_AddStringToObject(n, "ip", net.ip);
-            cJSON_AddStringToObject(n, "mask", net.mask);
-            cJSON_AddStringToObject(n, "gateway", net.gateway);
-            cJSON_AddStringToObject(n, "dns", net.dns); 
-            cJSON_AddNumberToObject(n, "port", net.port);
-            cJSON_AddBoolToObject(n, "dhcp_enabled", net.dhcp_enabled);
-            cJSON_AddItemToObject(json, "network", n);
+            cJSON *w = cJSON_CreateObject();
+            // STA
+            cJSON_AddStringToObject(w, "sta_ssid", wifi_cfg.sta_ssid);
+            cJSON_AddStringToObject(w, "sta_password", wifi_cfg.sta_password);
+            // AP
+            cJSON_AddStringToObject(w, "ap_ssid", wifi_cfg.ap_ssid);
+            cJSON_AddStringToObject(w, "ap_password", wifi_cfg.ap_password);
+            cJSON_AddNumberToObject(w, "ap_channel", wifi_cfg.ap_channel);
+            // Режим WiFi
+            cJSON_AddNumberToObject(w, "mode", wifi_cfg.mode);
+            // IP / DHCP 
+            cJSON_AddStringToObject(w, "ip", wifi_cfg.ip);
+            cJSON_AddStringToObject(w, "mask", wifi_cfg.mask);
+            cJSON_AddStringToObject(w, "gateway", wifi_cfg.gateway);
+            cJSON_AddStringToObject(w, "dns", wifi_cfg.dns);
+            cJSON_AddBoolToObject(w, "dhcp_enabled", wifi_cfg.dhcp_enabled);
+
+            cJSON_AddItemToObject(json, "wifi", w);
             if (section != ALL) break;
             [[fallthrough]]; 
         }

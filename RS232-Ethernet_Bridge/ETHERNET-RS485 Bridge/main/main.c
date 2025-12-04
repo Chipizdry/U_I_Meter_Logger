@@ -70,7 +70,10 @@ void app_main(void)
 
     ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
-   // ESP_LOGI("MAIN", "WiFi: Mode=(%s) AP SSID=%s ", wifi_mode_to_string(wifi_cfg.mode), wifi_cfg.ap_ssid);
+    ESP_LOGI("MAIN", "WiFi Settings:");
+    ESP_LOGI("MAIN", "Mode: %s", wifi_cfg.mode == WIFI_MODE_STA   ? "STA" :wifi_cfg.mode == WIFI_MODE_AP    ? "AP" : wifi_cfg.mode == WIFI_MODE_APSTA ? "AP+STA" : "UNKNOWN");
+    ESP_LOGI("MAIN", "STA: SSID=%s  PASS=%s", wifi_cfg.sta_ssid, wifi_cfg.sta_password);
+    ESP_LOGI("MAIN", "AP : SSID=%s  PASS=%s  Channel=%d " , wifi_cfg.ap_ssid, wifi_cfg.ap_password, wifi_cfg.ap_channel);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
     ESP_LOGI("MAIN", "Loaded UART config: baudrate:%d , DataBits:%d ,StopBits:%d ,Parity: %d, Mode:(%s) ", uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
 
@@ -80,8 +83,6 @@ void app_main(void)
         littlefs_list_files();
     }
  
-
-   // rs485_master_init(9600, 2048, 1024);
     rs485_master_init_from_cfg(&uart_cfg, 2048, 1024);
 
     rs485_slave_cfg_t s1 = { .slave_addr = 9, .reg_start = 0, .reg_count = 10, .poll_interval_ms = 500 };
@@ -90,12 +91,6 @@ void app_main(void)
    // rs485_slave_cfg_t s2 = { .slave_addr = 2, .reg_start = 0, .reg_count = 4, .poll_interval_ms = 5000 };
    // rs485_master_add_slave(&s2);
 
-
-
-    wifi_settings_t wifi_cfg = {
-        .mode = net.mode,  
-        .ap_channel = 6
-    };
     
     strncpy(wifi_cfg.sta_ssid, net.sta_ssid, sizeof(wifi_cfg.sta_ssid));
     strncpy(wifi_cfg.sta_password, net.sta_password, sizeof(wifi_cfg.sta_password));

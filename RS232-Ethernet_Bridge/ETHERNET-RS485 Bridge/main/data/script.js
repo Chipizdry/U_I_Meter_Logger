@@ -348,7 +348,7 @@ function validateIP(ip) {
                // === Автоматически применяем настройки на активную вкладку ===
           const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
 
-        return data; // <---- ОБЯЗАТЕЛЬНО
+        return data; 
 
 
         } catch (err) {
@@ -409,7 +409,7 @@ async function loadTabSettings(tab) {
     try {
         const endpoints = {
             "LAN": "/get_settings/network",
-            "wifi": "/get_settings/network",
+            "wifi": "/get_settings/wifi",
             "uart": "/get_settings/uart",
             "user": "/get_settings/user",
             "system": "/get_settings/system",
@@ -464,11 +464,25 @@ function applySettingsToForm(tab, data) {
 
         case "wifi": {
             const wifi = data.wifi || {};
-            document.querySelector("[name='ssid']").value = wifi.ssid || "";
-            document.querySelector("[name='password']").value = wifi.password || "";
-            document.querySelector("[name='mode']").value = wifi.mode || "STA";
+
+            // STA
+            document.querySelector("[name='sta-ssid']").value = wifi.sta_ssid || "";
+            document.querySelector("[name='sta-password']").value = wifi.sta_password || "";
+
+            // AP
+            document.querySelector("[name='ap-ssid']").value = wifi.ap_ssid || "";
+            document.querySelector("[name='ap-password']").value = wifi.ap_password || "";
+            document.querySelector("[name='ap-channel']").value = wifi.ap_channel || 1;
+            document.getElementById("wifiMode").value = wifi.mode;
+            // LAN / DHCP
+            document.querySelector("[name='ip']").value = wifi.ip || "";
+            document.querySelector("[name='mask']").value = wifi.mask || "";
+            document.querySelector("[name='gateway']").value = wifi.gateway || "";
+            document.querySelector("[name='dns']").value = wifi.dns || "";
+            document.querySelector("[name='dhcp']").checked = !!wifi.dhcp_enabled;
             break;
         }
+
 
         case "uart": {
             
