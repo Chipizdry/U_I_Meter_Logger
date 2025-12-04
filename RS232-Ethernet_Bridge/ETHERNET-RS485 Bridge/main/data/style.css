@@ -388,22 +388,39 @@ input[type="submit"] {
     margin-bottom: 10px;
 }
 
+/*
 .password-container {
     position: relative;
     display: flex;
-    align-items: center; /* вертикальное выравнивание по центру */
-    justify-content: center; /* горизонтальное выравнивание (опционально) */
-    min-height: 50px; /* или любая другая высота */
+    align-items: center; 
+    justify-content: center; 
+    min-height: 50px; 
+}  */
+
+.password-container {
+    position: relative;
+    width: 200px;
 }
 
+.password-container input {
+    width: 100%;
+    padding-right: 40px; /* место под глаз */
+}
+
+
+#account .password-container {
+    margin-left: auto;
+    margin-right: auto;
+}
+/*
 .password-input {
     width: 100%;
     padding: 12px 45px 12px 15px; /* Увеличиваем отступ справа для иконки */
-    font-size: 16px;
+ /*   font-size: 16px;
     border: 1px solid #ccc;
     border-radius: 8px; /* Скругляем углы */
-    box-sizing: border-box; /* Учитываем padding в ширине */
-}
+/*    box-sizing: border-box; /* Учитываем padding в ширине */
+/* } */
 
 .hidden {
     display: none !important;

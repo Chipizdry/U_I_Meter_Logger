@@ -537,8 +537,8 @@ static void rs485_request_task(void *arg)
 
             if (rx_len > 0) {
 
-                ESP_LOGI(TAG, "Received %d bytes from RS485:", rx_len);
-                ESP_LOG_BUFFER_HEX(TAG, resp, rx_len);
+                ESP_LOGI(TAG, "Received %d bytes from RS485", rx_len);
+               // ESP_LOG_BUFFER_HEX(TAG, resp, rx_len);
 
                 bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));
 
@@ -547,7 +547,7 @@ static void rs485_request_task(void *arg)
                          "{\"hex_response\": \"%s\"}", hex_resp);
 
                 websocket_send_text(ws_msg);
-                ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
+             //   ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
 
             } else {
                 ESP_LOGW(TAG, "No response from slave");

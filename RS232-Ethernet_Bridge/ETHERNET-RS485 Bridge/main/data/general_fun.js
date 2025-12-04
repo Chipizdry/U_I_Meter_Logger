@@ -93,6 +93,13 @@ function updateEyeIcon(eyeIcon, isPasswordHidden) {
 }
 
 
+function initAllEyeIcons() {
+    document.querySelectorAll(".eye-icon").forEach(icon => {
+        updateEyeIcon(icon, false); // false = пароль скрыт → показываем "закрытый" глаз
+    });
+}
+
+
 // Функция показа модального окна
 function showTokenExpiredModal(message) {
     // Если модалка уже есть — не создаём новую

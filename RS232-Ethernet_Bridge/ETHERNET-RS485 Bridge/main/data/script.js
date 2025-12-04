@@ -10,6 +10,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const eye = document.getElementById("eyeIcon");
     updateEyeIcon(eye, false); // false = закрытый глаз
 
+    initAllEyeIcons();
+
     let buildNumber = null;
     let buildDate = null;
   
@@ -200,36 +202,6 @@ logoutBtn.addEventListener("click", async () => {
 
 
 
-// === Гамбургер меню ===
-const menuButton = document.getElementById("menuButton");
-const sideMenu = document.getElementById("sideMenu");
-menuButton.addEventListener("click", () => {
-    sideMenu.classList.toggle("open");
-});
-
-// === Переключение вкладок ===
-const menuItems = document.querySelectorAll(".menu-item[data-tab]");
-const tabContents = document.querySelectorAll(".tab-content");
-
-    menuItems.forEach(item => {
-        item.addEventListener("click", async () => {
-            // Переключаем вкладки UI
-            menuItems.forEach(i => i.classList.remove("active"));
-            tabContents.forEach(t => t.classList.remove("active"));
-
-            item.classList.add("active");
-            const tabId = item.dataset.tab;
-            document.getElementById(tabId).classList.add("active");
-
-            // Закрываем меню на мобилке
-            sideMenu.classList.remove("open");
-
-            // Загружаем настройки для конкретной вкладки
-            await loadTabSettings(tabId);
-        });
-    });
-
-
 
 
  // Функция: форматирует IP (добавляет нули и точки)
@@ -374,10 +346,7 @@ function validateIP(ip) {
             }
 
                // === Автоматически применяем настройки на активную вкладку ===
-            const activeTab = document.querySelector(".menu-item.active")?.dataset.tab;
-            if (activeTab) {
-                applySettingsToForm(activeTab, data);
-            }
+          const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
 
         return data; // <---- ОБЯЗАТЕЛЬНО
 
@@ -609,3 +578,35 @@ document.getElementById("firmwareFile").addEventListener("change", function () {
         nameBox.textContent = "Файл не выбран";
     }
 });
+
+
+
+// === Гамбургер меню ===
+const menuButton = document.getElementById("menuButton");
+const sideMenu = document.getElementById("sideMenu");
+menuButton.addEventListener("click", () => {
+    sideMenu.classList.toggle("open");
+});
+
+// === Переключение вкладок ===
+const menuItems = document.querySelectorAll(".menu-item[data-tab]");
+const tabContents = document.querySelectorAll(".tab-content");
+
+    menuItems.forEach(item => {
+        item.addEventListener("click", async () => {
+            // Переключаем вкладки UI
+            menuItems.forEach(i => i.classList.remove("active"));
+            tabContents.forEach(t => t.classList.remove("active"));
+
+            item.classList.add("active");
+            const tabId = item.dataset.tab;
+            document.getElementById(tabId).classList.add("active");
+
+            // Закрываем меню на мобилке
+            sideMenu.classList.remove("open");
+
+            // Загружаем настройки для конкретной вкладки
+            await loadTabSettings(tabId);
+        });
+    });
+
