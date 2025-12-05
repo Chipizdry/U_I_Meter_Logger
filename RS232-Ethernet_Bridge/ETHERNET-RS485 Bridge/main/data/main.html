@@ -68,9 +68,11 @@
                             <input type="text" name="sta-ssid">
                         </label><br>
 
-                        <label>STA Password:
-                            <input type="password" name="sta-password">
-                        </label><br>
+                        <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >STA Password:</label>
+                        <div class="password-container">
+                            <input type="password" id="sta-password" name="sta-password" data-translate="password_placeholder" >
+                            <span class="eye-icon" id="eye-sta-password" onclick="togglePassword('sta-password','eye-sta-password')"></span>
+                        </div>
 
                         <h3>AP (Access Point)</h3>
                         <label>AP SSID:

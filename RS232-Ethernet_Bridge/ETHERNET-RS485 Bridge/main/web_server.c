@@ -308,6 +308,14 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
 // ==== Отправка статического файла из /littlefs ====
 static esp_err_t file_get_handler(httpd_req_t *req)
 {
+
+
+     if (req->method != HTTP_GET) {
+    ESP_LOGW(TAG, "Rejected non-GET request: %d to %s", req->method, req->uri);
+    httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "GET only");
+    return ESP_FAIL;
+  }
+
     char filepath[128] = "/littlefs";
     const char *uri = req->uri;  // <-- напрямую берём URI из структуры
 
@@ -624,6 +632,21 @@ esp_err_t web_server_start(void)
 
     if (httpd_start(&server, &config) == ESP_OK) {
 
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/get_settings/*",
+            .method = HTTP_GET,
+            .handler = get_settings_handler,
+            .user_ctx = NULL
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/save_settings/*",
+            .method = HTTP_POST,
+            .handler = save_settings_post_handler,
+            .user_ctx = NULL
+        });
+
+
         httpd_uri_t ws_uri = {
             .uri = "/ws",
             .method = HTTP_GET,
@@ -632,12 +655,7 @@ esp_err_t web_server_start(void)
             .is_websocket = true
         };
 
-        httpd_uri_t file_get_uri = {
-            .uri = "/*",
-            .method = HTTP_GET,
-            .handler = file_get_handler,
-            .user_ctx = NULL
-        };
+        
         httpd_uri_t save_settings_uri = {
             .uri = "/save_settings",
             .method = HTTP_POST,
@@ -657,20 +675,7 @@ esp_err_t web_server_start(void)
             .user_ctx = NULL
         };
 
-        httpd_register_uri_handler(server, &(httpd_uri_t){
-            .uri = "/get_settings/*",
-            .method = HTTP_GET,
-            .handler = get_settings_handler,
-            .user_ctx = NULL
-        });
-
-        httpd_register_uri_handler(server, &(httpd_uri_t){
-            .uri = "/save_settings/*",
-            .method = HTTP_POST,
-            .handler = save_settings_post_handler,
-            .user_ctx = NULL
-        });
-
+      
         httpd_uri_t ota_uri = {
             .uri = "/ota",
             .method = HTTP_POST,
@@ -685,7 +690,14 @@ esp_err_t web_server_start(void)
             .user_ctx = NULL
         };
         
-        
+        httpd_uri_t file_get_uri = {
+            .uri = "/*",
+            .method = HTTP_GET,
+            .handler = file_get_handler,
+            .user_ctx = NULL
+        };
+
+
         httpd_register_uri_handler(server, &ws_uri);
         httpd_register_uri_handler(server, &ota_uri);
         httpd_register_uri_handler(server, &login_uri);
@@ -710,5 +722,7 @@ esp_err_t web_server_stop(void)
     }
     return ESP_OK;
 }
+
+
 
 
