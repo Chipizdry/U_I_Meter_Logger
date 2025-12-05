@@ -52,7 +52,8 @@
                 <!-- Wi-Fi -->
                 <div class="tab-content active" id="wifi">
                     <h2>Wi-Fi настройки</h2>
-                    <form id="wifiForm" method="POST" action="/save_settings">
+                    <form id="wifiForm">
+
                         <label>Mode:
                             <select name="mode" id="wifiMode">
                                 <option value="0">OFF</option>
@@ -62,11 +63,47 @@
                             </select>
                         </label><br>
 
-                        <label>SSID: <input type="text" name="ssid"></label><br>
-                        <label>Password: <input type="password" name="password"></label><br>
-                       
-                       
-                        <button type="submit">💾 Сохранить</button>
+                        <h3>STA (Client)</h3>
+                        <label>STA SSID:
+                            <input type="text" name="sta-ssid">
+                        </label><br>
+
+                        <label>STA Password:
+                            <input type="password" name="sta-password">
+                        </label><br>
+
+                        <h3>AP (Access Point)</h3>
+                        <label>AP SSID:
+                            <input type="text" name="ap-ssid">
+                        </label><br>
+
+                        <label>AP Password:
+                            <input type="password" name="ap-password">
+                        </label><br>
+
+                        <label>AP Channel:
+                            <input type="number" name="ap-channel" min="1" max="13">
+                        </label>
+
+                        <h3 class="hidden">LAN</h3>
+                        <label class="hidden">IP:
+                            <input type="text" name="ip">
+                        </label>
+
+                        <label class="hidden">Mask:
+                            <input type="text" name="mask">
+                        </label>
+
+                        <label class="hidden">Gateway:
+                            <input type="text" name="gateway">
+                        </label>
+
+                        <label class="hidden">DNS:
+                            <input type="text" name="dns">
+                        </label>
+
+                        <label class="hidden"><input type="checkbox" name="dhcp"> DHCP enable</label>
+                        <button type="button" onclick="saveWiFiSettings()">💾 Сохранить</button>
                     </form>
                 </div>
 

@@ -363,11 +363,12 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
 
     const char *uri = req->uri;
-    enum { SECTION_USER,SECTION_ACCOUNT, SECTION_NETWORK, SECTION_UART, SECTION_SYSTEM, SECTION_UNKNOWN } section = SECTION_UNKNOWN;
+    enum { SECTION_USER,SECTION_ACCOUNT, SECTION_NETWORK,SECTION_WIFI, SECTION_UART, SECTION_SYSTEM, SECTION_UNKNOWN } section = SECTION_UNKNOWN;
 
-    if (strstr(uri, "/save_settings/user"))    section = SECTION_USER;
+    if      (strstr(uri, "/save_settings/user"))    section = SECTION_USER;
     else if (strstr(uri, "/save_settings/account")) section = SECTION_ACCOUNT;
     else if (strstr(uri, "/save_settings/network")) section = SECTION_NETWORK;
+    else if (strstr(uri, "/save_settings/wifi"))    section = SECTION_WIFI;
     else if (strstr(uri, "/save_settings/uart"))    section = SECTION_UART;
     else if (strstr(uri, "/save_settings/system"))  section = SECTION_SYSTEM;
     else section = SECTION_UNKNOWN;
@@ -453,7 +454,55 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
+  if (section == SECTION_WIFI) {
 
+
+
+
+    char body[512] = {0};
+    int ret = httpd_req_recv(req, body, sizeof(body)-1);
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
+        return ESP_FAIL;
+    }
+    body[ret] = '\0';
+
+    cJSON *json = cJSON_Parse(body);
+     ESP_LOGI("WIFI", "Received WiFi JSON: %s", body);
+    if (!json) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+    wifi_settings_t wifi_cfg = {0};
+    nvs_load_wifi_settings(&wifi_cfg);
+
+    cJSON *sta_ssid = cJSON_GetObjectItem(json, "sta_ssid");
+    cJSON *sta_password = cJSON_GetObjectItem(json, "sta_password");
+    cJSON *ap_ssid = cJSON_GetObjectItem(json, "ap_ssid");
+    cJSON *ap_password = cJSON_GetObjectItem(json, "ap_password");
+    cJSON *ap_channel = cJSON_GetObjectItem(json, "ap_channel");
+    cJSON *mode = cJSON_GetObjectItem(json, "mode");
+
+    if (sta_ssid && cJSON_IsString(sta_ssid)) strncpy(wifi_cfg.sta_ssid, sta_ssid->valuestring, sizeof(wifi_cfg.sta_ssid) - 1);
+    if (sta_password && cJSON_IsString(sta_password)) strncpy(wifi_cfg.sta_password, sta_password->valuestring, sizeof(wifi_cfg.sta_password) - 1);
+    if (ap_ssid && cJSON_IsString(ap_ssid)) strncpy(wifi_cfg.ap_ssid, ap_ssid->valuestring, sizeof(wifi_cfg.ap_ssid) - 1);
+    if (ap_password && cJSON_IsString(ap_password)) strncpy(wifi_cfg.ap_password, ap_password->valuestring, sizeof(wifi_cfg.ap_password) - 1);
+    if (ap_channel && cJSON_IsNumber(ap_channel)) wifi_cfg.ap_channel = ap_channel->valueint;
+    if (mode && cJSON_IsNumber(mode)) wifi_cfg.mode = mode->valueint;
+
+    nvs_save_wifi_settings(&wifi_cfg);
+    cJSON_Delete(json);
+    ESP_LOGI("WIFI", " Mode: %d", wifi_cfg.mode);
+    ESP_LOGI("WIFI", " STA SSID: %s", wifi_cfg.sta_ssid);
+    ESP_LOGI("WIFI", " STA PASS: %s", wifi_cfg.sta_password);
+    ESP_LOGI("WIFI", " AP SSID: %s", wifi_cfg.ap_ssid);
+    ESP_LOGI("WIFI", " AP PASS: %s", wifi_cfg.ap_password);
+    ESP_LOGI("WIFI", " AP CHANNEL: %d", wifi_cfg.ap_channel);
+    httpd_resp_sendstr(req, "WiFi settings saved successfully 💾");
+   
+    return ESP_OK;      
+  }
 
     char buf[256];
     int len = req->content_len;
@@ -520,6 +569,9 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     httpd_resp_sendstr(req, "Settings saved successfully 💾");
     return ESP_OK;
 }
+
+
+
 
 /// POST /logout
 
@@ -634,13 +686,13 @@ esp_err_t web_server_start(void)
         };
         
         
-        httpd_register_uri_handler(server, &ws_uri);  
+        httpd_register_uri_handler(server, &ws_uri);
         httpd_register_uri_handler(server, &ota_uri);
-        httpd_register_uri_handler(server, &get_settings_uri);
-        httpd_register_uri_handler(server, &file_get_uri);
-        httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &login_uri);
         httpd_register_uri_handler(server, &logout_uri);
+        httpd_register_uri_handler(server, &get_settings_uri);
+        httpd_register_uri_handler(server, &save_settings_uri);
+        httpd_register_uri_handler(server, &file_get_uri);
         ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
         return ESP_OK;
     }

@@ -54,12 +54,13 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
 
         const data = new URLSearchParams(new FormData(e.target));
+         console.log(`Submitting login for user: ${data.get('login')}`);
         const res = await fetch('/login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: data.toString()
         });
-
+        console.log("Login response status:", res.status);
         if (res.ok) {
             const json = await res.json();
             sessionStorage.setItem('auth_token', json.token);
@@ -399,6 +400,55 @@ async function saveUARTSettings() {
 }
 
 
+
+async function saveWiFiSettings() {
+    const token = sessionStorage.getItem("auth_token");
+
+    const wifiForm = document.getElementById("wifiForm");
+
+    const payload = {
+        mode: parseInt(document.getElementById("wifiMode").value),
+
+        sta_ssid: wifiForm.querySelector("[name='sta-ssid']").value,
+        sta_password: wifiForm.querySelector("[name='sta-password']").value,
+
+        ap_ssid: wifiForm.querySelector("[name='ap-ssid']").value,
+        ap_password: wifiForm.querySelector("[name='ap-password']").value,
+        ap_channel: parseInt(wifiForm.querySelector("[name='ap-channel']").value),
+
+        ip: wifiForm.querySelector("[name='ip']").value,
+        mask: wifiForm.querySelector("[name='mask']").value,
+        gateway: wifiForm.querySelector("[name='gateway']").value,
+        dns: wifiForm.querySelector("[name='dns']").value,
+
+        dhcp_enabled: wifiForm.querySelector("[name='dhcp']").checked ? 1 : 0
+    };
+
+    const res = await fetch('/save_settings/wifi', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+    });
+
+    if (res.ok) {
+        alert('Wi-Fi настройки сохранены ✅');
+    } 
+    else if (res.status === 401) {
+        sessionStorage.removeItem("auth_token");
+        showTokenExpiredModal();
+        return;
+    }
+    else {
+        alert('Ошибка при сохранении Wi-Fi настроек ❌');
+    }
+}
+
+
+
+
 let testAccountActive = false; // флаг тестового режима
 
 
@@ -465,6 +515,10 @@ function applySettingsToForm(tab, data) {
         case "wifi": {
             const wifi = data.wifi || {};
 
+            // Mode
+            const modeField = document.getElementById("wifiMode");
+            if (modeField) modeField.value = String(wifi.mode);
+
             // STA
             document.querySelector("[name='sta-ssid']").value = wifi.sta_ssid || "";
             document.querySelector("[name='sta-password']").value = wifi.sta_password || "";
@@ -473,13 +527,16 @@ function applySettingsToForm(tab, data) {
             document.querySelector("[name='ap-ssid']").value = wifi.ap_ssid || "";
             document.querySelector("[name='ap-password']").value = wifi.ap_password || "";
             document.querySelector("[name='ap-channel']").value = wifi.ap_channel || 1;
-            document.getElementById("wifiMode").value = wifi.mode;
-            // LAN / DHCP
+
+            // LAN
             document.querySelector("[name='ip']").value = wifi.ip || "";
             document.querySelector("[name='mask']").value = wifi.mask || "";
             document.querySelector("[name='gateway']").value = wifi.gateway || "";
             document.querySelector("[name='dns']").value = wifi.dns || "";
+
+            // DHCP
             document.querySelector("[name='dhcp']").checked = !!wifi.dhcp_enabled;
+
             break;
         }
 
@@ -535,7 +592,7 @@ function applySettingsToForm(tab, data) {
 }
 
 
-const btn = document.getElementById("testAccountBtn"); // ← вот сюда
+const btn = document.getElementById("testAccountBtn"); 
 
 btn.addEventListener("click", () => {
     const loginInput = document.querySelector("input[name='account-login']");
