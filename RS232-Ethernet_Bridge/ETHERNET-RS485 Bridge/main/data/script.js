@@ -193,6 +193,9 @@ logoutBtn.addEventListener("click", async () => {
 
 
 
+
+
+
     // === Функции отображения ===
     function showMainScreen() {
         loginForm.classList.add("hidden");
@@ -650,6 +653,32 @@ document.getElementById("firmwareFile").addEventListener("change", function () {
     }
 });
 
+async function rebootDevice() {
+
+    const token = sessionStorage.getItem("auth_token");
+
+    const res = await fetch('/reboot', {
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + token
+        }
+    });
+
+    if (res.ok) {
+        const text = await res.text();      // читаем ответ от бэка
+        alert("Ответ устройства: " + text); // выводим пользователю
+    } 
+    
+    else if (res.status === 401) {
+        sessionStorage.removeItem("auth_token");
+        showTokenExpiredModal();
+        return;
+    } 
+    
+    else {
+        alert("Ошибка: " + res.status + " ❌");
+    }
+}
 
 
 // === Гамбургер меню ===

@@ -309,29 +309,25 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
 static esp_err_t file_get_handler(httpd_req_t *req)
 {
 
-
-     if (req->method != HTTP_GET) {
-    ESP_LOGW(TAG, "Rejected non-GET request: %d to %s", req->method, req->uri);
-    httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "GET only");
-    return ESP_FAIL;
-  }
+    // Обрабатывать только GET и HEAD
+    if (req->method != HTTP_GET && req->method != HTTP_HEAD) {
+        return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "GET/HEAD only");
+    }
 
     char filepath[128] = "/littlefs";
-    const char *uri = req->uri;  // <-- напрямую берём URI из структуры
 
-    // "/" → "/index.html"
-    if (strcmp(uri, "/") == 0) {
+    // "/" → "/main.html"
+    if (strcmp(req->uri, "/") == 0) {
         strcat(filepath, "/main.html");
     } else {
-        strcat(filepath, uri);
+        strcat(filepath, req->uri);
     }
 
     FILE *f = fopen(filepath, "r");
     if (!f) {
-        ESP_LOGE(TAG, "File not found: %s", filepath);
-        httpd_resp_send_404(req);
-        return ESP_FAIL;
+        return httpd_resp_send_404(req);
     }
+
 
     // MIME тип
     if (strstr(filepath, ".html"))
@@ -613,6 +609,38 @@ static esp_err_t logout_post_handler(httpd_req_t *req)
 }
 
 
+// === POST /reboot ===
+static esp_err_t reboot_post_handler(httpd_req_t *req)
+{
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGW(TAG, "Reboot requested from Web UI");
+
+    // Ответ для фронта
+    cJSON *json = cJSON_CreateObject();
+    cJSON_AddStringToObject(json, "status", "ok");
+    cJSON_AddStringToObject(json, "message", "Rebooting");
+    const char *resp = cJSON_PrintUnformatted(json);
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_sendstr(req, resp);
+
+    free((void*)resp);
+    cJSON_Delete(json);
+
+    // Небольшая задержка, чтобы ответ успел уйти
+    vTaskDelay(300 / portTICK_PERIOD_MS);
+
+    ESP_LOGW(TAG, "Performing restart...");
+    esp_restart();
+
+    return ESP_OK;
+}
+
+
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
 {
@@ -689,7 +717,13 @@ esp_err_t web_server_start(void)
             .handler = logout_post_handler,
             .user_ctx = NULL
         };
-        
+        httpd_uri_t reboot_uri = {
+            .uri = "/reboot",
+            .method = HTTP_POST,
+            .handler = reboot_post_handler,
+            .user_ctx = NULL
+        };
+
         httpd_uri_t file_get_uri = {
             .uri = "/*",
             .method = HTTP_GET,
@@ -702,6 +736,7 @@ esp_err_t web_server_start(void)
         httpd_register_uri_handler(server, &ota_uri);
         httpd_register_uri_handler(server, &login_uri);
         httpd_register_uri_handler(server, &logout_uri);
+        httpd_register_uri_handler(server, &reboot_uri);
         httpd_register_uri_handler(server, &get_settings_uri);
         httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &file_get_uri);

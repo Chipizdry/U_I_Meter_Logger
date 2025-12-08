@@ -965,9 +965,11 @@ select#deviceType:checked {
 .file-upload-form {
     display: flex;
     flex-direction: column;
-    align-items: center;      /* центрирование */
+    align-items: center;
     justify-content: center;
-    gap: 10px;                /* расстояние между элементами */
+    gap: 10px;
+    height: 170px;
+    margin-top: 20px;
 }
 
 .file-input-box {
