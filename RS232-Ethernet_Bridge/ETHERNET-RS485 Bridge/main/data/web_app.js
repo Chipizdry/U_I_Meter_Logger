@@ -44,8 +44,7 @@ wifiForm.addEventListener("submit", async (e) => {
 });
 
 
-
-if (saveAccountBtn && accountForm) {
+    // === Сохранение настроек аккаунта ===
     saveAccountBtn.addEventListener('click', async () => {
         const token = sessionStorage.getItem("auth_token");
         if (!token) {
@@ -62,7 +61,7 @@ if (saveAccountBtn && accountForm) {
         });
 
         try {
-            const res = await fetch('/settings/account', {
+            const res = await fetch('/save_settings/account', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
@@ -85,8 +84,8 @@ if (saveAccountBtn && accountForm) {
                 return;
             }
 
-            const json = await res.json();
-            console.log("Сохранено успешно:", json);
+            const text = await res.text();
+            console.log("Сохранено успешно:", text);
 
             if (wsStatus) {
                 wsStatus.textContent = "Настройки аккаунта сохранены ✔️";
@@ -99,6 +98,3 @@ if (saveAccountBtn && accountForm) {
             alert("Ошибка при сохранении аккаунта: " + err);
         }
     });
-} else {
-    console.warn("Элементы формы аккаунта не найдены!");
-}

@@ -508,6 +508,56 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     return ESP_OK;      
   }
 
+
+    if (section == SECTION_ACCOUNT) {
+
+            char body[256] = {0};
+            int ret = httpd_req_recv(req, body, sizeof(body) - 1);
+            if (ret <= 0) {
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
+                return ESP_FAIL;
+            }
+            body[ret] = '\0';
+
+            ESP_LOGI("ACCOUNT", "Received body: %s", body);
+
+            // --- Разбираем form-urlencoded ---
+            char acc_login[128] = {0};
+            char acc_password[128] = {0};
+
+            sscanf(strstr(body, "account-login=") ?: "", "account-login=%127[^&]", acc_login);
+            sscanf(strstr(body, "account-password=") ?: "", "account-password=%127[^&]", acc_password);
+
+            ESP_LOGI("ACCOUNT", "Parsed: login=%s password=%s", acc_login, acc_password);
+
+            // --- Загружаем старые настройки ---
+            user_settings_t user_cfg = {0};
+            nvs_load_user_settings(&user_cfg);
+
+            // --- Обновляем данные, если заполнены ---
+            if (strlen(acc_login) > 0)
+                strncpy(user_cfg.account_login, acc_login, sizeof(user_cfg.account_login) - 1);
+
+            if (strlen(acc_password) > 0)
+                strncpy(user_cfg.account_password, acc_password, sizeof(user_cfg.account_password) - 1);
+
+            // --- Сохраняем ---
+            esp_err_t err = nvs_save_user_settings(&user_cfg);
+            if (err != ESP_OK) {
+                ESP_LOGE("ACCOUNT", "Failed to save: %s", esp_err_to_name(err));
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save account settings");
+                return ESP_FAIL;
+            }
+
+            ESP_LOGI("ACCOUNT", "Saved OK: account_login=%s account_password=%s",
+                    user_cfg.account_login, user_cfg.account_password);
+
+            httpd_resp_sendstr(req, "Account settings saved successfully 💾");
+            return ESP_OK;
+        }
+
+
+
     char buf[256];
     int len = req->content_len;
     if (len >= sizeof(buf)) {
@@ -682,7 +732,7 @@ esp_err_t web_server_start(void)
             .handler = options_handler,
             .user_ctx = NULL
         });
-        
+
             // ====== 1. OPTIONS (точечные) ======
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/get_settings",

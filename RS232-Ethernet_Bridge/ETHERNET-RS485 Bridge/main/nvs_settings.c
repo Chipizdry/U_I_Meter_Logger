@@ -61,6 +61,8 @@ static void set_default_user_settings(user_settings_t *s) {
     generate_device_serial(s->serial, sizeof(s->serial));
 }
 
+
+
 static void set_default_network_settings(network_settings_t *s) {
     memset(s, 0, sizeof(*s));
     s->version = NETWORK_SETTINGS_VERSION;
