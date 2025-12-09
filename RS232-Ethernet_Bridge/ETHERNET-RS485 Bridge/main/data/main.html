@@ -239,7 +239,7 @@
 
                     <div id="ws-status" style="margin:8px 0; font-size: 10px; font-weight:bold;"></div>
                     <button type="button" id="testAccountBtn">Тест</button>
-                    <button>💾 Сохранить</button>
+                    <button type="button" id="SaveAccountBtn">💾 Сохранить</button>
                   </form> 
                 </div>
 
@@ -279,6 +279,7 @@
     </div>
 
     <script src="/script.js"></script>
+    <script src="/web_app.js"></script>
     <script src="/general_fun.js"></script>
     <script src="/ws.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
@@ -287,6 +288,9 @@
     const MAX_RETRIES = 8;
     const loginForm = document.getElementById('loginForm');
     const mainScreen = document.getElementById("mainScreen");
+    const wifiForm = document.getElementById("wifiForm");
+    const saveAccountBtn = document.getElementById('SaveAccountBtn');
+    const accountForm = document.getElementById('accountForm');
     const dhcpCheckbox = document.getElementById("dhcp");
     const ipFields = ["ip", "mask", "gateway", "dns"];
     let buildNumber = null;

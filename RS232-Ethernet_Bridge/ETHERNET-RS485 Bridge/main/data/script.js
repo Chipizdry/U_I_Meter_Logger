@@ -2,7 +2,6 @@
 
 document.addEventListener("DOMContentLoaded", () => {
    
-    const wifiForm = document.getElementById("wifiForm");
     const logoutBtn = document.getElementById("logoutBtn");
     const eye = document.getElementById("eyeIcon");
     const token = sessionStorage.getItem('auth_token');
@@ -35,46 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   
 
-   // === Сохранение Wi-Fi настроек ===
-wifiForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(wifiForm);
-    const params = new URLSearchParams(formData);
-    const token = sessionStorage.getItem('auth_token');
-
-    console.log("Отправляем токен:", token);
-
-    try {
-        const response = await fetch("/save_settings", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": `Bearer ${token}`
-            },
-            body: params.toString()
-        });
-
-        // Если сервер вернул 401 — токен недействителен
-        if (response.status === 401) {
-           // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
-            sessionStorage.removeItem("auth_token");
-            showTokenExpiredModal();
-           // showLogin();
-            return;
-        }
-
-        const text = await response.text();
-
-        if (response.ok) {
-            alert(text);
-        } else {
-            alert(`Ошибка: ${text}`);
-        }
-    } catch (err) {
-        alert(`Ошибка соединения: ${err}`);
-    }
-});
 
 
    // === Выход из аккаунта ===

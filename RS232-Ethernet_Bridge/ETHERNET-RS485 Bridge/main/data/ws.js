@@ -13,7 +13,7 @@ const RECONNECT_DELAY    = 5000;  // 5 сек
 function initWebSocket() {
     const token = sessionStorage.getItem("auth_token");
     if (!token) {
-        console.error("No auth token");
+        console.log("No auth token");
         return;
     }
 
