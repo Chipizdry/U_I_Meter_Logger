@@ -15,7 +15,7 @@
             <h2>Авторизация</h2>
             <div id="loginStatus" class="login-status hidden message"></div>
             <label>Login:</label>
-            <input name="login" type="text" required placeholder="Введите логин"><br><br>
+            <input name="login" type="text" required placeholder="Введите логин"  autocomplete="username"><br><br>
 
 
             <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
@@ -63,32 +63,31 @@
                             </select>
                         </label><br>
 
-                        <h3>STA (Client)</h3>
-                        <label>STA SSID:
-                            <input type="text" name="sta-ssid">
-                        </label><br>
 
-                        <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >STA Password:</label>
-                        <div class="password-container">
-                            <input type="password" id="sta-password" name="sta-password" data-translate="password_placeholder" >
-                            <span class="eye-icon" id="eye-sta-password" onclick="togglePassword('sta-password','eye-sta-password')"></span>
-                        </div>
+                        <h3 class="wifi-sta">STA (Client)</h3>
+                            <label class="wifi-sta">STA SSID:
+                                <input type="text" name="sta-ssid">
+                            </label>
+                            <label class="wifi-sta" ... >STA Password:</label>
+                            <div class="password-container wifi-sta">
+                                <input type="password" id="sta-password" name="sta-password" autocomplete="sta-password">
+                                <span class="eye-icon" id="eye-sta-password" onclick="togglePassword('sta-password','eye-sta-password')"></span>
+                            </div>
 
-                        <h3>AP (Access Point)</h3>
-                        <label>AP SSID:
-                            <input type="text" name="ap-ssid">
-                        </label><br>
+                        <h3 class="wifi-ap">AP (Access Point)</h3>
+                            <label class="wifi-ap">AP SSID:
+                                <input type="text" name="ap-ssid">
+                            </label>
 
+                            <label class="wifi-ap" ... >AP Password:</label>
+                            <div class="password-container wifi-ap">
+                                <input type="password" id="ap-password" name="ap-password" autocomplete="ap-password">
+                                <span class="eye-icon" id="eye-ap-password" onclick="togglePassword('ap-password','eye-ap-password')"></span>
+                            </div>
 
-                        <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >AP Password:</label>
-                        <div class="password-container">
-                            <input type="password" id="ap-password" name="ap-password" data-translate="password_placeholder" >
-                            <span class="eye-icon" id="eye-ap-password" onclick="togglePassword('ap-password','eye-ap-password')"></span>
-                        </div>
-
-                        <label>AP Channel:
-                            <input type="number" name="ap-channel" min="1" max="13">
-                        </label>
+                            <label class="wifi-ap">AP Channel:
+                                <input type="number" name="ap-channel" min="1" max="13">
+                            </label>
 
                         <h3 class="hidden">LAN</h3>
                         <label class="hidden">IP:
@@ -163,17 +162,17 @@
 
                      <form id="UserForm">
                         <label>Имя пользователя:</label>
-                        <input type="text" name="user-login" value="admin"><br>
+                        <input type="text" name="user-login" value="admin" autocomplete="username"><br>
 
                             <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
                             <div class="password-container">
-                                <input type="password" id="user-password" name="user-password" data-translate="password_placeholder" >
+                                <input type="password" id="user-password" name="user-password" data-translate="password_placeholder" autocomplete="new-password" >
                                 <span class="eye-icon" id="eye-user-password" onclick="togglePassword('user-password','eye-user-password')"></span>
                             </div>
 
                             <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Повторите пароль:</label>
                             <div class="password-container">
-                                <input type="password" id="user-confirm-password" name="user-confirm-password" data-translate="password_placeholder" >
+                                <input type="password" id="user-confirm-password" name="user-confirm-password" data-translate="password_placeholder" autocomplete="new-password" >
                                 <span class="eye-icon" id="eye-user-confirm-password" onclick="togglePassword('user-confirm-password','eye-user-confirm-password')"></span>
                             </div>
 
@@ -229,18 +228,19 @@
                 <!-- Учётная запись -->
                 <div class="tab-content" id="account">
                     <h2>Учётная запись</h2>
+                  <form id="accountForm">
                     <label>Login: <input type="text" name="account-login" required></label><br>
-                  <!--  <label>Password: <input type="password" name="account-password"></label><br> -->
+                
                     <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
                     <div class="password-container">
-                        <input type="password" id="account-password" name="account-password" data-translate="password_placeholder" >
+                        <input type="password" id="account-password" name="account-password" data-translate="password_placeholder" autocomplete="password" >
                         <span class="eye-icon" id="eye-account-password" onclick="togglePassword('account-password','eye-account-password')"></span>
                     </div>
 
                     <div id="ws-status" style="margin:8px 0; font-size: 10px; font-weight:bold;"></div>
                     <button type="button" id="testAccountBtn">Тест</button>
                     <button>💾 Сохранить</button>
-                   
+                  </form> 
                 </div>
 
 
@@ -285,7 +285,14 @@
     <script>
     const CHUNK_SIZE = 1024;
     const MAX_RETRIES = 8;
-   
+    const loginForm = document.getElementById('loginForm');
+    const mainScreen = document.getElementById("mainScreen");
+    const dhcpCheckbox = document.getElementById("dhcp");
+    const ipFields = ["ip", "mask", "gateway", "dns"];
+    let buildNumber = null;
+    let buildDate = null;
+    let data = {};  // глобальная переменная для хранения настроек
+
     function md5(arrayBuffer) {
         const bytes = new Uint8Array(arrayBuffer);
         const words = [];

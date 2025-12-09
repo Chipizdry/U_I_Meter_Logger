@@ -1,20 +1,14 @@
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    const loginForm = document.getElementById('loginForm');
+   
     const wifiForm = document.getElementById("wifiForm");
-    const mainScreen = document.getElementById("mainScreen");
     const logoutBtn = document.getElementById("logoutBtn");
-    const ipFields = ["ip", "mask", "gateway", "dns"];
-    const dhcpCheckbox = document.getElementById("dhcp");
     const eye = document.getElementById("eyeIcon");
+    const token = sessionStorage.getItem('auth_token');
     updateEyeIcon(eye, false); // false = закрытый глаз
-
     initAllEyeIcons();
 
-    let buildNumber = null;
-    let buildDate = null;
-  
     
 
     ipFields.forEach(id => {
@@ -23,19 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
 
-// === Включение / выключение DHCP ===
-    function updateIPFieldsState() {
-        const disabled = dhcpCheckbox.checked;
-        ipFields.forEach(id => {
-            const field = document.getElementById(id);
-            field.disabled = disabled;
-            field.style.opacity = disabled ? "0.6" : "1.0";
-        });
-    }
     dhcpCheckbox.addEventListener("change", updateIPFieldsState);
-
-    // Проверяем, есть ли уже токен
-    const token = sessionStorage.getItem('auth_token');
     
     if (token) {
         showMainScreen();
@@ -52,57 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
 
   
-    // === Авторизация ===
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const data = new URLSearchParams(new FormData(e.target));
-         console.log(`Submitting login for user: ${data.get('login')}`);
-        const res = await fetch('/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: data.toString()
-        });
-        console.log("Login response status:", res.status);
-        if (res.ok) {
-            const json = await res.json();
-            sessionStorage.setItem('auth_token', json.token);
-            buildNumber = json.build_number;
-            buildDate = json.build_date;
-    
-            console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
-
-            const buildInfoText = document.getElementById("buildInfoText");
-            if (buildInfoText) {
-                buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
-            }
-            initWebSocket();
-           // Показ успешного сообщения
-           loginStatus.textContent = "Вход выполнен";
-           loginStatus.style.color = "#4CAF50"; // зелёный
-           loginStatus.classList.remove("hidden");
-           fetchSettings();
-            setTimeout(async () => {
-              
-                showMainScreen();
-                // Загружаем настройки сразу после входа
-                const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
-                sideMenu.classList.remove("open");
-                await loadTabSettings(activeTab);
-            }, 1000);
-
-        } else {
-            const text = await res.text();
-               // Показ  сообщения
-           loginStatus.textContent = "Ошибка входа";
-           loginStatus.style.color = "red"; // красный
-           loginStatus.classList.remove("hidden");
-           setTimeout(async () => {
-            loginStatus.classList.add("hidden");
-           }, 1000);
-        
-        }
-    });
 
    // === Сохранение Wi-Fi настроек ===
 wifiForm.addEventListener("submit", async (e) => {
@@ -197,27 +128,6 @@ logoutBtn.addEventListener("click", async () => {
 
 
 
-
-
-    // === Функции отображения ===
-    function showMainScreen() {
-        loginForm.classList.add("hidden");
-        mainScreen.classList.remove("hidden");
-    }
-
-  
-  // === Проверка корректности IP ===
-function validateIP(ip) {
-    const parts = ip.split(".");
-    if (parts.length !== 4) return false;
-    return parts.every(p => {
-        const num = parseInt(p, 10);
-        return !isNaN(num) && num >= 0 && num <= 255;
-    });
-}
-
-
-
  
  // === Форматирование и маска ввода ===
  function applyIPMask(input) {
@@ -267,84 +177,6 @@ function validateIP(ip) {
      });
  }
  
-
-    // === Обработчик сохранения ===
-    document.getElementById("lanForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const params = new URLSearchParams(formData);
-
-        // Проверяем все IP
-        const invalid = ipFields.find(id => !validateIP(document.getElementById(id).value));
-        if (invalid) {
-            alert(`Поле "${invalid}" заполнено неверно 💩`);
-            document.getElementById(invalid).focus();
-            return;
-        }
-
-        alert("Настройки сети сохранены ✅");
-        console.log("LAN settings:", Object.fromEntries(formData));
-        // TODO: fetch('/save_network', {...})
-    });
-
-
-// === Функция получения настроек с сервера ===
-    async function fetchSettings() {
-        const token = sessionStorage.getItem("auth_token");
-        if (!token) return;
-
-        try {
-            const res = await fetch("/get_settings", {
-                method: "GET",
-                headers: {
-                    "Authorization": `Bearer ${token}`
-                }
-            });
-
-            if (res.status === 401) {
-               // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
-                sessionStorage.removeItem("auth_token");
-                showTokenExpiredModal();
-                showLogin();
-                return;
-            }
-
-            if (!res.ok) {
-                const text = await res.text();
-                alert(`Ошибка получения настроек: ${text}`);
-                return;
-            }
-
-            const data = await res.json();
-            window.allSettings = data; // Сохраняем глобально
-            console.log("Полученные настройки:", data);
-
-            // === Заполняем форму LAN ===
-            if (data.network) {
-                const net = data.network;
-                document.getElementById("ip").value = net.ip || "";
-                document.getElementById("mask").value = net.mask || "";
-                document.getElementById("gateway").value = net.gateway || "";
-                document.getElementById("dns").value = net.dns || "";
-                document.getElementById("dhcp").checked = !!net.dhcp_enabled;
-                document.getElementById("port").value = net.port;
-
-                // Обновляем состояние полей IP в зависимости от DHCP
-                updateIPFieldsState();
-            }
-
-               // === Автоматически применяем настройки на активную вкладку ===
-          const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
-
-        return data; 
-
-
-        } catch (err) {
-            alert("Ошибка соединения при получении настроек: " + err);
-        }
-    }
-
-
 
 
 
@@ -744,3 +576,167 @@ function updateWiFiVisibility() {
     }
 }
  document.getElementById("wifiMode").addEventListener("change", updateWiFiVisibility);
+
+
+
+ 
+    // === Авторизация ===
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = new URLSearchParams(new FormData(e.target));
+         console.log(`Submitting login for user: ${data.get('login')}`);
+        const res = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: data.toString()
+        });
+        console.log("Login response status:", res.status);
+        if (res.ok) {
+            const json = await res.json();
+            sessionStorage.setItem('auth_token', json.token);
+            buildNumber = json.build_number;
+            buildDate = json.build_date;
+    
+            console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
+
+            const buildInfoText = document.getElementById("buildInfoText");
+            if (buildInfoText) {
+                buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
+            }
+            initWebSocket();
+           // Показ успешного сообщения
+           loginStatus.textContent = "Вход выполнен";
+           loginStatus.style.color = "#4CAF50"; // зелёный
+           loginStatus.classList.remove("hidden");
+          // fetchSettings();
+            setTimeout(async () => {
+                 fetchSettings();
+                showMainScreen();
+                // Загружаем настройки сразу после входа
+                const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+                sideMenu.classList.remove("open");
+                await loadTabSettings(activeTab);
+            }, 1000);
+
+        } else {
+            const text = await res.text();
+               // Показ  сообщения
+           loginStatus.textContent = "Ошибка входа";
+           loginStatus.style.color = "red"; // красный
+           loginStatus.classList.remove("hidden");
+           setTimeout(async () => {
+            loginStatus.classList.add("hidden");
+           }, 1000);
+        
+        }
+    });
+
+
+
+    
+// === Функция получения настроек с сервера ===
+    async function fetchSettings() {
+        const token = sessionStorage.getItem("auth_token");
+        if (!token) return;
+
+        try {
+            const res = await fetch("/get_settings", {
+                method: "GET",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            });
+
+            if (res.status === 401) {
+               // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
+                sessionStorage.removeItem("auth_token");
+                showTokenExpiredModal();
+                showLogin();
+                return;
+            }
+
+            if (!res.ok) {
+                const text = await res.text();
+                alert(`Ошибка получения настроек: ${text}`);
+                return;
+            }
+
+            const data = await res.json();
+            window.allSettings = data; // Сохраняем глобально
+            console.log("Полученные настройки:", data);
+
+            // === Заполняем форму LAN ===
+            if (data.network) {
+                const net = data.network;
+                document.getElementById("ip").value = net.ip || "";
+                document.getElementById("mask").value = net.mask || "";
+                document.getElementById("gateway").value = net.gateway || "";
+                document.getElementById("dns").value = net.dns || "";
+                document.getElementById("dhcp").checked = !!net.dhcp_enabled;
+                document.getElementById("port").value = net.port;
+
+                // Обновляем состояние полей IP в зависимости от DHCP
+                updateIPFieldsState();
+            }
+
+               // === Автоматически применяем настройки на активную вкладку ===
+          const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+
+        return data; 
+
+
+        } catch (err) {
+            alert("Ошибка соединения при получении настроек: " + err);
+        }
+    }
+
+
+
+    // === Функции отображения ===
+    function showMainScreen() {
+        loginForm.classList.add("hidden");
+        mainScreen.classList.remove("hidden");
+    }
+
+  
+  // === Проверка корректности IP ===
+function validateIP(ip) {
+    const parts = ip.split(".");
+    if (parts.length !== 4) return false;
+    return parts.every(p => {
+        const num = parseInt(p, 10);
+        return !isNaN(num) && num >= 0 && num <= 255;
+    });
+}
+
+
+    // === Обработчик сохранения ===
+    document.getElementById("lanForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const params = new URLSearchParams(formData);
+
+        // Проверяем все IP
+        const invalid = ipFields.find(id => !validateIP(document.getElementById(id).value));
+        if (invalid) {
+            alert(`Поле "${invalid}" заполнено неверно 💩`);
+            document.getElementById(invalid).focus();
+            return;
+        }
+
+        alert("Настройки сети сохранены ✅");
+        console.log("LAN settings:", Object.fromEntries(formData));
+        // TODO: fetch('/save_network', {...})
+    });
+
+
+// === Включение / выключение DHCP ===
+    function updateIPFieldsState() {
+        const disabled = dhcpCheckbox.checked;
+        ipFields.forEach(id => {
+            const field = document.getElementById(id);
+            field.disabled = disabled;
+            field.style.opacity = disabled ? "0.6" : "1.0";
+        });
+    }
