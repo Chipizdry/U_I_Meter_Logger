@@ -36,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Проверяем, есть ли уже токен
     const token = sessionStorage.getItem('auth_token');
+    
     if (token) {
         showMainScreen();
         fetchSettings();
@@ -48,7 +49,9 @@ document.addEventListener("DOMContentLoaded", () => {
     } else {
         showLogin();
     }
+    
 
+  
     // === Авторизация ===
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -203,25 +206,6 @@ logoutBtn.addEventListener("click", async () => {
     }
 
   
-
-
-
-
-
- // Функция: форматирует IP (добавляет нули и точки)
- function formatIP(value) {
-    // Убираем всё, кроме цифр
-    let digits = value.replace(/\D/g, '');
-    // Разбиваем по 3 цифры
-    let parts = [];
-    for (let i = 0; i < digits.length; i += 3) {
-        parts.push(digits.substr(i, 3));
-    }
-    // Если неполный блок — дополним нулями
-    parts = parts.map(p => p.padStart(3, '0'));
-    return parts.join('.').substring(0, 15);
-}
-
   // === Проверка корректности IP ===
 function validateIP(ip) {
     const parts = ip.split(".");
@@ -539,7 +523,7 @@ function applySettingsToForm(tab, data) {
 
             // DHCP
             document.querySelector("[name='dhcp']").checked = !!wifi.dhcp_enabled;
-
+            updateWiFiVisibility();
             break;
         }
 
@@ -710,3 +694,53 @@ const tabContents = document.querySelectorAll(".tab-content");
         });
     });
 
+
+ // Функция: форматирует IP (добавляет нули и точки)
+ function formatIP(value) {
+    // Убираем всё, кроме цифр
+    let digits = value.replace(/\D/g, '');
+    // Разбиваем по 3 цифры
+    let parts = [];
+    for (let i = 0; i < digits.length; i += 3) {
+        parts.push(digits.substr(i, 3));
+    }
+    // Если неполный блок — дополним нулями
+    parts = parts.map(p => p.padStart(3, '0'));
+    return parts.join('.').substring(0, 15);
+}
+
+
+
+function updateWiFiVisibility() {
+    const mode = parseInt(document.getElementById("wifiMode").value);
+
+    const staFields = document.querySelectorAll(".wifi-sta");
+    const apFields  = document.querySelectorAll(".wifi-ap");
+    const lanFields = document.querySelectorAll(".wifi-lan");
+
+    // Скрыть всё
+    staFields.forEach(el => el.classList.add("hidden"));
+    apFields.forEach(el => el.classList.add("hidden"));
+    lanFields.forEach(el => el.classList.add("hidden"));
+
+    switch (mode) {
+        case 1: // STA
+            staFields.forEach(el => el.classList.remove("hidden"));
+            break;
+
+        case 2: // AP
+            apFields.forEach(el => el.classList.remove("hidden"));
+            break;
+
+        case 3: // APSTA
+            staFields.forEach(el => el.classList.remove("hidden"));
+            apFields.forEach(el => el.classList.remove("hidden"));
+            break;
+
+        case 0: // OFF
+        default:
+            // всё скрыто
+            break;
+    }
+}
+ document.getElementById("wifiMode").addEventListener("change", updateWiFiVisibility);

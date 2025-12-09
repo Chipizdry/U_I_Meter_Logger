@@ -79,9 +79,12 @@
                             <input type="text" name="ap-ssid">
                         </label><br>
 
-                        <label>AP Password:
-                            <input type="password" name="ap-password">
-                        </label><br>
+
+                        <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >AP Password:</label>
+                        <div class="password-container">
+                            <input type="password" id="ap-password" name="ap-password" data-translate="password_placeholder" >
+                            <span class="eye-icon" id="eye-ap-password" onclick="togglePassword('ap-password','eye-ap-password')"></span>
+                        </div>
 
                         <label>AP Channel:
                             <input type="number" name="ap-channel" min="1" max="13">
@@ -157,11 +160,27 @@
                 <!-- Пользователь -->
                 <div class="tab-content" id="user">
                     <h2>Пользователь</h2>
-                    <label>Имя пользователя:</label>
-                    <input type="text" name="user-login" value="admin"><br>
-                    <label>Пароль: <input type="password" name="user-password"></label><br>
-                    <label>Повторить пароль: <input type="password" name="confirm-user-password"></label><br>
-                    <button>💾 Изменить</button>
+
+                     <form id="UserForm">
+                        <label>Имя пользователя:</label>
+                        <input type="text" name="user-login" value="admin"><br>
+
+                            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
+                            <div class="password-container">
+                                <input type="password" id="user-password" name="user-password" data-translate="password_placeholder" >
+                                <span class="eye-icon" id="eye-user-password" onclick="togglePassword('user-password','eye-user-password')"></span>
+                            </div>
+
+                            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Повторите пароль:</label>
+                            <div class="password-container">
+                                <input type="password" id="user-confirm-password" name="user-confirm-password" data-translate="password_placeholder" >
+                                <span class="eye-icon" id="eye-user-confirm-password" onclick="togglePassword('user-confirm-password','eye-user-confirm-password')"></span>
+                            </div>
+
+    
+                     <!--   <label>Повторить пароль: <input type="password" name="confirm-user-password"></label><br> -->
+                        <button>💾 Изменить</button>
+                    </form> 
                 </div>
         
                 <!-- Система -->

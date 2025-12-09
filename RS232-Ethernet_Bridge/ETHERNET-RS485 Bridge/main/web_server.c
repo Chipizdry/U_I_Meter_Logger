@@ -640,6 +640,13 @@ static esp_err_t reboot_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t options_handler(httpd_req_t *req)
+{
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Headers", "Authorization, Content-Type");
+    return httpd_resp_send(req, NULL, 0);
+}
 
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
@@ -660,78 +667,113 @@ esp_err_t web_server_start(void)
 
     if (httpd_start(&server, &config) == ESP_OK) {
 
+        // ====== 0. OPTIONS for root ======
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/",
+            .method = HTTP_OPTIONS,
+            .handler = options_handler,
+            .user_ctx = NULL
+        });
+
+        // ====== 0.1 OPTIONS wildcard ======
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/*",
+            .method = HTTP_OPTIONS,
+            .handler = options_handler,
+            .user_ctx = NULL
+        });
+        
+            // ====== 1. OPTIONS (точечные) ======
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/get_settings",
+            .method = HTTP_OPTIONS,
+            .handler = options_handler,
+            .user_ctx = NULL
+        });
+
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/get_settings/*",
-            .method = HTTP_GET,
-            .handler = get_settings_handler,
+            .method = HTTP_OPTIONS,
+            .handler = options_handler,
+            .user_ctx = NULL
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/save_settings",
+            .method = HTTP_OPTIONS,
+            .handler = options_handler,
             .user_ctx = NULL
         });
 
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/save_settings/*",
-            .method = HTTP_POST,
-            .handler = save_settings_post_handler,
+            .method = HTTP_OPTIONS,
+            .handler = options_handler,
             .user_ctx = NULL
         });
 
+        // ====== 2. API эндпоинты ======
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/login",
+            .method = HTTP_POST,
+            .handler = login_post_handler
+        });
 
-        httpd_uri_t ws_uri = {
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/logout",
+            .method = HTTP_POST,
+            .handler = logout_post_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/reboot",
+            .method = HTTP_POST,
+            .handler = reboot_post_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/get_settings",
+            .method = HTTP_GET,
+            .handler = get_settings_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/get_settings/*",
+            .method = HTTP_GET,
+            .handler = get_settings_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/save_settings",
+            .method = HTTP_POST,
+            .handler = save_settings_post_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/save_settings/*",
+            .method = HTTP_POST,
+            .handler = save_settings_post_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/ws",
             .method = HTTP_GET,
             .handler = ws_handler,
-            .user_ctx = NULL,
             .is_websocket = true
-        };
+        });
 
-        
-        httpd_uri_t save_settings_uri = {
-            .uri = "/save_settings",
-            .method = HTTP_POST,
-            .handler = save_settings_post_handler,
-            .user_ctx = NULL
-        };
-        httpd_uri_t login_uri = {
-            .uri = "/login",
-            .method = HTTP_POST,
-            .handler = login_post_handler,
-            .user_ctx = NULL
-        };
-        httpd_uri_t get_settings_uri = {
-            .uri = "/get_settings",
-            .method = HTTP_GET,
-            .handler = get_settings_handler,
-            .user_ctx = NULL
-        };
-
-      
-        httpd_uri_t ota_uri = {
-            .uri = "/ota",
-            .method = HTTP_POST,
-            .handler = ota_post_handler,
-            .user_ctx = NULL
-        };
-
-        httpd_uri_t logout_uri = {
-            .uri = "/logout",
-            .method = HTTP_POST,
-            .handler = logout_post_handler,
-            .user_ctx = NULL
-        };
-        httpd_uri_t reboot_uri = {
-            .uri = "/reboot",
-            .method = HTTP_POST,
-            .handler = reboot_post_handler,
-            .user_ctx = NULL
-        };
-
-        httpd_uri_t file_get_uri = {
+        // ====== 3. СТАТИЧНЫЕ ФАЙЛЫ — ВСЕГДА ПОСЛЕДНИЕ ======
+        httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/*",
             .method = HTTP_GET,
-            .handler = file_get_handler,
-            .user_ctx = NULL
-        };
+            .handler = file_get_handler
+        });
 
+         ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
 
+        return ESP_OK;
+
+/*
         httpd_register_uri_handler(server, &ws_uri);
         httpd_register_uri_handler(server, &ota_uri);
         httpd_register_uri_handler(server, &login_uri);
@@ -741,7 +783,7 @@ esp_err_t web_server_start(void)
         httpd_register_uri_handler(server, &save_settings_uri);
         httpd_register_uri_handler(server, &file_get_uri);
         ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
-        return ESP_OK;
+        return ESP_OK;  */
     }
 
     ESP_LOGE(TAG, "Failed to start web server");

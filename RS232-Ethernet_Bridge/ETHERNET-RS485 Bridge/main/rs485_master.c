@@ -32,6 +32,10 @@ static esp_timer_handle_t s_de_off_timer = NULL;
 static void rs485_request_task(void *arg);
 static void de_off_timer_cb(void *arg);
 static QueueHandle_t s_req_queue = NULL;
+static TaskHandle_t s_req_task = NULL;
+
+
+
 
 typedef struct {
     uint8_t data[32];
@@ -374,7 +378,9 @@ esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size
     s_running = true;
 
     s_req_queue = xQueueCreate(5, sizeof(rs485_req_t));
-    xTaskCreatePinnedToCore(rs485_request_task, "rs485_req_task", 4096, NULL, 7, NULL, 1);
+  
+    xTaskCreatePinnedToCore( rs485_request_task,"rs485_req_task",4096,NULL, 7,&s_req_task, 1);
+
 
     ESP_LOGI(TAG, "RS485 master init: baud=%d rx=%d tx=%d mode=%s",s_baud, s_rx_buf, s_tx_buf,(cfg && cfg->rs485_mode) ? "RS485" : "RS232");
     return ESP_OK;
@@ -415,10 +421,7 @@ esp_err_t rs485_master_start(void)
 {
     if (s_running) return ESP_ERR_INVALID_STATE;
     s_running = true;
-  //  if (xTaskCreatePinnedToCore(poll_task, "rs485_poll", 4096, NULL, 6, &s_poll_task, 1) != pdPASS) {
-  //      s_running = false;
-  //      return ESP_FAIL;
-  //  }
+  
     return ESP_OK;
 }
 
@@ -460,6 +463,19 @@ void rs485_master_deinit(void)
     s_running = false;
     vTaskDelay(pdMS_TO_TICKS(10));
 
+    // удалить запросную задачу
+    if (s_req_task) {
+        vTaskDelete(s_req_task);
+        s_req_task = NULL;
+    }
+
+    // удалить очередь
+    if (s_req_queue) {
+        vQueueDelete(s_req_queue);
+        s_req_queue = NULL;
+    }
+
+    // удалить poll task
     if (s_poll_task) {
         vTaskDelete(s_poll_task);
         s_poll_task = NULL;
@@ -467,16 +483,15 @@ void rs485_master_deinit(void)
 
     uart_driver_delete(RS485_UART_NUM);
 
-    if (s_de_off_timer) {
-        esp_timer_delete(s_de_off_timer);
-        s_de_off_timer = NULL;
-    }
-
+    if (s_de_off_timer) { esp_timer_delete(s_de_off_timer); s_de_off_timer = NULL; }
     if (s_data_mutex) { vSemaphoreDelete(s_data_mutex); s_data_mutex = NULL; }
     if (s_uart_mutex) { vSemaphoreDelete(s_uart_mutex); s_uart_mutex = NULL; }
+
     memset(s_slaves, 0, sizeof(s_slaves));
     s_slave_count = 0;
 }
+
+
 
 
 
@@ -521,7 +536,7 @@ static void rs485_request_task(void *arg)
     rs485_req_t req;
     const int uart_num = RS485_UART_NUM;
 
-    while (1) {
+    while (s_running) {
         char ws_msg[256];          // <── создаётся один раз на итерацию, можно переиспользовать
         char hex_resp[128];        // <── тоже тут
 
@@ -558,4 +573,5 @@ static void rs485_request_task(void *arg)
             }
         }
     }
+    vTaskDelete(NULL);
 }
