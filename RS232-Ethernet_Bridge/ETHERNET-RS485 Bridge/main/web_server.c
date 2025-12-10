@@ -578,9 +578,9 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
             return ESP_OK;
         }
 
+  if (section == SECTION_USER) {
 
-
-    char buf[256];
+ char buf[256];
     int len = req->content_len;
     if (len >= sizeof(buf)) {
         httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
@@ -597,17 +597,11 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     // --- Простая form-urlencoded разборка ---
     char login_val[64] = {0};
     char password_val[64] = {0};
-    char ssid_val[64] = {0};
-    char mode_val[16] = {0};
 
     sscanf(strstr(buf, "login=") ?: "", "login=%63[^&]", login_val);
     sscanf(strstr(buf, "password=") ?: "", "password=%63[^&]", password_val);
-    sscanf(strstr(buf, "ssid=") ?: "", "ssid=%63[^&]", ssid_val);
-    sscanf(strstr(buf, "mode=") ?: "", "mode=%15[^&]", mode_val);
-
     esp_err_t err = ESP_OK;
-
-    // --- Сохраняем User Settings ---
+     // --- Сохраняем User Settings ---
     if (strlen(login_val) > 0 || strlen(password_val) > 0) {
         user_settings_t user = {0};
         nvs_load_user_settings(&user); // читаем старые данные
@@ -621,6 +615,53 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
         }
         ESP_LOGI(TAG, "User settings saved: %s / %s", user.login, user.password);
     }
+       httpd_resp_sendstr(req, "User settings saved successfully 💾");
+       return ESP_OK;
+  }
+
+    char buf[256];
+    int len = req->content_len;
+    if (len >= sizeof(buf)) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
+        return ESP_FAIL;
+    }
+
+    int ret = httpd_req_recv(req, buf, len);
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
+        return ESP_FAIL;
+    }
+    buf[len] = '\0'; // terminate string
+
+    // --- Простая form-urlencoded разборка ---
+   // char login_val[64] = {0};
+  //  char password_val[64] = {0};
+    char ssid_val[64] = {0};
+    char mode_val[16] = {0};
+
+  //  sscanf(strstr(buf, "login=") ?: "", "login=%63[^&]", login_val);
+   // sscanf(strstr(buf, "password=") ?: "", "password=%63[^&]", password_val);
+    sscanf(strstr(buf, "ssid=") ?: "", "ssid=%63[^&]", ssid_val);
+    sscanf(strstr(buf, "mode=") ?: "", "mode=%15[^&]", mode_val);
+
+    esp_err_t err = ESP_OK;
+
+    // --- Сохраняем User Settings ---
+   /*
+    if (strlen(login_val) > 0 || strlen(password_val) > 0) {
+        user_settings_t user = {0};
+        nvs_load_user_settings(&user); // читаем старые данные
+        if (strlen(login_val) > 0) strncpy(user.login, login_val, sizeof(user.login) - 1);
+        if (strlen(password_val) > 0) strncpy(user.password, password_val, sizeof(user.password) - 1);
+        err = nvs_save_user_settings(&user);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to save user settings: %s", esp_err_to_name(err));
+            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save user settings");
+            return ESP_FAIL;
+        }
+        ESP_LOGI(TAG, "User settings saved: %s / %s", user.login, user.password);
+    }
+    */
 
     // --- Сохраняем Network Settings ---
     if (strlen(ssid_val) > 0 || strlen(mode_val) > 0) {

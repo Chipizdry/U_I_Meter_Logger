@@ -149,3 +149,80 @@ wifiForm.addEventListener("submit", async (e) => {
             alert("Ошибка при сохранении аккаунта: " + err);
         }
     });
+
+
+    // === Сохранение настроек пользователя ===
+
+        userForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const token = sessionStorage.getItem("auth_token");
+            if (!token) {
+                showLogin();
+                return;
+            }
+
+            const login = userForm.querySelector('[name="user-login"]').value.trim();
+            const pass = userForm.querySelector('[name="user-password"]').value.trim();
+            const confirm = userForm.querySelector('[name="user-confirm-password"]').value.trim();
+
+            // === Проверка пароля ===
+            if (pass !== confirm) {
+                alert("Пароли не совпадают!");
+                return;
+            }
+
+            if (pass.length < 6) {
+                alert("Пароль должен содержать минимум 6 символа");
+                return;
+            }
+
+            // Готовим данные
+            const params = new URLSearchParams();
+            params.append("user-login", login);
+            params.append("user-password", pass);
+
+            console.log("Сохраняем USER:", { login, pass });
+
+            try {
+                const res = await fetch("/save_settings/user", {
+                    method: "POST",
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: params.toString()
+                });
+
+                if (res.status === 401) {
+                    sessionStorage.removeItem("auth_token");
+                    showTokenExpiredModal();
+                    showLogin();
+                    return;
+                }
+
+                const text = await res.text();
+
+                if (!res.ok) {
+                    console.error("Ошибка сохранения пользователя:", text);
+                    alert("Ошибка: " + text);
+                    return;
+                }
+
+                console.log("USER settings saved:", text);
+
+                // Статус в интерфейсе
+                const wsStatus = document.getElementById("ws-status");
+                if (wsStatus) {
+                    wsStatus.textContent = "Пользователь обновлён ✔️";
+                    wsStatus.style.color = "#4CAF50";
+                    setTimeout(() => wsStatus.textContent = "", 2000);
+                }
+
+                alert("Настройки пользователя сохранены");
+
+            } catch (err) {
+                console.error("Ошибка при сохранении пользователя:", err);
+                alert("Ошибка: " + err);
+            }
+        });
