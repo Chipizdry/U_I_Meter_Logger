@@ -27,6 +27,8 @@ static const char *TAG = "web_server";
 extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 char auth_token[64] = {0};
+static void url_decode(char *dst, const char *src);
+
 static const char* wifi_mode_to_string(wifi_mode_t mode) { 
     switch (mode) { case WIFI_MODE_NULL: return "WIFI_MODE_NULL";
         case WIFI_MODE_STA: return "WIFI_MODE_STA";
@@ -521,37 +523,57 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
             ESP_LOGI("ACCOUNT", "Received body: %s", body);
 
-            // --- Разбираем form-urlencoded ---
-            char acc_login[128] = {0};
-            char acc_password[128] = {0};
+            // -------- ПАРСИНГ form-urlencoded --------
+            char raw_login[128] = {0};
+            char raw_password[128] = {0};
 
-            sscanf(strstr(body, "account-login=") ?: "", "account-login=%127[^&]", acc_login);
-            sscanf(strstr(body, "account-password=") ?: "", "account-password=%127[^&]", acc_password);
+            {
+                char *p = strstr(body, "account-login=");
+                if (p) {
+                    p += strlen("account-login=");
+                    sscanf(p, "%127[^&]", raw_login);
+                }
 
-            ESP_LOGI("ACCOUNT", "Parsed: login=%s password=%s", acc_login, acc_password);
+                p = strstr(body, "account-password=");
+                if (p) {
+                    p += strlen("account-password=");
+                    sscanf(p, "%127[^&]", raw_password);
+                }
+            }
 
-            // --- Загружаем старые настройки ---
+            ESP_LOGI("ACCOUNT", "Raw parsed: login=%s password=%s", raw_login, raw_password);
+
+            // -------- URL DECODE --------
+            char login_dec[128] = {0};
+            char pass_dec[128]  = {0};
+
+            url_decode(login_dec, raw_login);
+            url_decode(pass_dec, raw_password);
+
+            ESP_LOGI("ACCOUNT", "Decoded: login=%s password=%s", login_dec, pass_dec);
+
+            // -------- ЗАГРУЖАЕМ СТАРЫЕ НАСТРОЙКИ --------
             user_settings_t user_cfg = {0};
             nvs_load_user_settings(&user_cfg);
 
-            // --- Обновляем данные, если заполнены ---
-            if (strlen(acc_login) > 0)
-                strncpy(user_cfg.account_login, acc_login, sizeof(user_cfg.account_login) - 1);
+            // -------- ОБНОВЛЯЕМ --------
+            if (strlen(login_dec) > 0)
+                strncpy(user_cfg.account_login, login_dec, sizeof(user_cfg.account_login) - 1);
 
-            if (strlen(acc_password) > 0)
-                strncpy(user_cfg.account_password, acc_password, sizeof(user_cfg.account_password) - 1);
+            if (strlen(pass_dec) > 0)
+                strncpy(user_cfg.account_password, pass_dec, sizeof(user_cfg.account_password) - 1);
 
-            // --- Сохраняем ---
+            // -------- СОХРАНЯЕМ --------
             esp_err_t err = nvs_save_user_settings(&user_cfg);
             if (err != ESP_OK) {
                 ESP_LOGE("ACCOUNT", "Failed to save: %s", esp_err_to_name(err));
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save account settings");
+                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save");
                 return ESP_FAIL;
             }
 
-            ESP_LOGI("ACCOUNT", "Saved OK: account_login=%s account_password=%s",
-                    user_cfg.account_login, user_cfg.account_password);
-
+            ESP_LOGI("ACCOUNT", "Saved OK: login=%s password=%s",user_cfg.account_login, user_cfg.account_password);
+            memcpy(&user, &user_cfg, sizeof(user_settings_t));
+            websocket_restart(user_cfg.account_login, user_cfg.account_password);
             httpd_resp_sendstr(req, "Account settings saved successfully 💾");
             return ESP_OK;
         }
@@ -851,5 +873,35 @@ esp_err_t web_server_stop(void)
 }
 
 
+
+
+// URL-decode: decodes %XX and + → space
+static void url_decode(char *dst, const char *src)
+{
+    char a, b;
+    while (*src) {
+        if (*src == '%' &&
+            isxdigit((unsigned char)src[1]) &&
+            isxdigit((unsigned char)src[2])) {
+
+            a = src[1];
+            b = src[2];
+
+            a = (a <= '9' ? a - '0' : toupper(a) - 'A' + 10);
+            b = (b <= '9' ? b - '0' : toupper(b) - 'A' + 10);
+
+            *dst++ = (char)(a * 16 + b);
+            src += 3;
+        }
+        else if (*src == '+') {
+            *dst++ = ' ';
+            src++;
+        }
+        else {
+            *dst++ = *src++;
+        }
+    }
+    *dst = '\0';
+}
 
 

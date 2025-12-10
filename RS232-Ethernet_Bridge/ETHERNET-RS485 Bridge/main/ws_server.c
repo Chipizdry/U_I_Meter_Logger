@@ -346,7 +346,7 @@ void cancel_test_account(void) {
     test_account_active = false;
     strncpy(ws_email, user.account_login, sizeof(ws_email)-1);
     strncpy(ws_password, user.account_password, sizeof(ws_password)-1);
-
+    websocket_disable_reconnect();
     // Перезапуск WS с обычным аккаунтом
     if (client) {
         esp_websocket_client_stop(client);
@@ -355,5 +355,6 @@ void cancel_test_account(void) {
         client = NULL;
     }
     websocket_client_start(user.serial, ws_email, ws_password);
+    websocket_enable_reconnect();
 }
 

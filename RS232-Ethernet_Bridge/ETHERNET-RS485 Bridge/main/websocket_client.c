@@ -32,6 +32,8 @@ static const char *TAG = "websocket_client";
  esp_websocket_client_handle_t client = NULL;
 
 bool ws_connected = false;
+static bool ws_reconnect_enabled = true;
+
 char cloud_status_msg[32] = "Idle";   // статус по умолчанию
 static char ws_rx_buf[512];
 static int ws_rx_len = 0;
@@ -40,12 +42,29 @@ static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
 
 
+void websocket_disable_reconnect(void)
+{
+    ws_reconnect_enabled = false;
+    ws_reconnect_in_progress = false;
+}
+
+void websocket_enable_reconnect(void)
+{
+    ws_reconnect_enabled = true;
+}
+
+
  void websocket_reconnect_task(void *pvParameters)
 {
     const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверяем каждую секунду
 
     for (;;)
     {
+
+        if (!ws_reconnect_enabled) {
+            vTaskDelay(check_interval);
+            continue;     // реконс не работает
+        }
         bool need_reconnect = false;
 
         if (!ws_connected) {
@@ -432,3 +451,33 @@ bool websocket_send_text(const char *msg)
 }
 
 
+void websocket_restart(const char *email, const char *password)
+{
+    ESP_LOGW(TAG, "🔄 Restarting WebSocket client with new credentials...");
+
+     ws_reconnect_in_progress = true;
+    // Обновляем глобальные переменные
+    strncpy(ws_email, email, sizeof(ws_email)-1);
+    strncpy(ws_password, password, sizeof(ws_password)-1);
+
+    // Останавливаем клиент, если запущен
+    if (client) {
+        esp_websocket_client_stop(client);
+        vTaskDelay(pdMS_TO_TICKS(100));
+        esp_websocket_client_destroy(client);
+        client = NULL;
+    }
+
+    ws_connected = false;
+    
+
+    // Стартуем заново
+    esp_err_t ok = websocket_client_start(user.serial, ws_email, ws_password);
+
+    if (ok == ESP_OK) {
+        ESP_LOGI(TAG, "✅ WebSocket restarted successfully");
+    } else {
+        ESP_LOGE(TAG, "❌ WebSocket restart failed: %s", esp_err_to_name(ok));
+    }
+     ws_reconnect_in_progress = false;
+}
