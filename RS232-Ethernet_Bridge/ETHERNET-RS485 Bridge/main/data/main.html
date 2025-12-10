@@ -50,7 +50,7 @@
             <div id="mainContent" class="content">
         
                 <!-- Wi-Fi -->
-                <div class="tab-content active" id="wifi">
+                <div class="tab-content" id="wifi">
                     <h2>Wi-Fi настройки</h2>
                     <form id="wifiForm">
 
@@ -183,7 +183,7 @@
                 </div>
         
                 <!-- Система -->
-                <div class="tab-content" id="system">
+                <div class="tab-content active" id="system">
                     <h2>Системные параметры</h2>
                     <label>Интервал обновления (мс):</label>
                     <input type="number" value="1000"><br>
@@ -285,8 +285,10 @@
         const mainScreen = document.getElementById("mainScreen");
         const wifiForm = document.getElementById("wifiForm");
         const saveAccountBtn = document.getElementById('SaveAccountBtn');
+        const logoutBtn = document.getElementById("logoutBtn");
         const accountForm = document.getElementById('accountForm');
         const dhcpCheckbox = document.getElementById("dhcp");
+        const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
         const ipFields = ["ip", "mask", "gateway", "dns"];
         let buildNumber = null;
         let buildDate = null;

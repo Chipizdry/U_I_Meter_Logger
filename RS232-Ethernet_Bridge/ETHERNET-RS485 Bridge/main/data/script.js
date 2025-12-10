@@ -2,7 +2,7 @@
 
 document.addEventListener("DOMContentLoaded", () => {
    
-    const logoutBtn = document.getElementById("logoutBtn");
+   
     const eye = document.getElementById("eyeIcon");
     const token = sessionStorage.getItem('auth_token');
     updateEyeIcon(eye, false); // false = закрытый глаз
@@ -19,10 +19,11 @@ document.addEventListener("DOMContentLoaded", () => {
     dhcpCheckbox.addEventListener("change", updateIPFieldsState);
     
     if (token) {
-        showMainScreen();
         fetchSettings();
         initWebSocket();  
-        const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+
+        showMainScreen();
+       
         if (activeTab) {
         applySettingsToForm(activeTab, data);
         }
@@ -31,113 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
         showLogin();
     }
     
-
-  
-
-
-
-   // === Выход из аккаунта ===
-logoutBtn.addEventListener("click", async () => {
-    console.log("Logout...");
-
-    const token = sessionStorage.getItem("auth_token");
-
-    // 1) Уведомляем сервер (если есть токен)
-    if (token) {
-        try {
-            await fetch("/logout", {
-                method: "POST",
-                headers: {
-                    "Authorization": "Bearer " + token
-                }
-            });
-        } catch (e) {
-            console.warn("Logout request failed:", e);
-        }
-    }
-
-    // 2) Удаляем токен
-    sessionStorage.removeItem("auth_token");
-
-    // 3) Останавливаем heartbeat
-    if (typeof stopHeartbeat === "function") {
-        stopHeartbeat();
-    }
-
-    // 4) Отменяем реконнект
-    if (window.reconnectTimer) {
-        clearTimeout(window.reconnectTimer);
-        window.reconnectTimer = null;
-    }
-
-    // 5) Отключаем WS
-    if (window.ws) {
-        console.log("Closing WebSocket on logout");
-        ws.onclose = null; // 🔥 отключаем авто-реконнект
-        ws.close();
-        window.ws = null;
-    }
-
-    // 6) Возврат к экрану логина
-    //alert("Вы вышли из системы 👋");
-    showLogin();
-    loginStatus.classList.add("hidden");
-});
-
-
-
-
- 
- // === Форматирование и маска ввода ===
- function applyIPMask(input) {
-     input.addEventListener("input", (e) => {
-         let value = e.target.value.replace(/[^\d]/g, "");
-         let parts = [];
- 
-         // Разбиваем по 3 цифры (но не добавляем ведущие нули)
-         for (let i = 0; i < value.length && parts.length < 4; i += 3) {
-             parts.push(value.substring(i, i + 3));
-         }
- 
-         // Соединяем с точками
-         e.target.value = parts.join(".");
- 
-         // Автопереход курсора, когда введено 3 цифры и нет точки
-         if (e.inputType === "insertText" && value.length < 12 && value.length % 3 === 0 && !e.target.value.endsWith(".")) {
-             e.target.value += ".";
-         }
-     });
- 
-     // При фокусе показываем шаблон, если пусто
-     input.addEventListener("focus", (e) => {
-         if (e.target.value.trim() === "") e.target.placeholder = "___.___.___.___";
-     });
- 
-     // При потере фокуса — завершаем IP и проверяем
-     input.addEventListener("blur", (e) => {
-         let parts = e.target.value.split(".").filter(Boolean);
- 
-         // Дополняем до 4 октетов
-         while (parts.length < 4) parts.push("0");
- 
-         // Убираем лишние ведущие нули
-         parts = parts.map(p => String(parseInt(p || "0", 10)));
- 
-         e.target.value = parts.join(".");
- 
-         // Проверка корректности
-         if (!validateIP(e.target.value)) {
-             e.target.style.border = "2px solid red";
-             e.target.title = "Некорректный IP адрес";
-         } else {
-             e.target.style.border = "";
-             e.target.title = "";
-         }
-     });
- }
- 
-
-
 
 });
 
@@ -641,7 +535,7 @@ function updateWiFiVisibility() {
 
                // === Автоматически применяем настройки на активную вкладку ===
           const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
-
+          loadTabSettings(activeTab);
         return data; 
 
 
@@ -699,3 +593,57 @@ function validateIP(ip) {
             field.style.opacity = disabled ? "0.6" : "1.0";
         });
     }
+
+
+
+
+
+ 
+ // === Форматирование и маска ввода ===
+ function applyIPMask(input) {
+     input.addEventListener("input", (e) => {
+         let value = e.target.value.replace(/[^\d]/g, "");
+         let parts = [];
+ 
+         // Разбиваем по 3 цифры (но не добавляем ведущие нули)
+         for (let i = 0; i < value.length && parts.length < 4; i += 3) {
+             parts.push(value.substring(i, i + 3));
+         }
+ 
+         // Соединяем с точками
+         e.target.value = parts.join(".");
+ 
+         // Автопереход курсора, когда введено 3 цифры и нет точки
+         if (e.inputType === "insertText" && value.length < 12 && value.length % 3 === 0 && !e.target.value.endsWith(".")) {
+             e.target.value += ".";
+         }
+     });
+ 
+     // При фокусе показываем шаблон, если пусто
+     input.addEventListener("focus", (e) => {
+         if (e.target.value.trim() === "") e.target.placeholder = "___.___.___.___";
+     });
+ 
+     // При потере фокуса — завершаем IP и проверяем
+     input.addEventListener("blur", (e) => {
+         let parts = e.target.value.split(".").filter(Boolean);
+ 
+         // Дополняем до 4 октетов
+         while (parts.length < 4) parts.push("0");
+ 
+         // Убираем лишние ведущие нули
+         parts = parts.map(p => String(parseInt(p || "0", 10)));
+ 
+         e.target.value = parts.join(".");
+ 
+         // Проверка корректности
+         if (!validateIP(e.target.value)) {
+             e.target.style.border = "2px solid red";
+             e.target.title = "Некорректный IP адрес";
+         } else {
+             e.target.style.border = "";
+             e.target.title = "";
+         }
+     });
+ }
+ 

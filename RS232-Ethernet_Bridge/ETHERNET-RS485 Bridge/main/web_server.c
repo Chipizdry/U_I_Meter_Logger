@@ -845,17 +845,6 @@ esp_err_t web_server_start(void)
 
         return ESP_OK;
 
-/*
-        httpd_register_uri_handler(server, &ws_uri);
-        httpd_register_uri_handler(server, &ota_uri);
-        httpd_register_uri_handler(server, &login_uri);
-        httpd_register_uri_handler(server, &logout_uri);
-        httpd_register_uri_handler(server, &reboot_uri);
-        httpd_register_uri_handler(server, &get_settings_uri);
-        httpd_register_uri_handler(server, &save_settings_uri);
-        httpd_register_uri_handler(server, &file_get_uri);
-        ESP_LOGI(TAG, "Web server started on port %d", config.server_port);
-        return ESP_OK;  */
     }
 
     ESP_LOGE(TAG, "Failed to start web server");

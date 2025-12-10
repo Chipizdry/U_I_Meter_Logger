@@ -1,6 +1,57 @@
 
 
 
+   // === Выход из аккаунта ===
+logoutBtn.addEventListener("click", async () => {
+    console.log("Logout...");
+
+    const token = sessionStorage.getItem("auth_token");
+
+    // 1) Уведомляем сервер (если есть токен)
+    if (token) {
+        try {
+            await fetch("/logout", {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                }
+            });
+        } catch (e) {
+            console.warn("Logout request failed:", e);
+        }
+    }
+
+    // 2) Удаляем токен
+    sessionStorage.removeItem("auth_token");
+
+    // 3) Останавливаем heartbeat
+    if (typeof stopHeartbeat === "function") {
+        stopHeartbeat();
+    }
+
+    // 4) Отменяем реконнект
+    if (window.reconnectTimer) {
+        clearTimeout(window.reconnectTimer);
+        window.reconnectTimer = null;
+    }
+
+    // 5) Отключаем WS
+    if (window.ws) {
+        console.log("Closing WebSocket on logout");
+        ws.onclose = null; // 🔥 отключаем авто-реконнект
+        ws.close();
+        window.ws = null;
+    }
+
+    // 6) Возврат к экрану логина
+    //alert("Вы вышли из системы 👋");
+    showLogin();
+    loginStatus.classList.add("hidden");
+});
+
+
+
+
 
    // === Сохранение Wi-Fi настроек ===
 wifiForm.addEventListener("submit", async (e) => {
