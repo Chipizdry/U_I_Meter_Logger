@@ -71,6 +71,8 @@
                                 <input type="text" name="sta-ssid">
                             </label>
                             <label class="wifi-sta" ... >STA Password:</label>
+                            <button type="button" class="wifi-sta" onclick="wsScanWiFi()">🔍 Сканировать сети</button>
+                            <div id="wifiScanList" class="wifi-sta"></div>
                             <div class="password-container wifi-sta">
                                 <input type="password" id="sta-password" name="sta-password" autocomplete="sta-password">
                                 <span class="eye-icon" id="eye-sta-password" onclick="togglePassword('sta-password','eye-sta-password')"></span>

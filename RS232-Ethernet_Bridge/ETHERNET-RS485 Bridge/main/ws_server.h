@@ -8,5 +8,5 @@ void ws_server_init(httpd_handle_t httpd);
 
 //void ws_send(int fd, const char *text);
 void ws_broadcast(const char *text);
-
+void ws_send(int client_fd, const char* text);
 esp_err_t ws_handler(httpd_req_t *req);

@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include "websocket_client.h"
+#include "wifi_manager.h"
 #include "esp_websocket_client.h"
 #include "rs485_master.h"
 #include "nvs_settings.h"
@@ -89,7 +90,7 @@ static ws_client_t* get_client(int sockfd)
 // -------------------------------------------------------------------
 
 
-static void ws_send(int client_fd, const char* text) {
+ void ws_send(int client_fd, const char* text) {
     httpd_ws_frame_t frame = {
         .final = true,
         .fragmented = false,
@@ -191,6 +192,17 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
         ws_send(client_fd, "{\"cloud_status\":\"test_account cancelled\"}");
         return;
     }
+
+     if (strcmp(act, "wifi_scan") == 0) {
+    ESP_LOGI("WS", "WS: wifi_scan request from fd=%d", client_fd);
+
+    wifi_scan_networks();
+
+    ws_send(client_fd, "{\"type\":\"wifi_scan\",\"status\":\"started\"}");
+    return;
+    }
+
+
     // === НЕИЗВЕСТНОЕ ДЕЙСТВИЕ ===
     else {
         ESP_LOGW("WS", "Unknown WS action '%s'", act);

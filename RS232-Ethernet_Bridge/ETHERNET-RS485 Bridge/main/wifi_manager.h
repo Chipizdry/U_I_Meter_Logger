@@ -8,5 +8,5 @@
 
 esp_err_t wifi_manager_init(const wifi_settings_t *cfg);
 void wifi_manager_stop(void);
-
+esp_err_t wifi_scan_networks(void);
 

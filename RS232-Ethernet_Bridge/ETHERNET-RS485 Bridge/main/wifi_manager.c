@@ -2,10 +2,14 @@
 
 #include "wifi_manager.h"
 #include "esp_wifi.h"
+#include "ws_server.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
+#include "freertos/semphr.h"
+#include "esp_heap_caps.h"
+#include <stdio.h>
 #include <string.h>
 
 #define MAX_APs 20
@@ -13,6 +17,10 @@ static const char *TAG = "wifi_manager";
 static wifi_ap_record_t ap_list[MAX_APs];
 static uint16_t ap_count = 0;
 
+extern void ws_broadcast(const char *text);
+extern void ws_send(int client_fd, const char *text);
+
+static SemaphoreHandle_t ap_list_mutex = NULL;
 
 
 // --- Событийный обработчик ---
@@ -33,19 +41,56 @@ switch (event_id) {
         esp_wifi_connect();
         break;
     case WIFI_EVENT_SCAN_DONE:
-        {
+      
         ESP_LOGI(TAG, "Scan done");
         uint16_t count = MAX_APs;
-        esp_wifi_scan_get_ap_records(&count, ap_list);
+        // Получаем записи локально
+        esp_err_t res = esp_wifi_scan_get_ap_records(&count, ap_list);
+        if (res != ESP_OK) {
+            ESP_LOGW(TAG, "esp_wifi_scan_get_ap_records failed: %s", esp_err_to_name(res));
+            break;
+        }
+
+        // Защитим апдейт
+        if (ap_list_mutex) xSemaphoreTake(ap_list_mutex, pdMS_TO_TICKS(100));
         ap_count = count;
+        if (ap_list_mutex) xSemaphoreGive(ap_list_mutex);
+
         ESP_LOGI(TAG, "Found %d APs:", ap_count);
-        for (int i = 0; i < ap_count; i++) {
-        ESP_LOGI(TAG, "%d: SSID:%s, RSSI:%d, Auth:%d, Channel:%d",
-        i+1, ap_list[i].ssid, ap_list[i].rssi,
-        ap_list[i].authmode, ap_list[i].primary);
+
+        // Формируем JSON вручную (чтобы не требовать cJSON в этом модуле).
+        // Структура: {"type":"wifi_scan","status":"done","count":n,"aps":[{ssid, rssi, auth, channel}, ...]}
+        char *buf = heap_caps_malloc(4096, MALLOC_CAP_8BIT);
+        if (!buf) {
+            ESP_LOGW(TAG, "no memory for scan JSON");
+            break;
         }
+        size_t pos = 0;
+        pos += snprintf(buf + pos, 4090 - pos, "{\"type\":\"wifi_scan\",\"status\":\"done\",\"count\":%d,\"aps\":[", ap_count);
+
+        for (int i = 0; i < ap_count && pos < 4090; i++) {
+            // Берём безопасно локальный снимок записи (чтоб не читать во время апдейта)
+            wifi_ap_record_t rec;
+            if (ap_list_mutex) xSemaphoreTake(ap_list_mutex, pdMS_TO_TICKS(100));
+            rec = ap_list[i];
+            if (ap_list_mutex) xSemaphoreGive(ap_list_mutex);
+
+            // экранирование SSID не реализовано полностью для редких символов — можно улучшить
+            pos += snprintf(buf + pos, 4090 - pos,
+                            "{\"ssid\":\"%s\",\"rssi\":%d,\"auth\":%d,\"channel\":%d}%s",
+                            rec.ssid, rec.rssi, rec.authmode, rec.primary,
+                            (i + 1 < ap_count) ? "," : "");
+        }
+        pos += snprintf(buf + pos, 4090 - pos, "]}");
+
+        // Шлём всем WS клиентам (если ws_broadcast доступен)
+        ws_broadcast(buf);
+
+        heap_caps_free(buf);
+
         break;
-        }
+      
+
     default:
         break;
         }
@@ -104,7 +149,17 @@ esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
             ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
         }
 
+
+
     ESP_ERROR_CHECK(esp_wifi_start());
+
+
+     if (ap_list_mutex == NULL) {
+        ap_list_mutex = xSemaphoreCreateMutex();
+        if (ap_list_mutex == NULL) {
+            ESP_LOGW(TAG, "Failed to create ap_list_mutex");
+        }
+    }
     ESP_LOGI(TAG, "Wi-Fi initialized in mode %d", cfg->mode);
     return ESP_OK;
 }
@@ -129,10 +184,13 @@ esp_err_t wifi_scan_networks(void)
 // --- Получение списка AP ---
 const wifi_ap_record_t* wifi_get_ap_list(uint16_t *count)
 {
-    if (count) *count = ap_count;
+    if (count) {
+        if (ap_list_mutex) xSemaphoreTake(ap_list_mutex, pdMS_TO_TICKS(100));
+        *count = ap_count;
+        if (ap_list_mutex) xSemaphoreGive(ap_list_mutex);
+    }
     return ap_list;
 }
-
 
 
 
