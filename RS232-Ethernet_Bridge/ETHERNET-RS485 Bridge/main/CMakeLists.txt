@@ -13,6 +13,7 @@ idf_component_register(
         "gpio_manager.c"
         "ota_update.c"
         "ws_server.c"
+        "web_auth.c"
 
     INCLUDE_DIRS "."
     REQUIRES 
