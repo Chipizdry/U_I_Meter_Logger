@@ -646,22 +646,7 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
     esp_err_t err = ESP_OK;
 
-    // --- Сохраняем User Settings ---
-   /*
-    if (strlen(login_val) > 0 || strlen(password_val) > 0) {
-        user_settings_t user = {0};
-        nvs_load_user_settings(&user); // читаем старые данные
-        if (strlen(login_val) > 0) strncpy(user.login, login_val, sizeof(user.login) - 1);
-        if (strlen(password_val) > 0) strncpy(user.password, password_val, sizeof(user.password) - 1);
-        err = nvs_save_user_settings(&user);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save user settings: %s", esp_err_to_name(err));
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save user settings");
-            return ESP_FAIL;
-        }
-        ESP_LOGI(TAG, "User settings saved: %s / %s", user.login, user.password);
-    }
-    */
+    
 
     // --- Сохраняем Network Settings ---
     if (strlen(ssid_val) > 0 || strlen(mode_val) > 0) {
