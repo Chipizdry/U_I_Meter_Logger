@@ -1004,3 +1004,33 @@ select#deviceType:checked {
     word-break: break-all;
 }
 
+#wifiScanList {
+    max-height: 200px;         /* Ограничение по высоте */
+    overflow-y: auto;          /* Скролл, если сетей много */
+    padding: 0;
+    margin: 5px 0;
+    font-size: 0.9em;
+}
+
+#wifiScanList ul {
+    list-style: none;          /* Без маркеров */
+    padding: 0;
+    margin: 0;
+}
+
+#wifiScanList li {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 6px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    font-size: 10px;
+    color: #7528b2;
+    transition: background 0.2s;
+}
+
+#wifiScanList li:hover {
+    background-color: #f0f0f0;
+}
+
+

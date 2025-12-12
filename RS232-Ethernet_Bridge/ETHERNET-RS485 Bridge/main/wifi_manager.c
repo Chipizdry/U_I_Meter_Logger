@@ -231,9 +231,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
                     cJSON *ap_obj = cJSON_CreateObject();
                     cJSON_AddStringToObject(ap_obj, "ssid", (const char*)ap->ssid);
                     char bssid_str[18];
-                    snprintf(bssid_str, sizeof(bssid_str), "%02x:%02x:%02x:%02x:%02x:%02x",
-                            ap->bssid[0], ap->bssid[1], ap->bssid[2],
-                            ap->bssid[3], ap->bssid[4], ap->bssid[5]);
+                    snprintf(bssid_str, sizeof(bssid_str), "%02x:%02x:%02x:%02x:%02x:%02x", ap->bssid[0], ap->bssid[1], ap->bssid[2], ap->bssid[3], ap->bssid[4], ap->bssid[5]);
                     cJSON_AddStringToObject(ap_obj, "bssid", bssid_str);
                     cJSON_AddNumberToObject(ap_obj, "rssi", ap->rssi);
                     cJSON_AddNumberToObject(ap_obj, "channel", ap->primary);

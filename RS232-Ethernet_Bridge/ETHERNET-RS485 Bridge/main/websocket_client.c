@@ -329,7 +329,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
         .cert_pem = (const char *)ca_cert_pem_start,
-        .reconnect_timeout_ms = 0,
+        .reconnect_timeout_ms = 5000,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
     };

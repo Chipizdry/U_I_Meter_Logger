@@ -118,38 +118,85 @@ function sendWsCommand(type, payload = {}) {
     }
 }
 
-
 function handleWsMessage(msg) {
     const cloudEl = document.getElementById("ws-status");
-   
 
     // === Статусы соединения с облаком ===
     if (msg.cloud_status) {
-        // Можно использовать другой элемент для облака, например ws-cloud-status
-       
-            if (msg.cloud_status === "connected") {
-                cloudEl.textContent = "☁️ Подключено к облаку";
-                cloudEl.style.color = "green";
-            } else if (msg.cloud_status === "disconnected") {
-                cloudEl.textContent = "⚠️ Отключено от облака";
-                cloudEl.style.color = "red";
-            } else if (msg.cloud_status === "error") {
-                cloudEl.textContent = "❌ Ошибка облака";
-                cloudEl.style.color = "red";
-            } else {
-                cloudEl.textContent = msg.cloud_status;
-                cloudEl.style.color = "blue";
-            }
-        
+        if (msg.cloud_status === "connected") {
+            cloudEl.textContent = "☁️ Подключено к облаку";
+            cloudEl.style.color = "green";
+        } else if (msg.cloud_status === "disconnected") {
+            cloudEl.textContent = "⚠️ Отключено от облака";
+            cloudEl.style.color = "red";
+        } else if (msg.cloud_status === "error") {
+            cloudEl.textContent = "❌ Ошибка облака";
+            cloudEl.style.color = "red";
+        } else {
+            cloudEl.textContent = msg.cloud_status;
+            cloudEl.style.color = "blue";
+        }
     }
 
-  
     // === Другие типы сообщений ===
     if (msg.type === "update") {
         if (msg.payload?.status) updateStatus(msg.payload.status);
     }
 
+    // === Wi-Fi scan started ===
+    if (msg.type === "wifi_scan") {
+        if (msg.status === "started") {
+            const scanDiv = document.getElementById("wifiScanList");
+            if (scanDiv) scanDiv.textContent = "🔄 Сканирование Wi-Fi...";
+        }
+    }
+
+    // === Wi-Fi scan results ===
+    if (msg.type === "wifi_scan_result" && Array.isArray(msg.aps)) {
+        const scanDiv = document.getElementById("wifiScanList");
+        if (!scanDiv) return;
+        scanDiv.innerHTML = ""; // очищаем старый список
+
+        if (msg.aps.length === 0) {
+            scanDiv.textContent = "Сети не найдены";
+            return;
+        }
+
+        const ul = document.createElement("ul");
+        msg.aps.forEach(ap => {
+            const li = document.createElement("li");
+            li.textContent = `${ap.ssid} (RSSI: ${ap.rssi} dBm, Channel: ${ap.channel}, Auth: ${ap.authmode})`;
+
+            // Клик по сети заполняет поле STA SSID
+            li.onclick = () => {
+                const ssidInput = document.querySelector("input[name='sta-ssid']");
+                if (ssidInput) ssidInput.value = ap.ssid;
+            };
+
+            ul.appendChild(li);
+        });
+
+        scanDiv.appendChild(ul);
+    }
 }
+
+
+
+ function wsScanWiFi() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.warn("WS not connected");
+        return;
+    }
+
+    ws.send(JSON.stringify({
+        action: "wifi_scan"
+    }));
+
+    console.log("WS → {action: wifi_scan}");
+}
+
+
+
 
 
 function updateStatus(text) {

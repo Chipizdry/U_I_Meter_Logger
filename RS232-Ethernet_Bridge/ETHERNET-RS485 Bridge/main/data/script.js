@@ -648,18 +648,3 @@ function validateIP(ip) {
  }
  
 
-
- function wsScanWiFi() {
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-        console.warn("WS not connected");
-        return;
-    }
-
-    ws.send(JSON.stringify({
-        action: "wifi_scan"
-    }));
-
-    console.log("WS → {action: wifi_scan}");
-}
-
-
