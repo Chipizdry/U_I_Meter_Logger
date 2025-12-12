@@ -9,6 +9,7 @@
 #include "esp_netif.h"
 #include "freertos/semphr.h"
 #include "esp_heap_caps.h"
+#include "cJSON.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -187,7 +188,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
                 break;
             }
 
-            case WIFI_EVENT_SCAN_DONE: {
+           case WIFI_EVENT_SCAN_DONE: {
                 uint16_t count = 0;
                 ESP_ERROR_CHECK(esp_wifi_scan_get_ap_num(&count));
                 if (count > MAX_APs) count = MAX_APs;
@@ -195,14 +196,16 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
                 if (ap_list_mutex) xSemaphoreTake(ap_list_mutex, pdMS_TO_TICKS(100));
                 ap_count = count;
                 ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&count, ap_list));
-               
 
                 ESP_LOGI(TAG, "Wi-Fi scan done. %d APs found", ap_count);
-                 // --- Детальный вывод списка AP ---
-               for (int i = 0; i < ap_count; i++) {
+
+                // --- Детальный вывод списка AP ---
+                cJSON *json_root = cJSON_CreateObject();
+                cJSON *json_aps = cJSON_CreateArray();
+
+                for (int i = 0; i < ap_count; i++) {
                     wifi_ap_record_t *ap = &ap_list[i];
-                    
-                    // Authmode как строка
+
                     const char *authmode_str;
                     switch (ap->authmode) {
                         case WIFI_AUTH_OPEN: authmode_str = "OPEN"; break;
@@ -223,13 +226,36 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
                             ap->rssi,
                             ap->primary,
                             authmode_str);
+
+                    // --- Формируем JSON для AP ---
+                    cJSON *ap_obj = cJSON_CreateObject();
+                    cJSON_AddStringToObject(ap_obj, "ssid", (const char*)ap->ssid);
+                    char bssid_str[18];
+                    snprintf(bssid_str, sizeof(bssid_str), "%02x:%02x:%02x:%02x:%02x:%02x",
+                            ap->bssid[0], ap->bssid[1], ap->bssid[2],
+                            ap->bssid[3], ap->bssid[4], ap->bssid[5]);
+                    cJSON_AddStringToObject(ap_obj, "bssid", bssid_str);
+                    cJSON_AddNumberToObject(ap_obj, "rssi", ap->rssi);
+                    cJSON_AddNumberToObject(ap_obj, "channel", ap->primary);
+                    cJSON_AddStringToObject(ap_obj, "authmode", authmode_str);
+
+                    cJSON_AddItemToArray(json_aps, ap_obj);
                 }
+
                 if (ap_list_mutex) xSemaphoreGive(ap_list_mutex);
-                // Отправка через WebSocket
-                // ws_broadcast("scan_done"); // JSON с SSID
+
+                cJSON_AddItemToObject(json_root, "type", cJSON_CreateString("wifi_scan_result"));
+                cJSON_AddItemToObject(json_root, "aps", json_aps);
+
+                char *json_str = cJSON_PrintUnformatted(json_root);
+                if (json_str) {
+                    ws_broadcast(json_str);  // Отправка всем клиентам WS
+                    cJSON_free(json_str);
+                }
+                cJSON_Delete(json_root);
+
                 break;
             }
-
 
             default:
                 break;
