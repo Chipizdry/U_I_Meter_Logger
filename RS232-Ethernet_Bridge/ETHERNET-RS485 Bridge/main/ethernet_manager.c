@@ -48,8 +48,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
     }
 }
 
-static void got_ip_event_handler(void *arg, esp_event_base_t event_base,
-                                 int32_t event_id, void *event_data)
+static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));

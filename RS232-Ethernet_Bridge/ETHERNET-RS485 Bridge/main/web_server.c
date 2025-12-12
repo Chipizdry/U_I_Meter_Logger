@@ -369,9 +369,6 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
   if (section == SECTION_WIFI) {
 
-
-
-
     char body[512] = {0};
     int ret = httpd_req_recv(req, body, sizeof(body)-1);
     if (ret <= 0) {
@@ -526,54 +523,6 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
        return ESP_OK;
   }
 
-    char buf[256];
-    int len = req->content_len;
-    if (len >= sizeof(buf)) {
-        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Payload too large");
-        return ESP_FAIL;
-    }
-
-    int ret = httpd_req_recv(req, buf, len);
-    if (ret <= 0) {
-        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
-        return ESP_FAIL;
-    }
-    buf[len] = '\0'; // terminate string
-
-    // --- Простая form-urlencoded разборка ---
-   // char login_val[64] = {0};
-  //  char password_val[64] = {0};
-    char ssid_val[64] = {0};
-    char mode_val[16] = {0};
-
-  //  sscanf(strstr(buf, "login=") ?: "", "login=%63[^&]", login_val);
-   // sscanf(strstr(buf, "password=") ?: "", "password=%63[^&]", password_val);
-    sscanf(strstr(buf, "ssid=") ?: "", "ssid=%63[^&]", ssid_val);
-    sscanf(strstr(buf, "mode=") ?: "", "mode=%15[^&]", mode_val);
-
-    esp_err_t err = ESP_OK;
-
-    
-
-    // --- Сохраняем Network Settings ---
-    if (strlen(ssid_val) > 0 || strlen(mode_val) > 0) {
-        network_settings_t net = {0};
-        nvs_load_network_settings(&net);
-        if (strlen(ssid_val) > 0) strncpy(net.ap_ssid, ssid_val, sizeof(net.ap_ssid) - 1);
-        if (strlen(mode_val) > 0) {
-            if (strcmp(mode_val, "WIFI_MODE_NULL") == 0) net.mode = WIFI_MODE_NULL;
-            else if (strcmp(mode_val, "WIFI_MODE_STA") == 0) net.mode = WIFI_MODE_STA;
-            else if (strcmp(mode_val, "WIFI_MODE_AP") == 0) net.mode = WIFI_MODE_AP;
-            else if (strcmp(mode_val, "WIFI_MODE_APSTA") == 0) net.mode = WIFI_MODE_APSTA;
-        }
-        err = nvs_save_network_settings(&net);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to save network settings: %s", esp_err_to_name(err));
-            httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save network settings");
-            return ESP_FAIL;
-        }
-        ESP_LOGI(TAG, "Network settings saved: ssid=%s mode=%s", net.ap_ssid, wifi_mode_to_string(net.mode));
-    }
 
     httpd_resp_sendstr(req, "Settings saved successfully 💾");
     return ESP_OK;

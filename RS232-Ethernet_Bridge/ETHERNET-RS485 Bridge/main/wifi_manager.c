@@ -23,9 +23,21 @@ extern void ws_send(int client_fd, const char *text);
 static SemaphoreHandle_t ap_list_mutex = NULL;
 
 
+static const char* wifi_reason_to_str(wifi_err_reason_t reason) {
+    switch (reason) {
+        case WIFI_REASON_UNSPECIFIED: return "Unspecified";
+        case WIFI_REASON_AUTH_EXPIRE: return "Auth expired";
+        case WIFI_REASON_NO_AP_FOUND: return "AP not found";
+        case WIFI_REASON_AUTH_FAIL: return "Auth failed";
+        case WIFI_REASON_ASSOC_FAIL: return "Association failed";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT: return "Handshake timeout";
+        default: return "Other";
+    }
+}
+
+
 // --- Событийный обработчик ---
-static void wifi_event_handler(void *arg, esp_event_base_t event_base,
-    int32_t event_id, void *event_data)
+static void wifi_event_handler(void *arg, esp_event_base_t event_base,int32_t event_id, void *event_data)
 {
 if (event_base == WIFI_EVENT) {
 switch (event_id) {
@@ -38,6 +50,8 @@ switch (event_id) {
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         ESP_LOGW(TAG, "Disconnected, reconnecting...");
+          wifi_event_sta_disconnected_t *disconn = event_data;
+        ESP_LOGW("wifi", "Disconnected, reason=%d (%s)", disconn->reason, wifi_reason_to_str(disconn->reason));
         esp_wifi_connect();
         break;
     case WIFI_EVENT_SCAN_DONE:
@@ -124,7 +138,14 @@ esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
     wifi_config_t sta_cfg = { 0 };
     strncpy((char *)sta_cfg.sta.ssid, cfg->sta_ssid, sizeof(sta_cfg.sta.ssid));
     strncpy((char *)sta_cfg.sta.password, cfg->sta_password, sizeof(sta_cfg.sta.password));
+    sta_cfg.sta.channel = 0;
     sta_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+
+    // --- ВАЖНО: улучшенные настройки сканирования ---
+    sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;             // полное сканирование всех каналов
+    sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;         // выбирать AP с максимальным уровнем сигнала
+    sta_cfg.sta.pmf_cfg.capable = true;                          // поддерживает PMF
+    sta_cfg.sta.pmf_cfg.required = false;
     sta_cfg.sta.sae_pwe_h2e = WPA3_SAE_PWE_UNSPECIFIED;
 
     wifi_config_t ap_cfg = { 0 };
