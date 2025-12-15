@@ -11,9 +11,10 @@
 #include "nvs_settings.h"
 #include "rs485_master.h"
 #include "ws_server.h"
+#include "gpio_manager.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
-static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(7000); // 7 секунд
+static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
 // переменные для авторизации
  char ws_email[64];
  char ws_password[64];
@@ -72,7 +73,7 @@ void websocket_enable_reconnect(void)
         } else {
             TickType_t now = xTaskGetTickCount();
             if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
-                ESP_LOGW(TAG, "⚠️ No WS activity for 7 seconds, forcing reconnect");
+                ESP_LOGW(TAG, "⚠️ No WS activity for 10 seconds, forcing reconnect");
                 need_reconnect = true;
             }
         }
@@ -136,19 +137,23 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
             }
             ws_connected = true;
+             gpio_set_net_led(true);
             ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
+             last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
         break;
 
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
             ws_connected = false;
+             gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"disconnected\"}");
             break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
             ws_connected = false;
+             gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"error\"}");
             break;
 
@@ -196,6 +201,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                     memcpy(cloud_status_msg, start, len);
                                     cloud_status_msg[len] = 0;
                                     ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
+                                    ws_connected = true;
                                 }
                             }
                         }
@@ -329,7 +335,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
         .cert_pem = (const char *)ca_cert_pem_start,
-        .reconnect_timeout_ms = 5000,
+        .reconnect_timeout_ms = 0,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
     };
@@ -380,6 +386,7 @@ esp_err_t websocket_client_send(const char *message)
 void websocket_client_stop(void)
 {
     if (client) {
+        gpio_set_net_led(false);
         esp_websocket_client_stop(client);
         esp_websocket_client_destroy(client);
         client = NULL;

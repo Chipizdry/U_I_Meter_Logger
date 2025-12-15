@@ -112,6 +112,13 @@ void gpio_set_status_led(bool state)
     gpio_set_level(GPIO_STATUS_LED, state);
 }
 
+
+void gpio_set_net_led(bool state)
+{
+    gpio_set_level(GPIO_NET_LED, state ? 1 : 0);
+}
+
+
 void gpio_blink_status_led(int times, int delay_ms)
 {
     for (int i = 0; i < times; i++) {
