@@ -336,6 +336,17 @@ h1 {
     text-align: center;
 }
 
+
+
+h2 {
+    color:#291161;
+    font-size: 20px;
+    margin-top: 0px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+
 h3 {
     color: #291161;
     margin-bottom: 10px;
@@ -1047,9 +1058,10 @@ select#deviceType:checked {
 .diag-header,
 .diag-row {
     display: grid;
-    grid-template-columns: 1fr 90px 90px;
+    grid-template-columns: 1fr 80px 80px;
     padding: 6px 10px;
     align-items: center;
+    height:15px
 }
 
 .diag-header {
@@ -1064,6 +1076,9 @@ select#deviceType:checked {
 
 .diag-type {
     color: #6cf;
+    white-space: nowrap;    
+     overflow: hidden;           /* скрыть лишнее */
+    text-overflow: ellipsis;  
 }
 
 .diag-value {
@@ -1082,3 +1097,38 @@ select#deviceType:checked {
     color: #888;
     font-size: 12px;
 }
+
+
+select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+
+    background-color: #fff;
+    color: #5B4296;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+
+    padding: 7px 30px 7px 10px; /* место под стрелку */
+    font-size: 12px;
+    cursor: pointer;
+
+    background-image: url("data:image/svg+xml;utf8,\
+<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235B4296'>\
+<path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 14px;
+}
+
+
+select:hover {
+    border-color: #7527B2;
+}   
+
+select:focus {
+    outline: none;
+    border-color: #7527B2;
+    box-shadow: 0 0 5px rgba(117, 39, 178, 0.5);
+}
+

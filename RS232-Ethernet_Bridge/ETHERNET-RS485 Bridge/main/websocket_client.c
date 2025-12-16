@@ -254,7 +254,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                     last_modbus_tick = now;
 
                                     if (diagnostics_active && delta_ms > 0) {
-                                        char msg[128];
+                                        char msg[64];
                                         snprintf(msg, sizeof(msg),
                                             "{\"diag\":\"Modbus update : %lu\"}",
                                             delta_ms
@@ -318,7 +318,7 @@ if (pi30_ptr) {
 
 
                     if (diagnostics_active && delta_ms > 0) {
-                        char msg[128];
+                        char msg[64];
                         snprintf(msg, sizeof(msg),
                             "{\"diag\":\"PI30 update : %lu\"}",
                             delta_ms
