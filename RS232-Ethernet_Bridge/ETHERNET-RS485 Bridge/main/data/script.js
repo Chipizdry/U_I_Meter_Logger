@@ -369,6 +369,14 @@ const tabContents = document.querySelectorAll(".tab-content");
 
             item.classList.add("active");
             const tabId = item.dataset.tab;
+
+            // === Диагностика ===
+            if (tabId === "diagnostics") {
+                diagnosticsOn();
+            } else {
+                diagnosticsOff();
+            }
+
             document.getElementById(tabId).classList.add("active");
 
             // Закрываем меню на мобилке
@@ -647,4 +655,37 @@ function validateIP(ip) {
      });
  }
  
+
+
+function addDiagRow(text) {
+    // ожидаем строку вида: "PI30 update : 1950"
+    const match = text.match(/^(.+?)\s*:\s*(\d+)/);
+    if (!match) return;
+
+    const type = match[1];
+    const value = parseInt(match[2], 10);
+
+    const time = new Date().toLocaleTimeString();
+
+    const row = document.createElement("div");
+    row.className = "diag-row";
+
+    const valueClass =
+        value > 5000 ? "bad" :
+        value > 2500 ? "warn" : "";
+
+    row.innerHTML = `
+        <span class="diag-type">${type}</span>
+        <span class="diag-value ${valueClass}">${value}</span>
+        <span class="diag-time">${time}</span>
+    `;
+
+    diagList.prepend(row);
+
+    // оставляем только последние 10 строк
+    while (diagList.children.length > DIAG_MAX_ROWS) {
+        diagList.removeChild(diagList.lastChild);
+    }
+}
+
 

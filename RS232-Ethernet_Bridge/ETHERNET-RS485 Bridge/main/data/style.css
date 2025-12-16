@@ -1034,3 +1034,51 @@ select#deviceType:checked {
 }
 
 
+.diag-box {
+  /*  margin-top: 12px; */
+    border: 1px solid #333;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #111;
+    color: #ddd;
+    font-family: monospace;
+}
+
+.diag-header,
+.diag-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 90px;
+    padding: 6px 10px;
+    align-items: center;
+}
+
+.diag-header {
+    background: #222;
+    font-weight: bold;
+    border-bottom: 1px solid #333;
+}
+
+.diag-row:nth-child(odd) {
+    background: #161616;
+}
+
+.diag-type {
+    color: #6cf;
+}
+
+.diag-value {
+    text-align: right;
+}
+
+.diag-value.warn {
+    color: #ffcc00;
+}
+
+.diag-value.bad {
+    color: #ff5555;
+}
+
+.diag-time {
+    color: #888;
+    font-size: 12px;
+}

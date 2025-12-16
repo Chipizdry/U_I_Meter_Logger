@@ -178,6 +178,11 @@ function handleWsMessage(msg) {
 
         scanDiv.appendChild(ul);
     }
+    // === 🔍 Диагностика ===
+    if (msg.diag) {
+        addDiagRow(msg.diag);   
+        return;                // дальше не идём
+    }
 }
 
 
@@ -205,4 +210,20 @@ function updateStatus(text) {
 }
 
 window.addEventListener("load", initWebSocket);
+
+function diagnosticsOn() {
+    if (diagnosticsActive || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    diagnosticsActive = true;
+    ws.send(JSON.stringify({ action: "diagnostics_on" }));
+    console.log("🔍 Diagnostics ON");
+}
+
+function diagnosticsOff() {
+    if (!diagnosticsActive || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    diagnosticsActive = false;
+    ws.send(JSON.stringify({ action: "diagnostics_off" }));
+    console.log("🔍 Diagnostics OFF");
+}
 

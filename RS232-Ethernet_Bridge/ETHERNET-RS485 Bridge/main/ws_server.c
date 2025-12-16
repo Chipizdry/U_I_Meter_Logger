@@ -29,6 +29,9 @@ extern user_settings_t user;   // из get_settings()
 
 static const char *TAG = "ws_server";
 bool test_account_active = false;
+
+bool diagnostics_active = false;
+
 #define MAX_CLIENTS 8
 
 typedef struct {
@@ -201,7 +204,17 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
     ws_send(client_fd, "{\"type\":\"wifi_scan\",\"status\":\"started\"}");
     return;
     }
+            if (strcmp(act, "diagnostics_on") == 0) {
+                diagnostics_active = true;
+                ws_send(client_fd, "{\"diagnostics\":\"on\"}");
+                return;
+            }
 
+            if (strcmp(act, "diagnostics_off") == 0) {
+                diagnostics_active = false;
+                ws_send(client_fd, "{\"diagnostics\":\"off\"}");
+                return;
+            }
 
     // === НЕИЗВЕСТНОЕ ДЕЙСТВИЕ ===
     else {

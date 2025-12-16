@@ -14,6 +14,10 @@
 #include "gpio_manager.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
+
+static uint32_t last_modbus_tick = 0;
+static uint32_t last_pi30_tick   = 0;
+
 static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
 // переменные для авторизации
  char ws_email[64];
@@ -41,6 +45,11 @@ static int ws_rx_len = 0;
 
 static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
+
+ static inline uint32_t ticks_to_ms(uint32_t ticks)
+{
+    return ticks * portTICK_PERIOD_MS;
+}
 
 
 void websocket_disable_reconnect(void)
@@ -201,7 +210,13 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                     memcpy(cloud_status_msg, start, len);
                                     cloud_status_msg[len] = 0;
                                     ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
-                                    ws_connected = true;
+                                    if (strcmp(cloud_status_msg, "authenticated") == 0 ||
+                                            strcmp(cloud_status_msg, "connected") == 0) {
+                                            ws_connected = true;
+                                        } else {
+                                            ws_connected = false;
+                                        }
+                                   
                                 }
                             }
                         }
@@ -229,6 +244,23 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                 }
             
                               //  ESP_LOGI(TAG, "🔧 Clean HEX: %s", clean_hex);
+
+                                    uint32_t now = xTaskGetTickCount();
+                                    uint32_t delta_ms = 0;
+
+                                    if (last_modbus_tick != 0) {
+                                        delta_ms = ticks_to_ms(now - last_modbus_tick);
+                                    }
+                                    last_modbus_tick = now;
+
+                                    if (diagnostics_active && delta_ms > 0) {
+                                        char msg[128];
+                                        snprintf(msg, sizeof(msg),
+                                            "{\"diag\":\"Modbus update : %lu\"}",
+                                            delta_ms
+                                        );
+                                        ws_broadcast(msg);
+                                    }
             
                                 uint8_t bytes[64];
                                 int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
@@ -275,6 +307,24 @@ if (pi30_ptr) {
                         clean_hex[j++] = hex_str[i];
                     }
                 }
+
+                    uint32_t now = xTaskGetTickCount();
+                    uint32_t delta_ms = 0;
+
+                    if (last_pi30_tick != 0) {
+                        delta_ms = ticks_to_ms(now - last_pi30_tick);
+                    }
+                    last_pi30_tick = now;
+
+
+                    if (diagnostics_active && delta_ms > 0) {
+                        char msg[128];
+                        snprintf(msg, sizeof(msg),
+                            "{\"diag\":\"PI30 update : %lu\"}",
+                            delta_ms
+                        );
+                        ws_broadcast(msg);
+                    }
 
                 // Переводим в байты
                 uint8_t bytes[64];
@@ -335,7 +385,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
         .cert_pem = (const char *)ca_cert_pem_start,
-        .reconnect_timeout_ms = 0,
+        .reconnect_timeout_ms = -1,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
     };
@@ -351,11 +401,6 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     );
 
     esp_err_t err = esp_websocket_client_start(client);
-
-    if (client != NULL) {
-    ESP_LOGW(TAG, "⚠️ websocket_client_start: already running");
-    return ESP_FAIL;
-    }
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));

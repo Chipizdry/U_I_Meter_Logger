@@ -44,7 +44,7 @@
                 <button class="menu-item" data-tab="uart">↔️ Modbus</button>
                 <button class="menu-item" data-tab="user">👤 Пользователь</button>
                 <button class="menu-item" data-tab="system">⚙️ Система</button>
-                <button class="menu-item" data-tab="system-data">🛠️ Диагностика</button>
+                <button class="menu-item" data-tab="diagnostics">🛠️ Диагностика</button>
                 <hr>
                 <button id="logoutBtn">🚪 Выйти</button>
             </div>
@@ -248,19 +248,24 @@
                   </form> 
                 </div>
 
-                <!--Диагностика-->
-                <div class="tab-content" id="system-data">
+                <!-- Диагностика -->
+                <div class="tab-content" id="diagnostics">
                     <h2>Диагностика</h2>
 
-                     <form id="DataForm">
-                        <label>Интервал опроса:</label>
-                        
+                    <div class="diag-box">
+                        <div class="diag-header">
+                            <span>Тип</span>
+                            <span>Период, мс</span>
+                            <span>Время</span>
+                        </div>
 
-                            
-                    
-                       
-                    </form> 
+                        <div id="diagList" class="diag-list">
+                            <!-- строки будут добавляться JS -->
+                        </div>
+                    </div>
                 </div>
+
+
                  <!-- Сетевые настройки -->
                  <div class="tab-content" id="LAN">
                     <h2>Параметры сети</h2>
@@ -308,6 +313,9 @@
         const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
         const userForm = document.getElementById("UserForm");
         const ipFields = ["ip", "mask", "gateway", "dns"];
+        const DIAG_MAX_ROWS = 10;
+        const diagList = document.getElementById("diagList");
+        let diagnosticsActive = false;
         let buildNumber = null;
         let buildDate = null;
         let data = {};
