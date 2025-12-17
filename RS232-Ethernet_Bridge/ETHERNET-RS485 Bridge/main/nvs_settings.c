@@ -51,11 +51,14 @@ esp_err_t nvs_settings_init(void) {
 // =======================================================
 
 static void set_default_user_settings(user_settings_t *s) {
+
+      uint8_t mac[6];
+    esp_efuse_mac_get_default(mac); 
     memset(s, 0, sizeof(*s));
     s->version = USER_SETTINGS_VERSION;
     strcpy(s->login, "admin");
     strcpy(s->password, "admin");
-    strcpy(s->node_name, "COR-Bridge");
+    snprintf(s->node_name, sizeof(s->node_name), "COR-Bridge-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     strcpy(s->account_login, "chipizdry@gmail.com");
     strcpy(s->account_password, "12345678");
     strcpy(s->language, "RU");

@@ -176,7 +176,7 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
 
   
 
-    ESP_LOGI(TAG, "TX started (%d bytes), DE→1 for ~%" PRIu64 " us", req_len, total_time_us);
+    //ESP_LOGI(TAG, "TX started (%d bytes), DE→1 for ~%" PRIu64 " us", req_len, total_time_us);
     ESP_LOG_BUFFER_HEX(TAG, req, req_len);
 
     xSemaphoreGive(s_uart_mutex);
@@ -542,7 +542,7 @@ static void rs485_request_task(void *arg)
 
         if (xQueueReceive(s_req_queue, &req, portMAX_DELAY) == pdTRUE) {
 
-            ESP_LOGI(TAG, "Dequeued custom RS485 request (%d bytes)", req.len);
+         //   ESP_LOGI(TAG, "Dequeued custom RS485 request (%d bytes)", req.len);
 
             uint32_t char_time_us = char_time_us_from_baud(s_baud);
             send_request_async(uart_num, req.data, req.len, char_time_us);
@@ -558,8 +558,7 @@ static void rs485_request_task(void *arg)
                 bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));
 
                 // --- переиспользуем ws_msg здесь ---
-                snprintf(ws_msg, sizeof(ws_msg),
-                         "{\"hex_response\": \"%s\"}", hex_resp);
+                snprintf(ws_msg, sizeof(ws_msg),"{\"hex_response\": \"%s\"}", hex_resp);
 
                 websocket_send_text(ws_msg);
              //   ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);

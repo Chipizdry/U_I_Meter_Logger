@@ -163,6 +163,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
+             ws_authenticated = false;
              ws_connecting = false;
              ws_connected  = false;
              gpio_set_net_led(false);
@@ -171,6 +172,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
+             ws_authenticated = false;
              ws_connecting = false;
              ws_connected  = false;
              gpio_set_net_led(false);
@@ -383,6 +385,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     ws_connected  = false;
     if (client) {
         ESP_LOGW(TAG, "WebSocket client already started");
+         ws_connecting = false; 
         return ESP_OK;
     }
 
