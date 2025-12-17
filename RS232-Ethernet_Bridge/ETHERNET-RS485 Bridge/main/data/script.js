@@ -240,6 +240,7 @@ function applySettingsToForm(tab, data) {
             const color = account.connected ? 'green' : 'red';
             const icon = account.connected ? '✅' : '❌';
             document.querySelector("[name='account-login']").value = account.account_login || "";
+            document.querySelector("[name='node-name']").value = account.node_name || "";
             wsDiv.innerHTML = `COR-ID: <span style="color:${color}">${icon} ${account.status}</span> `;
             break;
         }

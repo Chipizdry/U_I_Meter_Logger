@@ -68,7 +68,7 @@ void app_main(void)
     nvs_load_system_settings(&sys);
     nvs_load_uart_settings(&uart_cfg);
 
-    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.account_login, user.account_password);
+    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Name=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.node_name , user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
     ESP_LOGI("MAIN", "WiFi Settings:");
     ESP_LOGI("MAIN", "Mode: %s", wifi_cfg.mode == WIFI_MODE_STA   ? "STA" :wifi_cfg.mode == WIFI_MODE_AP    ? "AP" : wifi_cfg.mode == WIFI_MODE_APSTA ? "AP+STA" : "UNKNOWN");
@@ -120,7 +120,7 @@ void app_main(void)
     }
     initialize_sntp();
    
-    websocket_client_start(user.serial, user.account_login, user.account_password);
+    websocket_client_start(user.serial, user.account_login, user.account_password , user.node_name); 
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
 }
 

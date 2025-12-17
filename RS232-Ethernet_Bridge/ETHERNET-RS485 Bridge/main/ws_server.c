@@ -175,7 +175,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
     
 
         // 3️⃣ Перезапуск WebSocket клиента с новыми данными
-        esp_err_t err = websocket_client_start(user.serial,ws_email,ws_password);
+        esp_err_t err = websocket_client_start(user.serial,ws_email,ws_password , user.node_name);
 
         if (err == ESP_OK) {
             ESP_LOGI("WS", "🚀 Cloud WS reconnect started successfully");
@@ -379,7 +379,7 @@ void cancel_test_account(void) {
         esp_websocket_client_destroy(client);
         client = NULL;
     }
-    websocket_client_start(user.serial, ws_email, ws_password);
+    websocket_client_start(user.serial, ws_email, ws_password, user.node_name);
     websocket_enable_reconnect();
 }
 

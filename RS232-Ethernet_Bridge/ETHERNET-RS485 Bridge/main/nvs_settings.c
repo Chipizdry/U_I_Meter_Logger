@@ -55,6 +55,7 @@ static void set_default_user_settings(user_settings_t *s) {
     s->version = USER_SETTINGS_VERSION;
     strcpy(s->login, "admin");
     strcpy(s->password, "admin");
+    strcpy(s->node_name, "COR-Bridge");
     strcpy(s->account_login, "chipizdry@gmail.com");
     strcpy(s->account_password, "12345678");
     strcpy(s->language, "RU");

@@ -14,14 +14,16 @@
 #include "gpio_manager.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
-
+static bool ws_authenticated = false;
+static bool ws_connecting = false;
 static uint32_t last_modbus_tick = 0;
 static uint32_t last_pi30_tick   = 0;
 
-static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
+// const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
 // переменные для авторизации
  char ws_email[64];
  char ws_password[64];
+ char ws_node_name[32];
 
 static bool ws_reconnect_in_progress = false;
 extern bool test_account_active;// из ws_server.c 
@@ -71,9 +73,17 @@ void websocket_enable_reconnect(void)
     for (;;)
     {
 
+        if (ws_authenticated) {
+            vTaskDelay(check_interval);
+            continue;
+        }
         if (!ws_reconnect_enabled) {
             vTaskDelay(check_interval);
             continue;     // реконс не работает
+        }
+         if (ws_connecting) {
+        vTaskDelay(check_interval);
+        continue;
         }
         bool need_reconnect = false;
 
@@ -81,10 +91,10 @@ void websocket_enable_reconnect(void)
             need_reconnect = true;
         } else {
             TickType_t now = xTaskGetTickCount();
-            if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
+         /*   if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
                 ESP_LOGW(TAG, "⚠️ No WS activity for 10 seconds, forcing reconnect");
                 need_reconnect = true;
-            }
+            }  */
         }
 
         if (need_reconnect) 
@@ -106,8 +116,9 @@ void websocket_enable_reconnect(void)
 
     const char *email_to_use = test_account_active ? ws_email : user.account_login;
     const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
-
-    esp_err_t ok = websocket_client_start(user.serial, email_to_use, pass_to_use);
+    const char *node_name_to_use = test_account_active ? ws_node_name : user.node_name;
+     ws_connecting = true;
+    esp_err_t ok = websocket_client_start( user.serial, email_to_use, pass_to_use, node_name_to_use);
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "Reconnect started");
     } else {
@@ -138,14 +149,12 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
             // отправляем авторизационное сообщение
             if (strlen(ws_email) > 0 && strlen(ws_password) > 0) {
                 char auth_msg[256];
-                snprintf(auth_msg, sizeof(auth_msg),
-                        "{\"email\": \"%s\", \"password\": \"%s\"}",
-                        ws_email, ws_password);
-
+                snprintf(auth_msg, sizeof(auth_msg), "{" "\"email\":\"%s\"," "\"password\":\"%s\","  "\"node_name\":\"%s\"" "}",  ws_email,  ws_password,  ws_node_name);
                 esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
                 ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
             }
             ws_connected = true;
+            ws_connecting = false;
              gpio_set_net_led(true);
             ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
              last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
@@ -154,21 +163,23 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
-            ws_connected = false;
+             ws_connecting = false;
+             ws_connected  = false;
              gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"disconnected\"}");
             break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
-            ws_connected = false;
+             ws_connecting = false;
+             ws_connected  = false;
              gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"error\"}");
             break;
 
              case WEBSOCKET_EVENT_DATA:
             {
-
+                 ws_connected = true;
                 last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
                 if (data->data_len <= 0 || data->data_ptr == NULL) {
                     return;
@@ -210,12 +221,10 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                     memcpy(cloud_status_msg, start, len);
                                     cloud_status_msg[len] = 0;
                                     ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
-                                    if (strcmp(cloud_status_msg, "authenticated") == 0 ||
-                                            strcmp(cloud_status_msg, "connected") == 0) {
+                                    if (strcmp(cloud_status_msg, "authenticated") == 0 || strcmp(cloud_status_msg, "connected") == 0) {
+                                          ws_authenticated = true;
                                             ws_connected = true;
-                                        } else {
-                                            ws_connected = false;
-                                        }
+                                        } 
                                    
                                 }
                             }
@@ -367,8 +376,11 @@ if (pi30_ptr) {
 
 
 
-esp_err_t websocket_client_start(const char *session_id, const char *email, const char *password)
+esp_err_t websocket_client_start(const char *session_id, const char *email, const char *password , const char *node_name)
 {
+
+    ws_connecting = true;
+    ws_connected  = false;
     if (client) {
         ESP_LOGW(TAG, "WebSocket client already started");
         return ESP_OK;
@@ -376,6 +388,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
 
     strncpy(ws_email, email, sizeof(ws_email) - 1);
     strncpy(ws_password, password, sizeof(ws_password) - 1);
+    strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
 
     char uri[256];
     snprintf(uri, sizeof(uri),
@@ -385,7 +398,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
         .cert_pem = (const char *)ca_cert_pem_start,
-        .reconnect_timeout_ms = -1,
+        .reconnect_timeout_ms = 10000,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
     };
@@ -522,9 +535,9 @@ void websocket_restart(const char *email, const char *password)
 
     ws_connected = false;
     
-
+    ws_connecting = true;
     // Стартуем заново
-    esp_err_t ok = websocket_client_start(user.serial, ws_email, ws_password);
+    esp_err_t ok = websocket_client_start(user.serial, ws_email,ws_password, ws_node_name);
 
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "✅ WebSocket restarted successfully");

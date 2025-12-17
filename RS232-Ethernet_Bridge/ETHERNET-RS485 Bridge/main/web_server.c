@@ -110,6 +110,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         case ALL:
         case USER: {
             cJSON *u = cJSON_CreateObject();
+            cJSON_AddStringToObject(u, "node_name", user.node_name); // ✅ имя узла
             cJSON_AddStringToObject(u, "login", user.login);
             cJSON_AddStringToObject(u, "account_login", user.account_login);  // ✅ имя аккаунта
             cJSON_AddStringToObject(u, "language", user.language);
