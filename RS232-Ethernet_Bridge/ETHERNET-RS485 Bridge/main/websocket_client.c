@@ -19,7 +19,7 @@ static bool ws_connecting = false;
 static uint32_t last_modbus_tick = 0;
 static uint32_t last_pi30_tick   = 0;
 
-// const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
+ const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 15 секунд
 // переменные для авторизации
  char ws_email[64];
  char ws_password[64];
@@ -45,6 +45,9 @@ char cloud_status_msg[32] = "Idle";   // статус по умолчанию
 static char ws_rx_buf[512];
 static int ws_rx_len = 0;
 
+static int hex_to_bytes(const char *in, uint8_t *out, int max_len);
+void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
+
 static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
 
@@ -65,7 +68,7 @@ void websocket_enable_reconnect(void)
     ws_reconnect_enabled = true;
 }
 
-
+/*
  void websocket_reconnect_task(void *pvParameters)
 {
     const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверяем каждую секунду
@@ -91,11 +94,11 @@ void websocket_enable_reconnect(void)
             need_reconnect = true;
         } else {
             TickType_t now = xTaskGetTickCount();
-         /*   if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
+            if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
                 ESP_LOGW(TAG, "⚠️ No WS activity for 10 seconds, forcing reconnect");
                 need_reconnect = true;
             }  */
-        }
+ /*       }
 
         if (need_reconnect) 
 {
@@ -131,10 +134,69 @@ void websocket_enable_reconnect(void)
         vTaskDelay(check_interval);
     }
 }
+*/
 
-static int hex_to_bytes(const char *in, uint8_t *out, int max_len);
-void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
+void websocket_reconnect_task(void *pvParameters)
+{
+    const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверка каждую секунду
 
+    for (;;)
+    {
+        // Если авто-реконс отключён, ждём
+        if (!ws_reconnect_enabled) {
+            vTaskDelay(check_interval);
+            continue;
+        }
+
+        // Если уже идёт попытка подключения, ждём
+        if (ws_connecting || ws_reconnect_in_progress) {
+            vTaskDelay(check_interval);
+            continue;
+        }
+
+        // Решаем, нужна ли попытка реконнекта
+        bool need_reconnect = false;
+        if (!ws_connected) {
+            need_reconnect = true;
+        } else {
+            // Можно добавить таймаут по отсутствию активности
+             TickType_t now = xTaskGetTickCount();
+             if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) need_reconnect = true;
+        }
+
+        if (need_reconnect)
+        {
+            ws_reconnect_in_progress = true;
+            ws_connecting = true;
+
+            // Останавливаем старый клиент, если есть
+            if (client) {
+                esp_websocket_client_stop(client);
+                vTaskDelay(pdMS_TO_TICKS(100));
+                esp_websocket_client_destroy(client);
+                client = NULL;
+            }
+            ws_connected = false;
+
+            const char *email_to_use = test_account_active ? ws_email : user.account_login;
+            const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
+            const char *node_name_to_use = test_account_active ? ws_node_name : user.node_name;
+
+            esp_err_t err = websocket_client_start(user.serial, email_to_use, pass_to_use, node_name_to_use);
+            if (err == ESP_OK) {
+                ESP_LOGI(TAG, "🔄 WebSocket reconnect started");
+            } else {
+                ESP_LOGW(TAG, "❌ WebSocket reconnect failed: %s", esp_err_to_name(err));
+                // сбрасываем флаги, чтобы попытка повторилась в следующем цикле
+                ws_connecting = false;
+            }
+
+            ws_reconnect_in_progress = false;
+        }
+
+        vTaskDelay(check_interval);
+    }
+}
 
 
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -417,6 +479,10 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     );
 
     esp_err_t err = esp_websocket_client_start(client);
+
+     if (err == ESP_OK) {
+      websocket_enable_reconnect();   // включаем реконект при успешном старте
+     }
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));

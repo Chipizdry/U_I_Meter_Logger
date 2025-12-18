@@ -234,7 +234,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
     int client_fd = httpd_req_to_sockfd(req);
 
      // ==== ЛОГИРОВАНИЕ ВСЕХ WS КЛИЕНТОВ ====
-     ESP_LOGI(TAG, "------ WS CLIENT LIST ------");
+ /*    ESP_LOGI(TAG, "------ WS CLIENT LIST ------");
      for (int i = 0; i < MAX_CLIENTS; i++) {
          if (ws_clients[i].fd != 0) {
              ESP_LOGI(TAG, "slot %d: fd=%d  authorized=%s",
@@ -243,7 +243,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
                       ws_clients[i].authorized ? "true" : "false");
          }
      }
-     ESP_LOGI(TAG, "--------------------------------");
+     ESP_LOGI(TAG, "--------------------------------"); */
 
     // === 1. Если это GET — клиент открывает WebSocket ===
     if (req->method == HTTP_GET) {
