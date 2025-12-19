@@ -21,7 +21,7 @@
 static uint32_t last_modbus_tick = 0;
 static uint32_t last_pi30_tick   = 0;
 
-static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
+static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(20000); // 20 секунд
 // переменные для авторизации
  char ws_email[64];
  char ws_password[64];
@@ -50,6 +50,7 @@ static int ws_rx_len = 0;
 
 static bool handle_hex_data(const char *json);
 static bool handle_pi30_data(const char *json);
+static bool handle_msg_data(const char *json);
 
 
 static void websocket_start(void);
@@ -91,7 +92,7 @@ void websocket_enable_reconnect(void)
         } else {
             TickType_t now = xTaskGetTickCount();
             if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
-                ESP_LOGW(TAG, "⚠️ No WS activity for 10 seconds, forcing reconnect");
+                ESP_LOGW(TAG, "⚠️ No WS activity for 20 seconds, forcing reconnect");
                 need_reconnect = true;
             }
         }
@@ -157,7 +158,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
             }
             ws_connected = true;
              gpio_set_net_led(true);
-            ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
+             ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
              last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
         break;
 
@@ -177,11 +178,9 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         break;
 
         case WEBSOCKET_EVENT_DATA:
-            {
+            
                 last_ws_event_tick = xTaskGetTickCount();
-
                 if (!data->data_ptr || data->data_len <= 0) return;
-
                 if (ws_rx_len + data->data_len < sizeof(ws_rx_buf) - 1) {
                     memcpy(ws_rx_buf + ws_rx_len, data->data_ptr, data->data_len);
                     ws_rx_len += data->data_len;
@@ -189,49 +188,15 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 }
 
                 if (!data->fin) return;
-
                 ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
-            
-                // === Ретрансляция статусов от облака ===
-                if (strstr(ws_rx_buf, "\"cloud_status\"")) 
-               
-                {
-                ESP_LOGI(TAG, "📡 Broadcasting cloud status to local WS clients: %s", ws_rx_buf);
-                ws_broadcast(ws_rx_buf);
-
-                      // ---- NEW: сохранить статус для get_settings ----
-                    char *ptr = strstr(ws_rx_buf, "\"cloud_status\"");
-                    if (ptr) {
-                        char *start = strchr(ptr, ':');
-                        if (start && (start = strchr(start, '"'))) {
-                            start++;
-                            char *end = strchr(start, '"');
-                            if (end && end > start) {
-                                size_t len = end - start;
-                                if (len < sizeof(cloud_status_msg)) {
-                                    memcpy(cloud_status_msg, start, len);
-                                    cloud_status_msg[len] = 0;
-                                    ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
-                                    if (strcmp(cloud_status_msg, "authenticated") == 0 ||
-                                            strcmp(cloud_status_msg, "connected") == 0) {
-                                            ws_connected = true;
-                                        } else {
-                                            ws_connected = false;
-                                        }
-                                   
-                                }
-                            }
-                        }
-                    }
-
-                }
-
+                    
+                handle_msg_data(ws_rx_buf);
                 handle_hex_data(ws_rx_buf);
                 handle_pi30_data(ws_rx_buf);
 
                 ws_rx_len = 0;
                 ws_rx_buf[0] = 0;
-            }
+            
         break;
     }
 }
@@ -546,3 +511,40 @@ static bool handle_pi30_data(const char *json)
     rs485_master_send(bytes, byte_len);
     return true;
 }
+
+
+ static bool handle_msg_data(const char *json) {
+    char *msg_ptr = strstr(json, "\"cloud_status\"");
+    if (!msg_ptr) {
+        return false;
+    }   
+  // сохранить статус для get_settings ----
+    char *ptr = strstr(ws_rx_buf, "\"cloud_status\"");
+    if (ptr) {
+        char *start = strchr(ptr, ':');
+        if (start && (start = strchr(start, '"'))) {
+            start++;
+            char *end = strchr(start, '"');
+            if (end && end > start) {
+                size_t len = end - start;
+                if (len < sizeof(cloud_status_msg)) {
+                    memcpy(cloud_status_msg, start, len);
+                    cloud_status_msg[len] = 0;
+                    ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
+                    ESP_LOGI(TAG, "📡 Broadcasting cloud status to local WS clients: %s", ws_rx_buf);
+                    ws_broadcast(ws_rx_buf);
+
+                    if (strcmp(cloud_status_msg, "authenticated") == 0 ||
+                            strcmp(cloud_status_msg, "connected") == 0) {
+                            ws_connected = true;
+                        } else {
+                            ws_connected = false;
+                        }
+                
+                }
+            }
+        }
+    }
+ return true;
+
+}   
