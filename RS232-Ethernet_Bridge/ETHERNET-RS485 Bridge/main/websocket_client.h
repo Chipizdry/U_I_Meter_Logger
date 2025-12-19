@@ -15,7 +15,7 @@ void initialize_sntp(void);
 void websocket_reconnect_task(void *pvParameters);
 
 esp_err_t websocket_client_start(const char *session_id, const char *email, const char *password , const char *node_name );
-void websocket_restart(const char *email, const char *password);
+void websocket_restart(const char *email, const char *password , const char *node_name );
 
 // Отправка данных на сервер
 esp_err_t websocket_client_send(const char *message);

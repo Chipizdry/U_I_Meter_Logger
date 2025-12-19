@@ -21,6 +21,7 @@ extern httpd_handle_t server;
 // === Переменные облачного клиента ===
 extern char ws_email[64];
 extern char ws_password[64];
+extern char ws_node_name[32];
 extern esp_websocket_client_handle_t client;
 extern uint32_t last_ws_event_tick;
 
@@ -48,7 +49,7 @@ static void add_client(int sockfd)
     // Проверяем, есть ли уже такой fd
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (ws_clients[i].fd == sockfd) {
-            ESP_LOGI(TAG, "WS: client already added, fd=%d (slot %d)", sockfd, i);
+          //  ESP_LOGI(TAG, "WS: client already added, fd=%d (slot %d)", sockfd, i);
             return;
         }
     }
@@ -58,18 +59,18 @@ static void add_client(int sockfd)
         if (ws_clients[i].fd == 0) {
             ws_clients[i].fd = sockfd;
             ws_clients[i].authorized = false;
-            ESP_LOGI(TAG, "WS: client added, fd=%d (slot %d)", sockfd, i);
+          //  ESP_LOGI(TAG, "WS: client added, fd=%d (slot %d)", sockfd, i);
             return;
         }
     }
-    ESP_LOGW(TAG, "WS: no free client slots!");
+   // ESP_LOGW(TAG, "WS: no free client slots!");
 }
 
 static void remove_client(int sockfd)
 {
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (ws_clients[i].fd == sockfd) {
-            ESP_LOGI(TAG, "WS: client removed, fd=%d (slot %d)", sockfd, i);
+          //  ESP_LOGI(TAG, "WS: client removed, fd=%d (slot %d)", sockfd, i);
             ws_clients[i].fd = 0;
             ws_clients[i].authorized = false;
             return;
@@ -146,18 +147,18 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
 
         cJSON *login = cJSON_GetObjectItem(msg, "account_login");
         cJSON *password = cJSON_GetObjectItem(msg, "account_password");
+        cJSON *node_name = cJSON_GetObjectItem(msg, "node_name");
 
         if (!login || !password || !cJSON_IsString(login) || !cJSON_IsString(password)) {
             ws_send(client_fd, "{\"error\":\"invalid test_account payload\"}");
             return;
         }
 
-        ESP_LOGI("WS", "TEST ACCOUNT login='%s', password='%s'",
-                 login->valuestring,
-                 password->valuestring);
+        ESP_LOGI("WS", "TEST ACCOUNT login='%s', password='%s'", login->valuestring, password->valuestring);
         // 1️⃣ Обновляем данные авторизации для облака
         strncpy(ws_email, login->valuestring, sizeof(ws_email) - 1);
         strncpy(ws_password, password->valuestring, sizeof(ws_password) - 1);
+        strncpy(ws_node_name, node_name->valuestring, sizeof(ws_node_name) - 1);
         test_account_active = true; // включаем режим теста
         // 2️⃣ Останавливаем текущий облачный WS, если есть
         if (client) {
@@ -248,7 +249,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
     // === 1. Если это GET — клиент открывает WebSocket ===
     if (req->method == HTTP_GET) {
         add_client(client_fd);
-        ESP_LOGI(TAG, "WS client connected, fd=%d", client_fd);
+      //  ESP_LOGI(TAG, "WS client connected, fd=%d", client_fd);
         return ESP_OK;
     }
 
@@ -319,10 +320,10 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
                     break;
                 }
             }
-            ESP_LOGI(TAG, "WS: client authorized fd=%d", client_fd);
+          //  ESP_LOGI(TAG, "WS: client authorized fd=%d", client_fd);
         }
         else {
-            ESP_LOGW(TAG, "WS: unauthorized client fd=%d", client_fd);
+         //   ESP_LOGW(TAG, "WS: unauthorized client fd=%d", client_fd);
 
             remove_client(client_fd);
 

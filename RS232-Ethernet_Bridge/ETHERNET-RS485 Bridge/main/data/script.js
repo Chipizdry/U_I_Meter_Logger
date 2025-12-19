@@ -270,12 +270,14 @@ const btn = document.getElementById("testAccountBtn");
 btn.addEventListener("click", () => {
     const loginInput = document.querySelector("input[name='account-login']");
     const passwordInput = document.querySelector("input[name='account-password']");
+    const nodeInput = document.querySelector("input[name='node-name']");
     const statusDiv = document.getElementById("ws-status");
 
     if (!testAccountActive) {
         // Включаем тестовый режим
         const login = loginInput.value.trim();
         const password = passwordInput.value.trim();
+        const nodeName = nodeInput.value.trim();
 
         if (!login || !password) {
             statusDiv.textContent = "⚠️ Заполните логин и пароль";
@@ -289,7 +291,8 @@ btn.addEventListener("click", () => {
         ws.send(JSON.stringify({
             action: "test_account",
             account_login: login,
-            account_password: password
+            account_password: password ,
+            node_name: nodeName
         }));
 
         testAccountActive = true;

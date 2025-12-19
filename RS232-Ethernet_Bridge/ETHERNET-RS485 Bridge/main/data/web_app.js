@@ -108,7 +108,8 @@ wifiForm.addEventListener("submit", async (e) => {
 
         console.log("Сохраняем настройки аккаунта:", {
             login: data.get('account-login'),
-            password: data.get('account-password')
+            password: data.get('account-password'),
+            node_name: data.get('node-name'),
         });
 
         try {

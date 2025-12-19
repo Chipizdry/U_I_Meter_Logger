@@ -431,6 +431,7 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
             // -------- ПАРСИНГ form-urlencoded --------
             char raw_login[128] = {0};
             char raw_password[128] = {0};
+            char raw_node_name[96] = {0};
 
             {
                 char *p = strstr(body, "account-login=");
@@ -444,18 +445,26 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
                     p += strlen("account-password=");
                     sscanf(p, "%127[^&]", raw_password);
                 }
+
+                p = strstr(body, "node-name=");
+                if (p) {
+                    p += strlen("node-name=");
+                    sscanf(p, "%95[^&]", raw_node_name);
+                }   
             }
 
-            ESP_LOGI("ACCOUNT", "Raw parsed: login=%s password=%s", raw_login, raw_password);
+            ESP_LOGI("ACCOUNT", "Raw parsed: login=%s password=%s node_name=%s", raw_login, raw_password, raw_node_name);
 
             // -------- URL DECODE --------
             char login_dec[128] = {0};
             char pass_dec[128]  = {0};
+            char node_name_dec[32] = {0};
 
             url_decode(login_dec, raw_login);
             url_decode(pass_dec, raw_password);
+            url_decode(node_name_dec, raw_node_name);
 
-            ESP_LOGI("ACCOUNT", "Decoded: login=%s password=%s", login_dec, pass_dec);
+            ESP_LOGI("ACCOUNT", "Decoded: login=%s password=%s node_name=%s", login_dec, pass_dec, node_name_dec);
 
             // -------- ЗАГРУЖАЕМ СТАРЫЕ НАСТРОЙКИ --------
             user_settings_t user_cfg = {0};
@@ -467,6 +476,9 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
 
             if (strlen(pass_dec) > 0)
                 strncpy(user_cfg.account_password, pass_dec, sizeof(user_cfg.account_password) - 1);
+            if (strlen(node_name_dec) > 0)
+                strncpy(user_cfg.node_name, node_name_dec, sizeof(user_cfg.node_name) - 1);
+
 
             // -------- СОХРАНЯЕМ --------
             esp_err_t err = nvs_save_user_settings(&user_cfg);
@@ -476,9 +488,9 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
                 return ESP_FAIL;
             }
 
-            ESP_LOGI("ACCOUNT", "Saved OK: login=%s password=%s",user_cfg.account_login, user_cfg.account_password);
+            ESP_LOGI("ACCOUNT", "Saved OK: login=%s password=%s node_name=%s",user_cfg.account_login, user_cfg.account_password, user_cfg.node_name);
             memcpy(&user, &user_cfg, sizeof(user_settings_t));
-            websocket_restart(user_cfg.account_login, user_cfg.account_password);
+            websocket_restart(user_cfg.account_login, user_cfg.account_password, user_cfg.node_name);
             httpd_resp_sendstr(req, "Account settings saved successfully 💾");
             return ESP_OK;
         }

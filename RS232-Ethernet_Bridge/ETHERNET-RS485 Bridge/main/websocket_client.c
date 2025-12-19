@@ -1,6 +1,9 @@
 
 
 
+
+
+
 #include "websocket_client.h"
 #include "esp_websocket_client.h"
 #include "esp_log.h"
@@ -14,16 +17,15 @@
 #include "gpio_manager.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
-static bool ws_authenticated = false;
-static bool ws_connecting = false;
+
 static uint32_t last_modbus_tick = 0;
 static uint32_t last_pi30_tick   = 0;
 
- const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 15 секунд
+static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(15000); // 10 секунд
 // переменные для авторизации
  char ws_email[64];
  char ws_password[64];
- char ws_node_name[32];
+ char ws_node_name[64];
 
 static bool ws_reconnect_in_progress = false;
 extern bool test_account_active;// из ws_server.c 
@@ -45,8 +47,10 @@ char cloud_status_msg[32] = "Idle";   // статус по умолчанию
 static char ws_rx_buf[512];
 static int ws_rx_len = 0;
 
-static int hex_to_bytes(const char *in, uint8_t *out, int max_len);
-void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
+
+static bool handle_hex_data(const char *json);
+static bool handle_pi30_data(const char *json);
+
 
 static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
@@ -68,7 +72,7 @@ void websocket_enable_reconnect(void)
     ws_reconnect_enabled = true;
 }
 
-/*
+
  void websocket_reconnect_task(void *pvParameters)
 {
     const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверяем каждую секунду
@@ -76,17 +80,9 @@ void websocket_enable_reconnect(void)
     for (;;)
     {
 
-        if (ws_authenticated) {
-            vTaskDelay(check_interval);
-            continue;
-        }
         if (!ws_reconnect_enabled) {
             vTaskDelay(check_interval);
             continue;     // реконс не работает
-        }
-         if (ws_connecting) {
-        vTaskDelay(check_interval);
-        continue;
         }
         bool need_reconnect = false;
 
@@ -97,8 +93,8 @@ void websocket_enable_reconnect(void)
             if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
                 ESP_LOGW(TAG, "⚠️ No WS activity for 10 seconds, forcing reconnect");
                 need_reconnect = true;
-            }  */
- /*       }
+            }
+        }
 
         if (need_reconnect) 
 {
@@ -119,9 +115,10 @@ void websocket_enable_reconnect(void)
 
     const char *email_to_use = test_account_active ? ws_email : user.account_login;
     const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
-    const char *node_name_to_use = test_account_active ? ws_node_name : user.node_name;
-     ws_connecting = true;
-    esp_err_t ok = websocket_client_start( user.serial, email_to_use, pass_to_use, node_name_to_use);
+    const char *node_name_use  = test_account_active ? ws_node_name : user.node_name;
+
+
+    esp_err_t ok = websocket_client_start(user.serial, email_to_use, pass_to_use, node_name_use);
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "Reconnect started");
     } else {
@@ -134,69 +131,10 @@ void websocket_enable_reconnect(void)
         vTaskDelay(check_interval);
     }
 }
-*/
 
-void websocket_reconnect_task(void *pvParameters)
-{
-    const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверка каждую секунду
+static int hex_to_bytes(const char *in, uint8_t *out, int max_len);
+void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
 
-    for (;;)
-    {
-        // Если авто-реконс отключён, ждём
-        if (!ws_reconnect_enabled) {
-            vTaskDelay(check_interval);
-            continue;
-        }
-
-        // Если уже идёт попытка подключения, ждём
-        if (ws_connecting || ws_reconnect_in_progress) {
-            vTaskDelay(check_interval);
-            continue;
-        }
-
-        // Решаем, нужна ли попытка реконнекта
-        bool need_reconnect = false;
-        if (!ws_connected) {
-            need_reconnect = true;
-        } else {
-            // Можно добавить таймаут по отсутствию активности
-             TickType_t now = xTaskGetTickCount();
-             if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) need_reconnect = true;
-        }
-
-        if (need_reconnect)
-        {
-            ws_reconnect_in_progress = true;
-            ws_connecting = true;
-
-            // Останавливаем старый клиент, если есть
-            if (client) {
-                esp_websocket_client_stop(client);
-                vTaskDelay(pdMS_TO_TICKS(100));
-                esp_websocket_client_destroy(client);
-                client = NULL;
-            }
-            ws_connected = false;
-
-            const char *email_to_use = test_account_active ? ws_email : user.account_login;
-            const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
-            const char *node_name_to_use = test_account_active ? ws_node_name : user.node_name;
-
-            esp_err_t err = websocket_client_start(user.serial, email_to_use, pass_to_use, node_name_to_use);
-            if (err == ESP_OK) {
-                ESP_LOGI(TAG, "🔄 WebSocket reconnect started");
-            } else {
-                ESP_LOGW(TAG, "❌ WebSocket reconnect failed: %s", esp_err_to_name(err));
-                // сбрасываем флаги, чтобы попытка повторилась в следующем цикле
-                ws_connecting = false;
-            }
-
-            ws_reconnect_in_progress = false;
-        }
-
-        vTaskDelay(check_interval);
-    }
-}
 
 
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
@@ -207,16 +145,17 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     {
         case WEBSOCKET_EVENT_CONNECTED:
         ESP_LOGI(TAG, "✅ Connecting to WebSocket server...");
+       
         last_ws_event_tick = xTaskGetTickCount(); // сброс таймера при подключении
             // отправляем авторизационное сообщение
             if (strlen(ws_email) > 0 && strlen(ws_password) > 0) {
                 char auth_msg[256];
-                snprintf(auth_msg, sizeof(auth_msg), "{" "\"email\":\"%s\"," "\"password\":\"%s\","  "\"node_name\":\"%s\"" "}",  ws_email,  ws_password,  ws_node_name);
+                snprintf(auth_msg, sizeof(auth_msg), "{\"email\":\"%s\", \"password\":\"%s\", \"node_name\":\"%s\"}", ws_email, ws_password, ws_node_name);
+
                 esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
-                ESP_LOGI(TAG, "📤 Sent auth message: %s", auth_msg);
+                ESP_LOGI(TAG, "📤Sent auth message:%s", auth_msg);
             }
             ws_connected = true;
-            ws_connecting = false;
              gpio_set_net_led(true);
             ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
              last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
@@ -225,44 +164,32 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
-             ws_authenticated = false;
-             ws_connecting = false;
-             ws_connected  = false;
+            ws_connected = false;
              gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"disconnected\"}");
-            break;
+        break;
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
-             ws_authenticated = false;
-             ws_connecting = false;
-             ws_connected  = false;
+            ws_connected = false;
              gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"error\"}");
-            break;
+        break;
 
-             case WEBSOCKET_EVENT_DATA:
+        case WEBSOCKET_EVENT_DATA:
             {
-                 ws_connected = true;
-                last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
-                if (data->data_len <= 0 || data->data_ptr == NULL) {
-                    return;
-                }
-            
-                // Копим фрагменты в буфер
+                last_ws_event_tick = xTaskGetTickCount();
+
+                if (!data->data_ptr || data->data_len <= 0) return;
+
                 if (ws_rx_len + data->data_len < sizeof(ws_rx_buf) - 1) {
                     memcpy(ws_rx_buf + ws_rx_len, data->data_ptr, data->data_len);
                     ws_rx_len += data->data_len;
                     ws_rx_buf[ws_rx_len] = 0;
                 }
-            
-                // Ждём финальный фрагмент
-                if (!data->fin) {
-                    ESP_LOGD(TAG, "WS fragment received, waiting more...");
-                    return;
-                }
-            
-                ESP_LOGI(TAG, "----- WebSocket Packet (assembled) -----");
+
+                if (!data->fin) return;
+
                 ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
             
                 // === Ретрансляция статусов от облака ===
@@ -285,10 +212,12 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                                     memcpy(cloud_status_msg, start, len);
                                     cloud_status_msg[len] = 0;
                                     ESP_LOGI(TAG, "💾 Saved cloud_status_msg = %s", cloud_status_msg);
-                                    if (strcmp(cloud_status_msg, "authenticated") == 0 || strcmp(cloud_status_msg, "connected") == 0) {
-                                          ws_authenticated = true;
+                                    if (strcmp(cloud_status_msg, "authenticated") == 0 ||
+                                            strcmp(cloud_status_msg, "connected") == 0) {
                                             ws_connected = true;
-                                        } 
+                                        } else {
+                                            ws_connected = false;
+                                        }
                                    
                                 }
                             }
@@ -296,144 +225,14 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                     }
 
                 }
-                // === Парсинг hex_data ===
-                char *hex_ptr = strstr(ws_rx_buf, "\"hex_data\"");
-                if (hex_ptr) {
-                    char *start = strchr(hex_ptr, ':');
-                    if (start && (start = strchr(start, '"'))) {
-                        start++;
-                        char *end = strchr(start, '"');
-                        if (end && end > start) {
-                            char hex_str[128] = {0};
-                            int hex_len = end - start;
-                            if (hex_len < sizeof(hex_str)) {
-                                memcpy(hex_str, start, hex_len);
-                                ESP_LOGI(TAG, "✅ HEX string extracted: %s", hex_str);
-            
-                                char clean_hex[128] = {0};
-                                int j = 0;
-                                for (int i = 0; i < strlen(hex_str); i++) {
-                                    if (hex_str[i] != ' ') clean_hex[j++] = hex_str[i];
-                                }
-            
-                              //  ESP_LOGI(TAG, "🔧 Clean HEX: %s", clean_hex);
 
-                                    uint32_t now = xTaskGetTickCount();
-                                    uint32_t delta_ms = 0;
+                handle_hex_data(ws_rx_buf);
+                handle_pi30_data(ws_rx_buf);
 
-                                    if (last_modbus_tick != 0) {
-                                        delta_ms = ticks_to_ms(now - last_modbus_tick);
-                                    }
-                                    last_modbus_tick = now;
-
-                                    if (diagnostics_active && delta_ms > 0) {
-                                        char msg[64];
-                                        snprintf(msg, sizeof(msg),
-                                            "{\"diag\":\"Modbus update : %lu\"}",
-                                            delta_ms
-                                        );
-                                        ws_broadcast(msg);
-                                    }
-            
-                                uint8_t bytes[64];
-                                int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
-            
-                                if (byte_len > 0) {
-                                    ESP_LOGI(TAG, "📤 Sending %d bytes to RS485:", byte_len);
-                                    ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
-                                    rs485_master_send(bytes, byte_len);
-                                } else {
-                                    ESP_LOGE(TAG, "❌ HEX parse error");
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    ESP_LOGW(TAG, "⚠️ No hex_data found in message");
-                }
-            
-                ESP_LOGI(TAG, "----- End of packet -----");
-            
-
-
-
-
-             // === Парсинг pi30 ===
-char *pi30_ptr = strstr(ws_rx_buf, "\"pi30\"");
-if (pi30_ptr) {
-    char *start = strchr(pi30_ptr, ':');
-    if (start && (start = strchr(start, '"'))) {
-        start++;
-        char *end = strchr(start, '"');
-        if (end && end > start) {
-            char hex_str[128] = {0};
-            int hex_len = end - start;
-            if (hex_len < sizeof(hex_str)) {
-                memcpy(hex_str, start, hex_len);
-                ESP_LOGI(TAG, "🔶 PI30 HEX extracted: %s", hex_str);
-
-                // Удаляем пробелы → "5150494753B7A90D"
-                char clean_hex[128] = {0};
-                int j = 0;
-                for (int i = 0; i < strlen(hex_str); i++) {
-                    if (hex_str[i] != ' ' && hex_str[i] != '\n') {
-                        clean_hex[j++] = hex_str[i];
-                    }
-                }
-
-                    uint32_t now = xTaskGetTickCount();
-                    uint32_t delta_ms = 0;
-
-                    if (last_pi30_tick != 0) {
-                        delta_ms = ticks_to_ms(now - last_pi30_tick);
-                    }
-                    last_pi30_tick = now;
-
-
-                    if (diagnostics_active && delta_ms > 0) {
-                        char msg[64];
-                        snprintf(msg, sizeof(msg),
-                            "{\"diag\":\"PI30 update : %lu\"}",
-                            delta_ms
-                        );
-                        ws_broadcast(msg);
-                    }
-
-                // Переводим в байты
-                uint8_t bytes[64];
-                int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
-
-                if (byte_len > 0) {
-                    // ASCII лог (печатаемые символы)
-                    char ascii[128];
-                    int ai = 0;
-                    for (int i = 0; i < byte_len; i++) {
-                        char c = bytes[i];
-                        ascii[ai++] = (c >= 32 && c < 127) ? c : '.';
-                    }
-                    ascii[ai] = 0;
-
-                    ESP_LOGI(TAG, "🔤 PI30 ASCII: %s", ascii);
-                    ESP_LOGI(TAG, "📤 Sending %d bytes to UART (PI30)...", byte_len);
-                    ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
-
-                    rs485_master_send(bytes, byte_len);
-                } else {
-                    ESP_LOGE(TAG, "❌ PI30 HEX parse error");
-                }
-            }
-        }
-    }
-}
-
-
-
-
-                // очищаем буфер для следующего сообщения
                 ws_rx_len = 0;
                 ws_rx_buf[0] = 0;
             }
-            break;
+        break;
     }
 }
 
@@ -442,12 +241,8 @@ if (pi30_ptr) {
 
 esp_err_t websocket_client_start(const char *session_id, const char *email, const char *password , const char *node_name)
 {
-
-    ws_connecting = true;
-    ws_connected  = false;
     if (client) {
         ESP_LOGW(TAG, "WebSocket client already started");
-         ws_connecting = false; 
         return ESP_OK;
     }
 
@@ -456,14 +251,12 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
 
     char uri[256];
-    snprintf(uri, sizeof(uri),
-             "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s",
-             session_id);
+    snprintf(uri, sizeof(uri), "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s", session_id);
 
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
         .cert_pem = (const char *)ca_cert_pem_start,
-        .reconnect_timeout_ms = 10000,
+        .reconnect_timeout_ms = 90000,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
     };
@@ -480,18 +273,12 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
 
     esp_err_t err = esp_websocket_client_start(client);
 
-     if (err == ESP_OK) {
-      websocket_enable_reconnect();   // включаем реконект при успешном старте
-     }
-
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));
         return err;
     }
 
     ESP_LOGI(TAG, "🚀 WebSocket client started: %s", uri);
-
-  //  xTaskCreate(websocket_send_task, "ws_send_task", 4096, NULL, 5, NULL);
 
     return ESP_OK;
 }
@@ -585,7 +372,7 @@ bool websocket_send_text(const char *msg)
 }
 
 
-void websocket_restart(const char *email, const char *password)
+void websocket_restart(const char *email, const char *password, const char *node_name)
 {
     ESP_LOGW(TAG, "🔄 Restarting WebSocket client with new credentials...");
 
@@ -593,6 +380,7 @@ void websocket_restart(const char *email, const char *password)
     // Обновляем глобальные переменные
     strncpy(ws_email, email, sizeof(ws_email)-1);
     strncpy(ws_password, password, sizeof(ws_password)-1);
+    strncpy(ws_node_name, node_name, sizeof(ws_node_name)-1);
 
     // Останавливаем клиент, если запущен
     if (client) {
@@ -604,9 +392,9 @@ void websocket_restart(const char *email, const char *password)
 
     ws_connected = false;
     
-    ws_connecting = true;
+
     // Стартуем заново
-    esp_err_t ok = websocket_client_start(user.serial, ws_email,ws_password, ws_node_name);
+    esp_err_t ok = websocket_client_start(user.serial, ws_email, ws_password, user.node_name);
 
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "✅ WebSocket restarted successfully");
@@ -614,4 +402,147 @@ void websocket_restart(const char *email, const char *password)
         ESP_LOGE(TAG, "❌ WebSocket restart failed: %s", esp_err_to_name(ok));
     }
      ws_reconnect_in_progress = false;
+}
+
+
+
+
+static bool handle_hex_data(const char *json)
+{
+    char *hex_ptr = strstr(json, "\"hex_data\"");
+    if (!hex_ptr) {
+        return false;
+    }
+
+    char *start = strchr(hex_ptr, ':');
+    if (!start || !(start = strchr(start, '"'))) {
+        ESP_LOGE(TAG, "hex_data: format error");
+        return true;
+    }
+    start++;
+
+    char *end = strchr(start, '"');
+    if (!end || end <= start) {
+        ESP_LOGE(TAG, "hex_data: empty value");
+        return true;
+    }
+
+    char hex_str[128] = {0};
+    int len = end - start;
+    if (len >= sizeof(hex_str)) {
+        ESP_LOGE(TAG, "hex_data too long");
+        return true;
+    }
+
+    memcpy(hex_str, start, len);
+    ESP_LOGI(TAG, "✅ HEX extracted: %s", hex_str);
+
+    // убираем пробелы
+    char clean_hex[128] = {0};
+    int j = 0;
+    for (int i = 0; i < len; i++) {
+        if (hex_str[i] != ' ') {
+            clean_hex[j++] = hex_str[i];
+        }
+    }
+
+    // диагностика времени
+    uint32_t now = xTaskGetTickCount();
+    uint32_t delta_ms = last_modbus_tick ? ticks_to_ms(now - last_modbus_tick) : 0;
+    last_modbus_tick = now;
+
+    if (diagnostics_active && delta_ms > 0) {
+        char msg[64];
+        snprintf(msg, sizeof(msg),
+                 "{\"diag\":\"Modbus update : %lu\"}", delta_ms);
+        ws_broadcast(msg);
+    }
+
+    uint8_t bytes[64];
+    int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
+    if (byte_len <= 0) {
+        ESP_LOGE(TAG, "HEX parse error");
+        return true;
+    }
+
+    ESP_LOGI(TAG, "📤 RS485 send %d bytes", byte_len);
+    ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
+    rs485_master_send(bytes, byte_len);
+
+    return true;
+}
+
+
+
+static bool handle_pi30_data(const char *json)
+{
+    char *pi30_ptr = strstr(json, "\"pi30\"");
+    if (!pi30_ptr) {
+        return false;
+    }
+
+    char *start = strchr(pi30_ptr, ':');
+    if (!start || !(start = strchr(start, '"'))) {
+        ESP_LOGE(TAG, "pi30: format error");
+        return true;
+    }
+    start++;
+
+    char *end = strchr(start, '"');
+    if (!end || end <= start) {
+        ESP_LOGE(TAG, "pi30: empty value");
+        return true;
+    }
+
+    char hex_str[128] = {0};
+    int len = end - start;
+    if (len >= sizeof(hex_str)) {
+        ESP_LOGE(TAG, "pi30 too long");
+        return true;
+    }
+
+    memcpy(hex_str, start, len);
+    //ESP_LOGI(TAG, "🔶 PI30 HEX: %s", hex_str);
+
+    char clean_hex[128] = {0};
+    int j = 0;
+    for (int i = 0; i < len; i++) {
+        if (hex_str[i] != ' ' && hex_str[i] != '\n') {
+            clean_hex[j++] = hex_str[i];
+        }
+    }
+
+    uint32_t now = xTaskGetTickCount();
+    uint32_t delta_ms = last_pi30_tick ? ticks_to_ms(now - last_pi30_tick) : 0;
+    last_pi30_tick = now;
+
+    if (diagnostics_active && delta_ms > 0) {
+        char msg[64];
+        snprintf(msg, sizeof(msg),
+                 "{\"diag\":\"PI30 update : %lu\"}", delta_ms);
+        ws_broadcast(msg);
+    }
+
+    uint8_t bytes[64];
+    int byte_len = hex_to_bytes(clean_hex, bytes, sizeof(bytes));
+    if (byte_len <= 0) {
+        ESP_LOGE(TAG, "PI30 HEX parse error");
+        return true;
+    }
+
+    // ASCII лог
+    char ascii[128];
+    int ai = 0;
+    for (int i = 0; i < byte_len; i++) {
+        char c = bytes[i];
+        ascii[ai++] = (c >= 32 && c < 127) ? c : '.';
+    }
+    ascii[ai] = 0;
+
+    ESP_LOGI(TAG, "🔤 PI30 ASCII: %s", ascii);
+  //  ESP_LOGI(TAG, "📤 UART send %d bytes", byte_len);
+  //  ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
+
+    rs485_master_send(bytes, byte_len);
+    return true;
 }
