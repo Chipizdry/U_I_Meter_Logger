@@ -111,12 +111,15 @@ function showTokenExpiredModal(message) {
     const modalDiv = document.createElement("div");
     modalDiv.id = "token-expired-modal";
     modalDiv.innerHTML = `
-         <div  class="modal" 
-       style="height: auto; 
+    <div class="modal" style="height: 220px; 
+       width:290px;
        padding: 20px; 
        display: flex; 
+       boarder:1px white;
+       border-radius: 16px;
        flex-direction: column;
        position: fixed;
+       background: rgba(255, 255, 255, 0.7);
        top: 50%;
        left: 50%;
        transform: translate(-50%, -50%);
@@ -140,10 +143,10 @@ function showTokenExpiredModal(message) {
    </svg>
 
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <h1 style="font-size: 18px; margin: 0; color: #291161;">Срок действия сессии истёк</h1>
+            <h1 style="font-size: 14px; margin: 0; color: #291161;">Срок действия сессии истёк</h1>
         </div>
         
-        <p style="margin: 0; color: #5B4296; text-align: center;">Пожалуйста, войдите снова, чтобы продолжить.</p>
+        <p style="margin: 0; color: #5B4296; font-size: 10px; text-align: center;">Пожалуйста, войдите снова, чтобы продолжить.</p>
         
         <button id="login-btn" style="
             padding: 10px;

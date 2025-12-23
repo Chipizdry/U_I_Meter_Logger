@@ -18,6 +18,9 @@ static const char *TAG = "wifi_manager";
 static wifi_ap_record_t ap_list[MAX_APs];
 static uint16_t ap_count = 0;
 
+static EventGroupHandle_t wifi_evt_group;
+#define WIFI_EVT_APPLY   BIT0
+
 extern void ws_broadcast(const char *text);
 extern void ws_send(int client_fd, const char *text);
 
@@ -135,6 +138,11 @@ void init_wifi_ap(const wifi_settings_t *cfg)
     // --- Инициализация Wi-Fi в зависимости от режима ---
     esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
     {
+        if (!wifi_evt_group) {
+            wifi_evt_group = xEventGroupCreate();
+            assert(wifi_evt_group);
+        }
+
         if (ap_list_mutex == NULL) {
             ap_list_mutex = xSemaphoreCreateMutex();
         }
@@ -321,6 +329,37 @@ void wifi_manager_stop(void)
 
 
 
+ void wifi_manager_task(void *arg)
+{
+    wifi_settings_t cfg;
+
+    for (;;) {
+        EventBits_t bits = xEventGroupWaitBits(
+            wifi_evt_group,
+            WIFI_EVT_APPLY,
+            pdTRUE,
+            pdFALSE,
+            portMAX_DELAY
+        );
+
+        if (bits & WIFI_EVT_APPLY) {
+            ESP_LOGI(TAG, "Applying new Wi-Fi settings…");
+
+            nvs_load_wifi_settings(&cfg);
+            wifi_manager_init(&cfg);
+        }
+    }
+}
 
 
+esp_err_t wifi_manager_request_apply(void)
+{
+    if (!wifi_evt_group) {
+        ESP_LOGE(TAG, "wifi_evt_group not initialized");
+        return ESP_FAIL;
+    }
 
+    xEventGroupSetBits(wifi_evt_group, WIFI_EVT_APPLY);
+    ESP_LOGI(TAG, "Wi-Fi apply requested");
+    return ESP_OK;
+}

@@ -19,6 +19,7 @@
 #include <stdbool.h>
 #include "ota_update.h"
 #include "websocket_client.h"
+#include "wifi_manager.h"
 #include "rs485_master.h"
 #include "web_auth.h"
 #include "ws_server.h"
@@ -410,7 +411,8 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     ESP_LOGI("WIFI", " AP SSID: %s", wifi_cfg.ap_ssid);
     ESP_LOGI("WIFI", " AP PASS: %s", wifi_cfg.ap_password);
     ESP_LOGI("WIFI", " AP CHANNEL: %d", wifi_cfg.ap_channel);
-    httpd_resp_sendstr(req, "WiFi settings saved successfully 💾");
+    wifi_manager_request_apply();
+    httpd_resp_sendstr(req, "WiFi settings saved. Applying… 🔄");
    
     return ESP_OK;      
   }
