@@ -122,7 +122,7 @@ void app_main(void)
    
     websocket_client_start(user.serial, user.account_login, user.account_password , user.node_name); 
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
-    xTaskCreate(wifi_manager_task, "wifi_mgr", 4096, NULL, 5, NULL);
+    start_wifi_manager_task();
 }
 
 

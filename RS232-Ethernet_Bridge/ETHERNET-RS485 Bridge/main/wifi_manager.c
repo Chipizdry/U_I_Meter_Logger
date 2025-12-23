@@ -18,6 +18,12 @@ static const char *TAG = "wifi_manager";
 static wifi_ap_record_t ap_list[MAX_APs];
 static uint16_t ap_count = 0;
 
+static esp_netif_t *sta_netif = NULL;
+static esp_netif_t *ap_netif  = NULL;
+static bool wifi_initialized = false;
+
+
+
 static EventGroupHandle_t wifi_evt_group;
 #define WIFI_EVT_APPLY   BIT0
 
@@ -37,7 +43,7 @@ static void check_and_stop_wifi(void)
     if (err == ESP_OK) {
         ESP_LOGI(TAG, "Wi-Fi stopped successfully");
     }
-    esp_wifi_deinit();
+    //esp_wifi_deinit();
     ESP_LOGI(TAG, "Wi-Fi deinitialized");
 }
 
@@ -55,6 +61,80 @@ static const char* wifi_reason_to_str(wifi_err_reason_t reason) {
     }
 }
 
+static void wifi_manager_init_once(void)
+{
+    if (wifi_initialized) return;
+
+    ESP_ERROR_CHECK(esp_netif_init());
+
+    sta_netif = esp_netif_create_default_wifi_sta();
+    ap_netif  = esp_netif_create_default_wifi_ap();
+
+    assert(sta_netif);
+    assert(ap_netif);
+
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    ESP_ERROR_CHECK(esp_event_handler_register(
+        WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_register(
+        IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
+
+    wifi_initialized = true;
+}
+
+ void wifi_apply_settings(const wifi_settings_t *cfg)
+{
+    ESP_LOGI(TAG, "Applying Wi-Fi settings safely, mode=%d", cfg->mode);
+
+    // 1️⃣ Останавливаем Wi-Fi, игнорируем ошибки если уже остановлен
+    esp_wifi_stop();
+
+    // 2️⃣ Выбираем нужный режим
+    ESP_ERROR_CHECK(esp_wifi_set_mode(cfg->mode));
+
+    // 3️⃣ Применяем конфигурацию STA (если режим STA или APSTA)
+    if (cfg->mode == WIFI_MODE_STA || cfg->mode == WIFI_MODE_APSTA) {
+        wifi_config_t sta_cfg = {0};
+        strncpy((char*)sta_cfg.sta.ssid, cfg->sta_ssid, sizeof(sta_cfg.sta.ssid));
+        strncpy((char*)sta_cfg.sta.password, cfg->sta_password, sizeof(sta_cfg.sta.password));
+        sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+        sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+        sta_cfg.sta.pmf_cfg.capable = true;
+        sta_cfg.sta.pmf_cfg.required = false;
+
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+        ESP_LOGI(TAG, "STA config applied: SSID=%s", cfg->sta_ssid);
+    }
+
+    // 4️⃣ Применяем конфигурацию AP (если режим AP или APSTA)
+    if (cfg->mode == WIFI_MODE_AP || cfg->mode == WIFI_MODE_APSTA) {
+        wifi_config_t ap_cfg = {0};
+        strncpy((char*)ap_cfg.ap.ssid, cfg->ap_ssid, sizeof(ap_cfg.ap.ssid));
+        strncpy((char*)ap_cfg.ap.password, cfg->ap_password, sizeof(ap_cfg.ap.password));
+        ap_cfg.ap.ssid_len = strlen(cfg->ap_ssid);
+        ap_cfg.ap.channel = cfg->ap_channel ? cfg->ap_channel : 1;
+        ap_cfg.ap.max_connection = 4;
+        ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+
+        ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
+        ESP_LOGI(TAG, "AP config applied: SSID=%s", cfg->ap_ssid);
+    }
+
+    // 5️⃣ Запускаем Wi-Fi
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    ESP_LOGI(TAG, "Wi-Fi started successfully in mode %d", cfg->mode);
+}
+
+
+esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
+{
+    wifi_manager_init_once();
+    wifi_apply_settings(cfg);
+    return ESP_OK;
+}
 
 
 // --- Инициализация STA ---
@@ -133,33 +213,6 @@ void init_wifi_ap(const wifi_settings_t *cfg)
     ESP_LOGI(TAG, "AP started, SSID: %s, IP: 192.168.4.1", cfg->ap_ssid);
 }
 
-
-
-    // --- Инициализация Wi-Fi в зависимости от режима ---
-    esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
-    {
-        if (!wifi_evt_group) {
-            wifi_evt_group = xEventGroupCreate();
-            assert(wifi_evt_group);
-        }
-
-        if (ap_list_mutex == NULL) {
-            ap_list_mutex = xSemaphoreCreateMutex();
-        }
-
-        if (cfg->mode == WIFI_MODE_STA) {
-            init_wifi_sta(cfg);
-        } else if (cfg->mode == WIFI_MODE_AP) {
-            init_wifi_ap(cfg);
-        } else if (cfg->mode == WIFI_MODE_APSTA) {
-            // APSTA можно запускать последовательно: сначала AP, затем STA
-            init_wifi_ap(cfg);
-            init_wifi_sta(cfg);
-        }
-
-        ESP_LOGI(TAG, "Wi-Fi manager initialized in mode %d", cfg->mode);
-        return ESP_OK;
-    }
 
 // --- Обработчик событий Wi-Fi ---
 static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t event_id, void *event_data)
@@ -321,20 +374,19 @@ esp_err_t wifi_connect_to(const char* ssid, const char* password)
 void wifi_manager_stop(void)
 {
     esp_wifi_stop();
-    esp_wifi_deinit();
+   // esp_wifi_deinit();
     ESP_LOGI(TAG, "Wi-Fi stopped");
 }
 
 
 
 
-
- void wifi_manager_task(void *arg)
+void wifi_manager_task(void *arg)
 {
     wifi_settings_t cfg;
 
     for (;;) {
-        EventBits_t bits = xEventGroupWaitBits(
+        xEventGroupWaitBits(
             wifi_evt_group,
             WIFI_EVT_APPLY,
             pdTRUE,
@@ -342,14 +394,13 @@ void wifi_manager_stop(void)
             portMAX_DELAY
         );
 
-        if (bits & WIFI_EVT_APPLY) {
-            ESP_LOGI(TAG, "Applying new Wi-Fi settings…");
-
-            nvs_load_wifi_settings(&cfg);
-            wifi_manager_init(&cfg);
-        }
+        ESP_LOGI(TAG, "Wi-Fi apply requested");
+        nvs_load_wifi_settings(&cfg);
+        wifi_manager_init(&cfg);
     }
 }
+
+
 
 
 esp_err_t wifi_manager_request_apply(void)
@@ -362,4 +413,23 @@ esp_err_t wifi_manager_request_apply(void)
     xEventGroupSetBits(wifi_evt_group, WIFI_EVT_APPLY);
     ESP_LOGI(TAG, "Wi-Fi apply requested");
     return ESP_OK;
+}
+
+
+void start_wifi_manager_task(void)
+{
+    // 1️⃣ Создаем EventGroup, если не создан
+    if (!wifi_evt_group) {
+        wifi_evt_group = xEventGroupCreate();
+        assert(wifi_evt_group);
+    }
+
+    // 2️⃣ Создаем mutex для списка AP
+    if (!ap_list_mutex) {
+        ap_list_mutex = xSemaphoreCreateMutex();
+        assert(ap_list_mutex);
+    }
+
+    // 3️⃣ Создаем задачу менеджера Wi-Fi
+    xTaskCreate(wifi_manager_task, "wifi_manager_task", 4096, NULL, 5, NULL);
 }
