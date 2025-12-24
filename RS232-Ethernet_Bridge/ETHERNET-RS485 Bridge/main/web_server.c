@@ -212,9 +212,80 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
 
 
 
+static esp_err_t file_get_handler(httpd_req_t *req)
+{
+    wifi_mode_t mode;
+    esp_wifi_get_mode(&mode);
+
+    // === CAPTIVE PORTAL ONLY FOR AP ===
+    if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA) {
+
+        // Не трогаем API, WS и статику
+        if (!check_token(req) &&
+            strcmp(req->uri, "/") != 0 &&
+            !strstr(req->uri, ".js") &&
+            !strstr(req->uri, ".css") &&
+            !strstr(req->uri, ".png") &&
+            !strstr(req->uri, ".jpg")) {
+
+            ESP_LOGW("CAPTIVE", "Redirecting captive request: %s", req->uri);
+
+            httpd_resp_set_status(req, "302 Found");
+            httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+            httpd_resp_send(req, NULL, 0);
+            return ESP_OK;
+        }
+    }
+
+    // ===== Обычная раздача файлов =====
+      // Обрабатывать только GET и HEAD
+    if (req->method != HTTP_GET && req->method != HTTP_HEAD) {
+        return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "GET/HEAD only");
+    }
+
+    char filepath[128] = "/littlefs";
+
+    // "/" → "/main.html"
+    if (strcmp(req->uri, "/") == 0) {
+        strcat(filepath, "/main.html");
+    } else {
+        strcat(filepath, req->uri);
+    }
+
+    FILE *f = fopen(filepath, "r");
+    if (!f) {
+        return httpd_resp_send_404(req);
+    }
 
 
+    // MIME тип
+    if (strstr(filepath, ".html"))
+        httpd_resp_set_type(req, "text/html");
+    else if (strstr(filepath, ".css"))
+        httpd_resp_set_type(req, "text/css");
+    else if (strstr(filepath, ".js"))
+        httpd_resp_set_type(req, "application/javascript");
+    else if (strstr(filepath, ".png"))
+        httpd_resp_set_type(req, "image/png");
+    else if (strstr(filepath, ".jpg"))
+        httpd_resp_set_type(req, "image/jpeg");
+    else
+        httpd_resp_set_type(req, "text/plain");
 
+    char chunk[512];
+    size_t chunksize;
+    while ((chunksize = fread(chunk, 1, sizeof(chunk), f)) > 0) {
+        httpd_resp_send_chunk(req, chunk, chunksize);
+    }
+    fclose(f);
+    httpd_resp_send_chunk(req, NULL, 0); // завершить ответ
+
+    ESP_LOGI(TAG, "Served file: %s", filepath);
+    return ESP_OK;
+}
+
+
+/*
 
 // ==== Отправка статического файла из /littlefs ====
 static esp_err_t file_get_handler(httpd_req_t *req)
@@ -266,7 +337,7 @@ static esp_err_t file_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-
+*/
 
 /// POST /save_settings
 static esp_err_t save_settings_post_handler(httpd_req_t *req)
@@ -618,6 +689,38 @@ static esp_err_t options_handler(httpd_req_t *req)
 }
 
 
+esp_err_t captive_redirect_handler(httpd_req_t *req)
+{
+    wifi_mode_t mode;
+    esp_wifi_get_mode(&mode);
+
+    // ❌ Не AP режим
+    if (mode != WIFI_MODE_AP && mode != WIFI_MODE_APSTA) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    // ❌ Уже авторизован
+    if (check_token(req)) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    // ❌ API и WS не трогаем
+    if (strncmp(req->uri, "/api", 4) == 0 ||
+        strcmp(req->uri, "/ws") == 0 ||
+        strstr(req->uri, ".js") ||
+        strstr(req->uri, ".css") ||
+        strstr(req->uri, ".png")) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    ESP_LOGW("CAPTIVE", "Redirecting captive request: %s", req->uri);
+
+    httpd_resp_set_status(req, "302 Found");
+    httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+    httpd_resp_send(req, NULL, 0);
+    return ESP_OK;
+}
+
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
 {
@@ -688,7 +791,12 @@ esp_err_t web_server_start(void)
             .handler = ws_handler,
             .is_websocket = true
         });
-
+    
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/generate_204",
+            .method = HTTP_GET,
+            .handler = captive_redirect_handler
+        });
         // ====== СТАТИЧНЫЕ ФАЙЛЫ — всегда последними ======
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/*",

@@ -3,6 +3,7 @@
 #include "wifi_manager.h"
 #include "esp_wifi.h"
 #include "ws_server.h"
+#include "dns_server.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -234,9 +235,11 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
             }
             case WIFI_EVENT_AP_START:
                 ESP_LOGI(TAG, "AP started");
+                dns_start();
                 break;
             case WIFI_EVENT_AP_STOP:
                 ESP_LOGI(TAG, "AP stopped");
+                dns_stop();
                 break;
             case WIFI_EVENT_AP_STACONNECTED: {
                 wifi_event_ap_staconnected_t *event = event_data;

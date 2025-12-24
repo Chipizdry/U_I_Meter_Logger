@@ -25,6 +25,7 @@
 #include "wifi_manager.h"
 #include "gpio_manager.h"
 #include "ota_update.h"
+#include "dns_server.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)

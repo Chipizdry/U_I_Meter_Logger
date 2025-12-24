@@ -14,6 +14,7 @@ idf_component_register(
         "ota_update.c"
         "ws_server.c"
         "web_auth.c"
+        "dns_server.c"
 
     INCLUDE_DIRS "."
     REQUIRES 
