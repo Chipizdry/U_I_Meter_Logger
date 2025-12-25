@@ -116,7 +116,7 @@ function showTokenExpiredModal(message) {
        padding: 20px; 
        display: flex; 
        boarder:1px white;
-       border-radius: 16px;
+       border-radius: 30px;
        flex-direction: column;
        position: fixed;
        background: rgba(255, 255, 255, 0.7);

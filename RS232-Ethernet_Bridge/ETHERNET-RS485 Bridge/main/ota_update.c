@@ -8,6 +8,8 @@
 #include <ctype.h>
 #include "mbedtls/md5.h"
 #include "web_server.h"
+#include "nvs.h"
+#include "nvs_flash.h"
 
 #define OTA_CHUNK_SIZE 4096
 static const char *TAG = "OTA";
@@ -290,3 +292,12 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
 
 
 
+static void ota_session_store(const char *s)
+{
+    nvs_handle_t h;
+    if (nvs_open("ota", NVS_READWRITE, &h) == ESP_OK) {
+        nvs_set_str(h, "session", s);
+        nvs_commit(h);
+        nvs_close(h);
+    }
+}
