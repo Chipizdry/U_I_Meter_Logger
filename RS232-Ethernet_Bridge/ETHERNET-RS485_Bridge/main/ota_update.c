@@ -1,21 +1,16 @@
+
+
 #include "ota_update.h"
-#include "nvs_settings.h"
 #include "esp_log.h"
 #include "esp_ota_ops.h"
 #include "esp_http_server.h"
 #include "esp_system.h"
-#include "cJSON.h"
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 #include "mbedtls/md5.h"
 #include "web_server.h"
-#include "web_auth.h"
-#include "nvs.h"
-#include "nvs_flash.h"
-#include "esp_timer.h"
 
-#define BUF_SIZE 4096
 #define OTA_CHUNK_SIZE 4096
 static const char *TAG = "OTA";
 
@@ -24,7 +19,6 @@ static esp_ota_handle_t ota_handle = 0;
 static int total_received = 0;
 static int total_size = 0;
 static const esp_partition_t *ota_partition = NULL;
-static void generate_fs_session(fs_session_t *s);
 
 void ota_init(void) {
     ota_started = false;
@@ -177,6 +171,24 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         }
     }
 
+    // уникальный маркер, который точно не встречается в коде
+    static const uint8_t fs_marker[] = {0x46,0x53,0x2D,0x43,0x4F,0x4E,0x54,0x45,0x4E,0x54, 0xAA, 0x55, 0x33, 0x77}; 
+    static const size_t fs_marker_len = sizeof(fs_marker);
+
+    // ===== Проверка FS_MARKER =====
+    if (data_len > (int)fs_marker_len) {
+        int search_start = data_len - 1024; // последние 1КБ
+        if (search_start < 0) search_start = 0;
+
+        uint8_t *fs_pos = memmem((uint8_t*)data_start + search_start, data_len - search_start, fs_marker, fs_marker_len);
+        if (fs_pos) {
+            size_t offset = fs_pos - (uint8_t*)data_start;
+            ESP_LOGW(TAG, "MARKER detected at offset %zu bytes in current chunk", offset);
+            data_len = offset;
+        }
+    }
+
+
     ESP_LOGI(TAG, "MD5 calc from %d bytes", data_len);
     for (int i = 0; i < 8; i++) {
         printf("%02X ", (uint8_t)data_start[i]);
@@ -236,7 +248,6 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    /*
     // ========= Запись ==========
     if (data_len > 0) {
         if (esp_ota_write(ota_handle, data_start, data_len) != ESP_OK) {
@@ -247,51 +258,10 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         }
         total_received += data_len;
     }
-*/
 
-        // ========= Запись ==========
-    if (data_len > 0) {
-        char *fs_marker_pos = memmem(data_start, data_len, FS_MARKER, sizeof(FS_MARKER)-1);
-        if (fs_marker_pos) {
-            // Данные до маркера → прошивка
-            int fw_len = fs_marker_pos - data_start;
-            if (fw_len > 0) {
-                if (esp_ota_write(ota_handle, data_start, fw_len) != ESP_OK) {
-                    httpd_resp_send_err(req, 500, "OTA write failed");
-                    ota_cleanup();
-                    free(buffer); free(boundary_value); free(boundary_marker);
-                    return ESP_FAIL;
-                }
-                total_received += fw_len;
-            }
 
-            // Данные после маркера → LittleFS
-            int fs_len = data_len - fw_len - sizeof(FS_MARKER) + 1; // минус маркер
-            if (fs_len > 0) {
-                const esp_partition_t *fs_part =
-                    esp_partition_find_first(ESP_PARTITION_TYPE_DATA, ESP_PARTITION_SUBTYPE_DATA_LITTLEFS, NULL);
-                if (!fs_part) {
-                    ota_cleanup();
-                    free(buffer); free(boundary_value); free(boundary_marker);
-                    httpd_resp_send_err(req, 500, "No LittleFS partition");
-                    return ESP_FAIL;
-                }
 
-                ESP_ERROR_CHECK(esp_partition_erase_range(fs_part, 0, fs_part->size));
-                ESP_ERROR_CHECK(esp_partition_write(fs_part, 0, fs_marker_pos + sizeof(FS_MARKER), fs_len));
-                ESP_LOGI(TAG, "FS written: %d bytes", fs_len);
-            }
-        } else {
-            // Нет маркера → обычная OTA запись
-            if (esp_ota_write(ota_handle, data_start, data_len) != ESP_OK) {
-                httpd_resp_send_err(req, 500, "OTA write failed");
-                ota_cleanup();
-                free(buffer); free(boundary_value); free(boundary_marker);
-                return ESP_FAIL;
-            }
-            total_received += data_len;
-        }
-    }
+
 
     // ========= Завершение OTA ==========
     if (total_received >= total_size && ota_started) {
@@ -321,19 +291,7 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         }
 
         ESP_LOGW(TAG, "🎉 OTA SUCCESS! Rebooting to new firmware...");
-      //  httpd_resp_send(req, "OTA complete, rebooting", -1);
-
-        // Для завершения OTA
-        httpd_resp_set_type(req, "application/json");
-
-        char json_resp[128];
-        fs_session_t s;
-        generate_fs_session(&s);
-        sprintf(json_resp, "{\"status\":\"success\",\"ota_session\":\"%s\"}", s.token);
-        httpd_resp_sendstr(req, json_resp);
-      //  httpd_resp_sendstr(req, "{\"status\":\"success\",\"message\":\"OTA complete, rebooting\"}");
-
-       
+        httpd_resp_send(req, "OTA complete, rebooting", -1);
         const esp_partition_t *after = esp_ota_get_boot_partition();
         ESP_LOGW(TAG, "🎯 Boot partition set to: %s", after->label);
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -354,64 +312,4 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
 
 
 
-
- esp_err_t fs_post_handler(httpd_req_t *req)
-{
-    ESP_LOGW(TAG, "=== FS UPDATE ===");
-
-    // Проверка токена FS-сессии
-    if (!check_ota_session(req)) {
-        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Invalid FS token");
-        return ESP_FAIL;
-    }
-
-    // Находим раздел LittleFS
-    const esp_partition_t *fs_part =
-        esp_partition_find_first(
-            ESP_PARTITION_TYPE_DATA,
-            ESP_PARTITION_SUBTYPE_DATA_LITTLEFS,
-            NULL);
-
-    if (!fs_part) {
-        httpd_resp_send_err(req, 500, "No LittleFS partition");
-        return ESP_FAIL;
-    }
-
-    // Стираем весь раздел
-    ESP_ERROR_CHECK(esp_partition_erase_range(fs_part, 0, fs_part->size));
-
-    uint8_t buf[OTA_CHUNK_SIZE];
-    size_t received = 0;
-
-    while (received < req->content_len) {
-        int to_read = (req->content_len - received > BUF_SIZE) ? BUF_SIZE : (req->content_len - received);
-        int r = httpd_req_recv(req, (char*)buf, to_read);
-        if (r <= 0) {
-            ESP_LOGE(TAG, "Failed to receive FS data");
-            return ESP_FAIL;
-        }
-
-        ESP_ERROR_CHECK(esp_partition_write(fs_part, received, buf, r));
-        received += r;
-    }
-
-    // Одноразово очищаем FS-сессию
-    nvs_clear_fs_session();
-
-    httpd_resp_sendstr(req, "FS update OK");
-    ESP_LOGW(TAG, "FS UPDATE DONE");
-
-    return ESP_OK;
-}
-
-
-
-static void generate_fs_session(fs_session_t *s)
-{
-    memset(s, 0, sizeof(*s));
-    generate_token(s->token, sizeof(s->token));
-    s->expires = esp_timer_get_time() / 1000000 + 120;
-    nvs_save_fs_session(s);
-    ESP_LOGW(TAG, "FS SESSION GENERATED: %s", s->token);
-}
 

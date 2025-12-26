@@ -5,16 +5,11 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Build OTA + FS",
+            "label": "Build ESP32 + OTA",
             "type": "shell",
-            "command": "idf.py build; if ($?) { python build_combined.py }",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"& '${env:IDF_PATH}/export.ps1'; idf.py build; if ($LASTEXITCODE -eq 0) { python build_combined.py }\"",
+            "group": { "kind": "build", "isDefault": true },
             "problemMatcher": []
         }
     ]
 }
-
-

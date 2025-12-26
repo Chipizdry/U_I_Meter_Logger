@@ -14,12 +14,6 @@
 # EXTERNAL cache entries
 ########################
 
-//No help, variable specified on the command line.
-CCACHE_ENABLE:UNINITIALIZED=1
-
-//Path to a program.
-CCACHE_FOUND:FILEPATH=C:/Users/chipi/.espressif/tools/ccache/4.10.2/ccache-4.10.2-windows-x86_64/ccache.exe
-
 //Path to a program.
 CMAKE_ADDR2LINE:FILEPATH=C:/Users/chipi/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-addr2line.exe
 
@@ -362,10 +356,10 @@ Mbed TLS_IS_TOP_LEVEL:STATIC=OFF
 Mbed TLS_SOURCE_DIR:STATIC=D:/Espressif/frameworks/esp-idf-v5.4.0/components/mbedtls/mbedtls
 
 //No help, variable specified on the command line.
-PYTHON:UNINITIALIZED=C:\Users\chipi\.espressif\python_env\idf5.4_py3.13_env\Scripts\python.exe
+PYTHON_DEPS_CHECKED:UNINITIALIZED=1
 
 //No help, variable specified on the command line.
-PYTHON_DEPS_CHECKED:UNINITIALIZED=1
+SDKCONFIG:UNINITIALIZED=d:\GitHub\U_I_Meter_Logger\RS232-Ethernet_Bridge\ETHERNET-RS485_Bridge\sdkconfig
 
 //Allow unsafe builds. These builds ARE NOT SECURE.
 UNSAFE_BUILD:BOOL=OFF
@@ -596,7 +590,7 @@ C_COMPILER_SUPPORTS_WFORMAT_SIGNEDNESS:INTERNAL=1
 //Details about finding Git
 FIND_PACKAGE_MESSAGE_DETAILS_Git:INTERNAL=[C:/Program Files/Git/cmd/git.exe][v2.47.0.windows.2()]
 //Details about finding Python3
-FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[C:/Users/chipi/.espressif/python_env/idf5.4_py3.13_env/Scripts/python.exe][cfound components: Interpreter ][v3.13.3()]
+FIND_PACKAGE_MESSAGE_DETAILS_Python3:INTERNAL=[C:/Users/chipi/.espressif/python_env/idf5.4_py3.11_env/Scripts/python.exe][cfound components: Interpreter ][v3.11.2()]
 //Details about finding Threads
 FIND_PACKAGE_MESSAGE_DETAILS_Threads:INTERNAL=[TRUE][v()]
 //ADVANCED property for variable: GIT_EXECUTABLE
@@ -607,10 +601,10 @@ _GNUInstallDirs_LAST_CMAKE_INSTALL_PREFIX:INTERNAL=C:/Program Files (x86)/ETHERN
 _Python3_Compiler_REASON_FAILURE:INTERNAL=
 //Development reason failure
 _Python3_Development_REASON_FAILURE:INTERNAL=
-_Python3_EXECUTABLE:INTERNAL=C:/Users/chipi/.espressif/python_env/idf5.4_py3.13_env/Scripts/python.exe
+_Python3_EXECUTABLE:INTERNAL=C:/Users/chipi/.espressif/python_env/idf5.4_py3.11_env/Scripts/python.exe
 //Python3 Properties
-_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;13;3;32;64;;;abi3;C:\Program Files\Python313\Lib;C:\Users\chipi\.espressif\python_env\idf5.4_py3.13_env\Lib;C:\Users\chipi\.espressif\python_env\idf5.4_py3.13_env\Lib\site-packages;C:\Users\chipi\.espressif\python_env\idf5.4_py3.13_env\Lib\site-packages
-_Python3_INTERPRETER_SIGNATURE:INTERNAL=4679d9749478b55dfadf854bc6db9370
+_Python3_INTERPRETER_PROPERTIES:INTERNAL=Python;3;11;2;32;64;;;abi3;C:\Users\chipi\.espressif\tools\idf-python\3.11.2\Lib;C:\Users\chipi\.espressif\python_env\idf5.4_py3.11_env\Lib;C:\Users\chipi\.espressif\python_env\idf5.4_py3.11_env\Lib\site-packages;C:\Users\chipi\.espressif\python_env\idf5.4_py3.11_env\Lib\site-packages
+_Python3_INTERPRETER_SIGNATURE:INTERNAL=26575ca49677832269367688aee5d7f4
 //NumPy reason failure
 _Python3_NumPy_REASON_FAILURE:INTERNAL=
 

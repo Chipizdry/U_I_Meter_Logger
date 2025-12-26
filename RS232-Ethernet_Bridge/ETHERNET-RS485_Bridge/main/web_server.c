@@ -706,12 +706,7 @@ esp_err_t web_server_start(void)
             .user_ctx = NULL
         });
 
-        httpd_register_uri_handler(server, &(httpd_uri_t){
-            .uri = "/update_fs",
-            .method = HTTP_POST,
-            .handler = fs_post_handler
-        });
-
+      
          // ====== OTA UPDATE ======
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/ota",

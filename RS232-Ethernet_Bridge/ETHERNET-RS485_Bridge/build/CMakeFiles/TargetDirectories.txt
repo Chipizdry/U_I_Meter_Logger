@@ -16,6 +16,7 @@ D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMa
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/size-components.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/uf2.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/uf2-app.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/post_build.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/edit_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/rebuild_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/CMakeFiles/list_install_components.dir
