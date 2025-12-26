@@ -1,0 +1,25 @@
+{
+  "C_Cpp.intelliSenseEngine": "default",
+  "idf.espIdfPathWin": "d:\\Espressif\\frameworks\\esp-idf-v5.4.0",
+  "idf.pythonInstallPath": "C:\\Users\\chipi\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
+  "idf.openOcdConfigs": [
+    "interface/ftdi/esp32_devkitj_v1.cfg",
+    "target/esp32.cfg"
+  ],
+  "idf.portWin": "COM3",
+  "idf.toolsPathWin": "C:\\Users\\chipi\\.espressif",
+  "idf.customExtraVars": {
+    "OPENOCD_SCRIPTS": "C:\\Users\\chipi\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
+    "IDF_CCACHE_ENABLE": "1",
+    "ESP_ROM_ELF_DIR": "C:\\Users\\chipi\\.espressif\\tools\\esp-rom-elfs\\20240305/",
+    "IDF_TARGET": "esp32"
+  },
+  "idf.flashType": "UART",
+  "idf.monitorPort": "COM3",
+  "files.associations": {
+    "websocket_client.h": "c",
+    "esp_http_server.h": "c",
+    "uart.h": "c",
+    "uart_types.h": "c"
+  }
+}

@@ -1,0 +1,428 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>COR-Bridge Control Panel</title>
+    <link rel="stylesheet" href="/style.css">
+   
+</head>
+<body>
+    <div class="container" id="appContainer">
+        <!-- === Форма входа === -->
+        <form id="loginForm"  method="POST" >
+            <h2>Авторизация</h2>
+            <div id="loginStatus" class="login-status hidden message"></div>
+            <label>Login:</label>
+            <input name="login" type="text" required placeholder="Введите логин"  autocomplete="username"><br><br>
+
+
+            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
+            <div class="password-container">
+                <input type="password" id="password" name="password" data-translate="password_placeholder"   required autocomplete="current-password">
+                <span id="eyeIcon" class="eye-icon" onclick="togglePassword('password', 'eyeIcon')"></span>
+            </div>
+         <br><br>  
+            <button type="submit">Войти</button>
+        </form>
+
+        <!-- === Основной экран (Wi-Fi настройки) === -->
+        <div id="mainScreen" class="hidden">
+
+            <!-- === Кнопка гамбургера === -->
+            <div id="menuButton">☰</div>
+        
+            <!-- === Боковая панель меню === -->
+            <div id="sideMenu" class="side-menu">
+                <h3>Настройки</h3>
+                <button class="menu-item active" data-tab="account">🔐Учётная запись</button>
+                <button class="menu-item" data-tab="LAN">🌐 Сетевые настройки</button>
+                <button class="menu-item" data-tab="wifi">📡 Wi-Fi</button>
+                <button class="menu-item" data-tab="uart">↔️ Modbus</button>
+                <button class="menu-item" data-tab="user">👤 Пользователь</button>
+                <button class="menu-item" data-tab="system">⚙️ Система</button>
+                <button class="menu-item" data-tab="diagnostics">🛠️ Диагностика</button>
+                <hr>
+                <button id="logoutBtn">🚪 Выйти</button>
+            </div>
+        
+            <!-- === Основная рабочая область === -->
+            <div id="mainContent" class="content">
+        
+                <!-- Wi-Fi -->
+                <div class="tab-content" id="wifi">
+                    <h2>Wi-Fi настройки</h2>
+                    <form id="wifiForm">
+
+                        <label>Mode:
+                            <select name="mode" id="wifiMode">
+                                <option value="0">OFF</option>
+                                <option value="1">STA</option>
+                                <option value="2">AP</option>
+                                <option value="3">APSTA</option>
+                            </select>
+                        </label><br>
+
+
+                        <h3 class="wifi-sta">STA (Client)</h3>
+                            <label class="wifi-sta">STA SSID:
+                                <input type="text" name="sta-ssid">
+                            </label>
+                            <label class="wifi-sta" ... >STA Password:</label>
+                            <button type="button" class="wifi-sta" onclick="wsScanWiFi()">🔍 Сканировать сети</button>
+                            <div id="wifiScanList" class="wifi-sta"></div>
+                            <div class="password-container wifi-sta">
+                                <input type="password" id="sta-password" name="sta-password" autocomplete="sta-password">
+                                <span class="eye-icon" id="eye-sta-password" onclick="togglePassword('sta-password','eye-sta-password')"></span>
+                            </div>
+
+                        <h3 class="wifi-ap">AP (Access Point)</h3>
+                            <label class="wifi-ap">AP SSID:
+                                <input type="text" name="ap-ssid">
+                            </label>
+
+                            <label class="wifi-ap" ... >AP Password:</label>
+                            <div class="password-container wifi-ap">
+                                <input type="password" id="ap-password" name="ap-password" autocomplete="ap-password">
+                                <span class="eye-icon" id="eye-ap-password" onclick="togglePassword('ap-password','eye-ap-password')"></span>
+                            </div>
+
+                            <label class="wifi-ap">AP Channel:
+                                <input type="number" name="ap-channel" min="1" max="13">
+                            </label>
+
+                        <h3 class="hidden">LAN</h3>
+                        <label class="hidden">IP:
+                            <input type="text" name="ip">
+                        </label>
+
+                        <label class="hidden">Mask:
+                            <input type="text" name="mask">
+                        </label>
+
+                        <label class="hidden">Gateway:
+                            <input type="text" name="gateway">
+                        </label>
+
+                        <label class="hidden">DNS:
+                            <input type="text" name="dns">
+                        </label>
+
+                        <label class="hidden"><input type="checkbox" name="dhcp"> DHCP enable</label>
+                        <button type="button" onclick="saveWiFiSettings()">💾 Сохранить</button>
+                    </form>
+                </div>
+
+                
+                <!--UART -->
+                <div class="tab-content" id="uart">
+                    <h2>Настройки Modbus</h2>
+
+                    
+                    <label>Тип интерфейса:</label><br>
+                    <div class="uart-mode-box">
+                        <label class="uart-option">
+                            <input type="radio" name="uart-mode" value="0"> RS232
+                        </label>
+
+                        <label class="uart-option">
+                            <input type="radio" name="uart-mode" value="1"> RS485
+                        </label>
+                    </div>
+                    
+                    <label>Скорость передачи (baud rate):</label>
+                    <input type="number" id="uart-baud" value="9600"><br>
+                
+                    <label>Чётность:</label>
+                    <select id="uart-parity">
+                        <option value="0">None</option>
+                        <option value="2">Even</option>
+                        <option value="1">Odd</option>    
+                    </select><br>
+                
+                    <label>Стоп-биты:</label>
+                    <select id="uart-stop-bits">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="15">1.5</option>
+                    </select><br>
+                
+                    <label>Данные (Data bits):</label>
+                    <select id="uart-data-bits">
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8" selected>8</option>
+                    </select><br><br>
+                
+                    <button type="button" onclick="saveUARTSettings()">💾 Сохранить</button>
+                </div>
+        
+                <!-- Пользователь -->
+                <div class="tab-content" id="user">
+                    <h2>Пользователь</h2>
+
+                     <form id="UserForm">
+                        <label>Имя пользователя:</label>
+                        <input type="text" name="user-login" value="admin" autocomplete="username"><br>
+
+                            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
+                            <div class="password-container">
+                                <input type="password" id="user-password" name="user-password" data-translate="password_placeholder" autocomplete="new-password" >
+                                <span class="eye-icon" id="eye-user-password" onclick="togglePassword('user-password','eye-user-password')"></span>
+                            </div>
+
+                            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Повторите пароль:</label>
+                            <div class="password-container">
+                                <input type="password" id="user-confirm-password" name="user-confirm-password" data-translate="password_placeholder" autocomplete="new-password" >
+                                <span class="eye-icon" id="eye-user-confirm-password" onclick="togglePassword('user-confirm-password','eye-user-confirm-password')"></span>
+                            </div>
+
+    
+                     <!--   <label>Повторить пароль: <input type="password" name="confirm-user-password"></label><br> -->
+                        <button>💾 Изменить</button>
+                    </form> 
+                </div>
+        
+                <!-- Система -->
+                <div class="tab-content active" id="system">
+                    <h2>Системные параметры</h2>
+                        <h3>Обновление </h3>
+
+                        <div class="file-input-box">
+                            <button type="button" class="file-btn" onclick="document.getElementById('firmwareFile').click()">
+                                Выберите файл
+                            </button>
+
+                            <input type="file" id="firmwareFile" name="firmware" accept=".bin" style="display:none">
+
+                            <span id="fileName" class="file-name">Файл не выбран</span>
+                        </div>
+
+                        <button type="button" onclick="uploadFirmware()">Upload Firmware</button>
+                        <p id="status"></p>
+                    </form>
+                    <button onclick="rebootDevice()">Перезагрузить устройство</button>
+            
+                      <!-- 🔹 Версия сборки -->
+                     
+                        <div class="card-body">
+                            <span class="build-icon">⚙️</span>
+                            <span id="buildInfoText">Build #— • —</span>
+                        </div>
+                   
+                </div>
+
+
+                <!-- Учётная запись -->
+                <div class="tab-content" id="account">
+                    <h2>Учётная запись</h2>
+                  <form id="accountForm">
+                    <label>Название узла: <input type="text" name="node-name" ></label><br>
+                    <label>Login: <input type="text" name="account-login" required></label><br>
+                
+                    <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
+                    <div class="password-container">
+                        <input type="password" id="account-password" name="account-password" data-translate="password_placeholder" autocomplete="password" >
+                        <span class="eye-icon" id="eye-account-password" onclick="togglePassword('account-password','eye-account-password')"></span>
+                    </div>
+
+                    <div id="ws-status" style="margin:8px 0; font-size: 10px; font-weight:bold;"></div>
+                    <button type="button" id="testAccountBtn">Тест</button>
+                    <button type="button" id="SaveAccountBtn">💾 Сохранить</button>
+                  </form> 
+                </div>
+
+                <!-- Диагностика -->
+                <div class="tab-content" id="diagnostics">
+                    <h2>Диагностика</h2>
+
+                    <div class="diag-box">
+                        <div class="diag-header">
+                            <span>Тип</span>
+                            <span>Период, мс</span>
+                            <span>Время</span>
+                        </div>
+
+                        <div id="diagList" class="diag-list">
+                            <!-- строки будут добавляться JS -->
+                        </div>
+                    </div>
+                </div>
+
+
+                 <!-- Сетевые настройки -->
+                 <div class="tab-content" id="LAN">
+                    <h2>Параметры сети</h2>
+                    <form id="lanForm" class="settings-form">
+
+                        <label class="switch-label">
+                            <input type="checkbox" id="dhcp" name="dhcp">
+                            <span class="switch"></span>
+                            Включить DHCP
+                        </label>
+
+                        <label for="ip">IP адрес:</label>
+                        <input type="text" id="ip" name="ip" placeholder="192.168.001.100" required><br>
+                
+                        <label for="mask">Маска подсети:</label>
+                        <input type="text" id="mask" name="mask" placeholder="255.255.255.000" required><br>
+                
+                        <label for="gateway">Шлюз:</label>
+                        <input type="text" id="gateway" name="gateway" placeholder="192.168.001.001" required><br>
+                
+                        <label for="dns">DNS сервер:</label>
+                        <input type="text" id="dns" name="dns" placeholder="008.008.008.008"><br>
+                
+                        <label for="port">Порт:</label>
+                        <input type="number" id="port" name="port" min="1" max="65535" value="80" required><br>
+                
+                        <button type="submit">💾 Сохранить</button>
+                    </form>
+                </div>
+        
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CHUNK_SIZE = 1024;
+        const MAX_RETRIES = 8;
+        const loginForm = document.getElementById('loginForm');
+        const mainScreen = document.getElementById("mainScreen");
+        const wifiForm = document.getElementById("wifiForm");
+        const saveAccountBtn = document.getElementById('SaveAccountBtn');
+        const logoutBtn = document.getElementById("logoutBtn");
+        const accountForm = document.getElementById('accountForm');
+        const dhcpCheckbox = document.getElementById("dhcp");
+        const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+        const userForm = document.getElementById("UserForm");
+        const ipFields = ["ip", "mask", "gateway", "dns"];
+        const DIAG_MAX_ROWS = 10;
+        const diagList = document.getElementById("diagList");
+        let diagnosticsActive = false;
+        let buildNumber = null;
+        let buildDate = null;
+        let data = {};
+    </script>
+
+        <script src="/script.js"></script>
+        <script src="/web_app.js"></script>
+        <script src="/general_fun.js"></script>
+        <script src="/ws.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+     <script>
+    
+
+    function md5(arrayBuffer) {
+        const bytes = new Uint8Array(arrayBuffer);
+        const words = [];
+        for (let i = 0; i < bytes.length; i++) {
+            words[i >>> 2] |= bytes[i] << (24 - (i % 4) * 8);
+        }
+        const wordArray = CryptoJS.lib.WordArray.create(words, bytes.length);
+        return CryptoJS.MD5(wordArray).toString();
+    }
+    
+    async function uploadFirmware() {
+        const fileInput = document.getElementById("firmwareFile");
+        const status = document.getElementById("status");
+    
+        if (!fileInput.files.length) {
+            status.innerText = "Select firmware file!";
+            return;
+        }
+    
+        const file = fileInput.files[0];
+        const totalSize = file.size;
+        let offset = 0;
+        let chunkNumber = 1;
+        status.innerText = "Uploading...";
+    
+        async function sendNextChunk(retry = 0) {
+            const chunk = file.slice(offset, offset + CHUNK_SIZE);
+            const ab = await chunk.arrayBuffer();
+            const token = sessionStorage.getItem("auth_token");
+            if (!token) return;
+
+            const md5sum = md5(ab);
+            console.log(`Chunk ${chunkNumber}: ${ab.byteLength} bytes, MD5=${md5sum}`);
+    
+            const form = new FormData();
+            form.append("fileName", file.name);
+            form.append("totalSize", totalSize);
+            form.append("chunkNumber", chunkNumber);
+            form.append("md5", md5sum);
+            form.append("chunk", new Blob([ab]), "chunk.bin");
+    
+            const response = await fetch("/ota", { method: "POST", headers: {
+                    "Authorization": `Bearer ${token}`
+                }, body: form });
+    
+            if (!response.ok) {
+                if (response.status === 409 && retry < MAX_RETRIES) {
+                    console.warn(`MD5 mismatch → retry chunk ${chunkNumber}`);
+                    return sendNextChunk(retry + 1);
+                }
+
+                if (response.status === 401) {
+                    showTokenExpiredModal();
+                    return;
+                }
+                status.innerText = "Upload failed!";
+                throw new Error(`Chunk ${chunkNumber} failed.`);
+            }
+/////////////////////////////////////////////////////////////////////////////////////
+        // ⬇️ если это последний chunk — ждём ответ с OTA-session
+                if (offset + ab.byteLength >= totalSize) {
+                    const json = await response.json();
+
+                    if (!json.ota_session) {
+                        throw new Error("OTA session not received");
+                    }
+
+                    sessionStorage.setItem("ota_session", json.ota_session);
+                    console.log("OTA session received:", json.ota_session);
+
+                    status.innerText = "✅ Firmware uploaded, rebooting...";
+                    // ждём, пока ESP32 появится в сети
+                    try {
+                        await waitDeviceOnline();
+                        await uploadLittleFS();
+                    } catch(e) {
+                       // alert(e.message);
+                        console.log(e.message);
+                    }
+                    return;
+                }
+
+
+
+    ///////////////////////////////////////////////////////////////////////////////
+            offset += ab.byteLength;
+            chunkNumber++;
+            status.innerText = `Uploaded ${offset} / ${totalSize}`;
+    
+            if (offset < totalSize) {
+                sendNextChunk(0);
+            } else {
+                status.innerText = "✅ Upload completed, ESP32 flashing...";
+            }
+        }
+    
+        sendNextChunk();
+    }
+
+
+  
+
+
+    </script>
+        
+       
+
+</body>
+</html>
