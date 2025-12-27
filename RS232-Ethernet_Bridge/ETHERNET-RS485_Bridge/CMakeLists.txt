@@ -28,12 +28,6 @@ add_definitions(-DBUILD_DATE="${BUILD_DATE}")
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
 project(ETHERNET_RS485_Bridge)
 
-# === Передаём значения компилятору в виде макросов ПОСЛЕ project() ===
-add_compile_definitions(
-    BUILD_NUMBER=${BUILD_NUMBER}
-    BUILD_DATE="${BUILD_DATE}"
-)
-
 message(STATUS "Build number: ${BUILD_NUMBER} (${BUILD_DATE})")
 
 # === Переименование прошивки после сборки ===
