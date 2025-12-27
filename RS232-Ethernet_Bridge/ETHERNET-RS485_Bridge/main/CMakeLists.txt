@@ -38,3 +38,14 @@ idf_component_register(
 )
 
 littlefs_create_partition_image(storage ${CMAKE_CURRENT_SOURCE_DIR}/data FLASH_IN_PROJECT)
+
+# Получаем переменные из родительского CMakeLists.txt
+if(DEFINED BUILD_NUMBER)
+    message(STATUS "main: BUILD_NUMBER = ${BUILD_NUMBER}")
+    target_compile_definitions(${COMPONENT_LIB} PRIVATE 
+        BUILD_NUMBER=${BUILD_NUMBER}
+        BUILD_DATE="${BUILD_DATE}"
+    )
+else()
+    message(WARNING "main: BUILD_NUMBER not defined!")
+endif()
