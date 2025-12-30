@@ -52,6 +52,83 @@ logoutBtn.addEventListener("click", async () => {
 
 
 
+async function FactoryDefaults() {
+    const token = sessionStorage.getItem("auth_token");
+
+    if (!token) {
+        showLogin();
+        return;
+    }
+
+    const confirmed = confirm(
+        "⚠️ СБРОС К ЗАВОДСКИМ НАСТРОЙКАМ\n\n" +
+        "Будут удалены:\n" +
+        "• Wi-Fi настройки\n" +
+        "• Аккаунт и токены\n" +
+        "• Все пользовательские параметры\n\n" +
+        "Устройство перезагрузится.\n\n" +
+        "Продолжить?"
+    );
+
+    if (!confirmed) return;
+
+    console.warn("Factory reset requested…");
+
+    try {
+        const response = await fetch("/factory_reset", {
+            method: "POST",
+            headers: {
+                "Authorization": "Bearer " + token
+            }
+        });
+
+        if (response.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+        }
+
+        if (!response.ok) {
+            const text = await response.text();
+            alert("Ошибка сброса: " + text);
+            return;
+        }
+
+        const json = await response.json();
+        console.log("Factory reset:", json);
+
+        // 🔥 Локальная очистка
+        sessionStorage.removeItem("auth_token");
+
+        // 🔥 Останавливаем всё
+        if (typeof stopHeartbeat === "function") stopHeartbeat();
+
+        if (window.reconnectTimer) {
+            clearTimeout(window.reconnectTimer);
+            window.reconnectTimer = null;
+        }
+
+        if (window.ws) {
+            ws.onclose = null;
+            ws.close();
+            window.ws = null;
+        }
+
+        // 🔥 UX
+        showFactoryResetInProgress();
+
+        // Через ~5 сек устройство будет уже в AP
+        setTimeout(() => {
+            window.location.href = "http://192.168.4.1/";
+        }, 6000);
+
+    } catch (err) {
+        console.error("Factory reset failed:", err);
+        alert("Ошибка соединения: " + err);
+    }
+}
+
+
 
    // === Сохранение Wi-Fi настроек ===
 wifiForm.addEventListener("submit", async (e) => {

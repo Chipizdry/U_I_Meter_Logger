@@ -71,9 +71,9 @@ static void phy_hard_reset(void)
     gpio_set_level(rst_pin, 1);
     vTaskDelay(pdMS_TO_TICKS(10));
     gpio_set_level(rst_pin, 0);
-    vTaskDelay(pdMS_TO_TICKS(100));
+    vTaskDelay(pdMS_TO_TICKS(200));
     gpio_set_level(rst_pin, 1);
-    vTaskDelay(pdMS_TO_TICKS(50));
+    vTaskDelay(pdMS_TO_TICKS(200));
 
     ESP_LOGI(TAG, "PHY Reset: DONE");
 }

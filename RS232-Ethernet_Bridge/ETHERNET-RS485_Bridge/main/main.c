@@ -71,6 +71,7 @@ void app_main(void)
 
     
     /* === АВТО-ОБНОВЛЕНИЕ BUILD INFO ПРИ НОВОЙ ПРОШИВКЕ === */
+    /*
     if (sys.build_number != BUILD_NUMBER) {
         ESP_LOGW("SYS", "New firmware detected!");
         ESP_LOGW("SYS", "Old build: %d (%s)", sys.build_number, sys.build_date);
@@ -82,6 +83,7 @@ void app_main(void)
 
         ESP_ERROR_CHECK(nvs_save_system_settings(&sys));
     }
+        */
 
     ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Name=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.node_name , user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);

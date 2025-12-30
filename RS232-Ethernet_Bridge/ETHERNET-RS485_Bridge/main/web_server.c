@@ -23,6 +23,7 @@
 #include "rs485_master.h"
 #include "web_auth.h"
 #include "ws_server.h"
+#include "gpio_manager.h"
 #include "driver/uart.h"
 
 
@@ -596,6 +597,28 @@ static esp_err_t logout_post_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+static esp_err_t factory_reset_post_handler(httpd_req_t *req)
+{
+
+     if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGW(TAG, "WEB: factory reset endpoint called");
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+
+    httpd_resp_sendstr(req,
+        "{\"status\":\"ok\",\"message\":\"Factory reset started\"}"
+    );
+
+    reset_to_factory_defaults();
+    return ESP_OK;
+}
+
 
 // === POST /reboot ===
 static esp_err_t reboot_post_handler(httpd_req_t *req)
@@ -725,6 +748,12 @@ esp_err_t web_server_start(void)
             .uri = "/logout",
             .method = HTTP_POST,
             .handler = logout_post_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/factory_reset",
+            .method = HTTP_POST,
+            .handler = factory_reset_post_handler
         });
 
         httpd_register_uri_handler(server, &(httpd_uri_t){

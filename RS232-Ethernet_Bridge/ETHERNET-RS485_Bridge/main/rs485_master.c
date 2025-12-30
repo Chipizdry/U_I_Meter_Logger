@@ -35,8 +35,6 @@ static QueueHandle_t s_req_queue = NULL;
 static TaskHandle_t s_req_task = NULL;
 
 
-
-
 typedef struct {
     uint8_t data[32];
     size_t len;
@@ -84,11 +82,8 @@ static void de_off_timer_cb(void *arg)
     ESP_LOGD(TAG, "DE → 0 (timer expired)");
 }
 
-
-
-
 /* Управление DE (direction) */
-static inline void rs485_set_de(int level)
+void rs485_set_de(int level)
 {
     gpio_set_level(RS485_DE_PIN, level ? 1 : 0);
 }
@@ -319,15 +314,6 @@ esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size
     s_rx_buf = (rx_buf_size > 0) ? rx_buf_size : 1024;
     s_tx_buf = (tx_buf_size > 0) ? tx_buf_size : 512;
 
-    // Настройка DE-пина
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << RS485_DE_PIN),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io_conf);
     gpio_set_level(RS485_DE_PIN, 0);
 
       // Устанавливаем уровень в зависимости от режима

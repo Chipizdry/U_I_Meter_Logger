@@ -24,7 +24,7 @@ extern "C" {
 #define RS485_UART_NUM        2              // UART2
 #define RS485_TX_PIN          17
 #define RS485_RX_PIN          35
-#define RS485_DE_PIN          33
+
 
 // Максимальное количество опрашиваемых устройств
 #define RS485_MAX_SLAVES      32
@@ -62,7 +62,7 @@ esp_err_t rs485_master_remove_slave(int index);
 // Запустить/остановить опрос (task создаётся при инициализации автоматически, но можно остановить)
 esp_err_t rs485_master_start(void);
 esp_err_t rs485_master_stop(void);
-static inline void rs485_set_de(int level);
+void rs485_set_de(int level);
 // Скопировать snapshot данных слейва (thread-safe).
 // buf_size_words - размер буфера в uint16_t, возвращает количество записанных регистров или -1 при ошибке
 int rs485_master_get_slave_values(int index, uint16_t *out_buf, int buf_size_words, uint32_t *out_timestamp_ms, int *out_last_error);
