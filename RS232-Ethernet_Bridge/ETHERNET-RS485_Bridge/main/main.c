@@ -26,6 +26,7 @@
 #include "gpio_manager.h"
 #include "ota_update.h"
 #include "dns_server.h"
+#include "network_state.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -71,19 +72,7 @@ void app_main(void)
 
     
     /* === АВТО-ОБНОВЛЕНИЕ BUILD INFO ПРИ НОВОЙ ПРОШИВКЕ === */
-    /*
-    if (sys.build_number != BUILD_NUMBER) {
-        ESP_LOGW("SYS", "New firmware detected!");
-        ESP_LOGW("SYS", "Old build: %d (%s)", sys.build_number, sys.build_date);
-        ESP_LOGW("SYS", "New build: %d (%s)", BUILD_NUMBER, BUILD_DATE);
-
-        sys.build_number = BUILD_NUMBER;
-        strncpy(sys.build_date, BUILD_DATE, sizeof(sys.build_date) - 1);
-        sys.build_date[sizeof(sys.build_date) - 1] = 0;
-
-        ESP_ERROR_CHECK(nvs_save_system_settings(&sys));
-    }
-        */
+    system_update_build_info();
 
     ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Name=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.node_name , user.account_login, user.account_password);
     ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
@@ -93,8 +82,9 @@ void app_main(void)
     ESP_LOGI("MAIN", "AP : SSID=%s  PASS=%s  Channel=%d " , wifi_cfg.ap_ssid, wifi_cfg.ap_password, wifi_cfg.ap_channel);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
     ESP_LOGI("MAIN", "Loaded UART config: baudrate:%d , DataBits:%d ,StopBits:%d ,Parity: %d, Mode:(%s) ", uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
-
+    network_state_init();
     ESP_ERROR_CHECK(gpio_manager_init());
+   
 
     if (littlefs_init() == ESP_OK) {
         littlefs_list_files();

@@ -15,6 +15,7 @@
 #include "lwip/raw.h"
 #include "lwip/netif.h"
 #include "nvs_settings.h"
+#include "network_state.h"
 
 static const char *TAG = "ethernet_manager";
 
@@ -35,12 +36,15 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
         case ETHERNET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Ethernet Link Down");
             s_connected = false;
+            network_set_state(NET_STATE_DOWN);
             break;
         case ETHERNET_EVENT_START:
             ESP_LOGI(TAG, "Ethernet Started");
+            network_set_state(NET_STATE_CONNECTING);
             break;
         case ETHERNET_EVENT_STOP:
             ESP_LOGI(TAG, "Ethernet Stopped");
+            network_set_state(NET_STATE_DOWN);
             s_connected = false;
             break;
         default:
@@ -51,6 +55,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
+    network_set_state(NET_STATE_UP);
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
 }
 

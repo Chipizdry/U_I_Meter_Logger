@@ -4,6 +4,7 @@
 #include "esp_wifi.h"
 #include "ws_server.h"
 #include "dns_server.h"
+#include "network_state.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -223,6 +224,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
             case WIFI_EVENT_STA_START:
                 ESP_LOGI(TAG, "STA started, connecting...");
                 esp_wifi_connect();
+                network_set_state(NET_STATE_CONNECTING);
                 break;
             case WIFI_EVENT_STA_CONNECTED:
                 ESP_LOGI(TAG, "STA connected");
@@ -230,6 +232,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
             case WIFI_EVENT_STA_DISCONNECTED: {
                 wifi_event_sta_disconnected_t *disconn = event_data;
                 ESP_LOGW(TAG, "STA disconnected, reason=%d", disconn->reason);
+                 network_set_state(NET_STATE_DOWN);
                 esp_wifi_connect();
                 break;
             }
@@ -324,6 +327,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t*)event_data;
+         network_set_state(NET_STATE_UP);
         ESP_LOGI(TAG, "STA got IP: " IPSTR, IP2STR(&event->ip_info.ip));
     }
 }

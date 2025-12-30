@@ -123,6 +123,8 @@ esp_err_t nvs_save_fs_session(const fs_session_t *s);
 esp_err_t nvs_load_fs_session(fs_session_t *s);
 void nvs_clear_fs_session(void);
 
+
+void system_update_build_info(void);
 #ifdef __cplusplus
 }
 #endif

@@ -8,8 +8,10 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "nvs_flash.h"
+#include "network_state.h"
 
 static const char *TAG = "GPIO_MANAGER";
+static void status_led_task(void *arg);
 
 // ================================
 // ========== PRIVATE =============
@@ -113,6 +115,7 @@ esp_err_t gpio_manager_init(void)
 
     // Запускаем задачу опроса кнопки
     xTaskCreate(gpio_manager_task, "gpio_manager_task", 2048, NULL, 5, NULL);
+    xTaskCreate(status_led_task, "status_led", 2048, NULL, 4, NULL);
 
     return ESP_OK;
 }
@@ -129,17 +132,45 @@ void gpio_manager_task(void *arg)
             pressed_time += step_ms;
 
             // Мигаем LED во время удержания
-            gpio_set_level(GPIO_STATUS_LED, (pressed_time / 250) % 2);
+         //   gpio_set_level(GPIO_STATUS_LED, (pressed_time / 250) % 2);
 
             if (pressed_time >= RESET_HOLD_TIME_MS) {
                 reset_to_factory_defaults();
             }
         } else {
             pressed_time = 0;
-            gpio_set_level(GPIO_STATUS_LED, 0);
+           // gpio_set_level(GPIO_STATUS_LED, 0);
         }
 
         vTaskDelay(pdMS_TO_TICKS(step_ms));
+    }
+}
+
+
+static void status_led_task(void *arg)
+{
+    bool led = false;
+
+    while (1) {
+        net_state_t state = network_get_state();
+
+        switch (state) {
+        case NET_STATE_DOWN:
+            gpio_set_level(GPIO_STATUS_LED, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
+            break;
+
+        case NET_STATE_CONNECTING:
+            led = !led;
+            gpio_set_level(GPIO_STATUS_LED, led);
+            vTaskDelay(pdMS_TO_TICKS(200));
+            break;
+
+        case NET_STATE_UP:
+            gpio_set_level(GPIO_STATUS_LED, 1);
+            vTaskDelay(pdMS_TO_TICKS(1000));
+            break;
+        }
     }
 }
 

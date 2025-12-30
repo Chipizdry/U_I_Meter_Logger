@@ -324,3 +324,26 @@ void nvs_clear_fs_session(void)
     }
 }
 
+
+void system_update_build_info(void)
+{
+    if (sys.build_number == BUILD_NUMBER &&
+        strcmp(sys.build_date, BUILD_DATE) == 0) {
+        // Прошивка та же — ничего не делаем
+        return;
+    }
+
+    ESP_LOGW("SYS", "New firmware detected");
+    ESP_LOGW("SYS", "Old build: %d (%s)", sys.build_number, sys.build_date);
+    ESP_LOGW("SYS", "New build: %d (%s)", BUILD_NUMBER, BUILD_DATE);
+
+    sys.build_number = BUILD_NUMBER;
+    strncpy(sys.build_date, BUILD_DATE, sizeof(sys.build_date) - 1);
+    sys.build_date[sizeof(sys.build_date) - 1] = 0;
+
+    esp_err_t err = nvs_save_system_settings(&sys);
+    if (err != ESP_OK) {
+        ESP_LOGE("SYS", "Failed to save system settings: %s",
+                 esp_err_to_name(err));
+    }
+}
