@@ -98,18 +98,9 @@ void app_main(void)
    // rs485_slave_cfg_t s2 = { .slave_addr = 2, .reg_start = 0, .reg_count = 4, .poll_interval_ms = 5000 };
    // rs485_master_add_slave(&s2);
 
-    // Загружаем Wi-Fi настройки из NVS
-    ESP_ERROR_CHECK(nvs_load_wifi_settings(&wifi_cfg));
-
-    // Логируем, что получили из памяти
-    ESP_LOGI(TAG, "Loaded Wi-Fi settings from NVS:");
-    ESP_LOGI(TAG, "Mode: %s", wifi_cfg.mode == WIFI_MODE_STA   ? "STA" : wifi_cfg.mode == WIFI_MODE_AP    ? "AP" : wifi_cfg.mode == WIFI_MODE_APSTA ? "AP+STA" : "UNKNOWN");
-    ESP_LOGI(TAG, "STA: SSID=%s  PASS=%s", wifi_cfg.sta_ssid, wifi_cfg.sta_password);
-    ESP_LOGI(TAG, "AP : SSID=%s  PASS=%s  Channel=%d", wifi_cfg.ap_ssid, wifi_cfg.ap_password, wifi_cfg.ap_channel);
-
     // Инициализируем Wi-Fi напрямую из wifi_cfg
-    ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
-
+  //  ESP_ERROR_CHECK(wifi_manager_init(&wifi_cfg));
+    wifi_manager_init(&wifi_cfg);
 
     if (ethernet_init() == ESP_OK) {
         ESP_LOGI(TAG, "Ethernet initialized. Waiting for IP...");

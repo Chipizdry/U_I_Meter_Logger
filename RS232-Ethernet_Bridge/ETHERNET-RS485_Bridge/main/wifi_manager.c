@@ -101,6 +101,18 @@ static void wifi_manager_init_once(void)
         wifi_config_t sta_cfg = {0};
         strncpy((char*)sta_cfg.sta.ssid, cfg->sta_ssid, sizeof(sta_cfg.sta.ssid));
         strncpy((char*)sta_cfg.sta.password, cfg->sta_password, sizeof(sta_cfg.sta.password));
+
+         // ЯВНО УСТАНАВЛИВАЕМ threshold.authmode чтобы избежать ворнинга
+        size_t pass_len = strlen(cfg->sta_password);
+        if (pass_len == 0) {
+            sta_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
+        } else if (pass_len >= 8 && pass_len <= 63) {
+            sta_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+        } else {
+            // Для WEP или других нестандартных случаев
+            sta_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
+        }
+
         sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
         sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
         sta_cfg.sta.pmf_cfg.capable = true;
@@ -118,7 +130,21 @@ static void wifi_manager_init_once(void)
         ap_cfg.ap.ssid_len = strlen(cfg->ap_ssid);
         ap_cfg.ap.channel = cfg->ap_channel ? cfg->ap_channel : 1;
         ap_cfg.ap.max_connection = 4;
-        ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+
+          // Устанавливаем authmode для AP
+        size_t pass_len = strlen(cfg->ap_password);
+        if (pass_len == 0) {
+            ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
+        } else if (pass_len >= 8 && pass_len <= 63) {
+            ap_cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
+        } else {
+            // Пароль слишком короткий - принудительно OPEN
+            ESP_LOGW(TAG, "AP password too short (%d), forcing OPEN auth", pass_len);
+            ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
+            ap_cfg.ap.password[0] = '\0';
+        }
+
+      //  ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
 
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
         ESP_LOGI(TAG, "AP config applied: SSID=%s", cfg->ap_ssid);
@@ -206,7 +232,25 @@ void init_wifi_ap(const wifi_settings_t *cfg)
     ap_cfg.ap.ssid_len = strlen(cfg->ap_ssid);
     ap_cfg.ap.channel = cfg->ap_channel > 0 ? cfg->ap_channel : 1;
     ap_cfg.ap.max_connection = 4;
-    ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA_WPA2_PSK : WIFI_AUTH_OPEN;
+   // ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA_WPA2_PSK : WIFI_AUTH_OPEN;
+    size_t pass_len = strlen(cfg->ap_password);
+
+    if (pass_len == 0) {
+        // Открытая точка
+        ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
+        ap_cfg.ap.password[0] = '\0';
+    } 
+    else if (pass_len < 8) {
+        // Невалидный пароль для WPA — принудительно OPEN
+        ESP_LOGW(TAG, "AP password too short (%d), forcing OPEN auth", pass_len);
+        ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
+        ap_cfg.ap.password[0] = '\0';
+    } 
+    else {
+        // Явно WPA2, без WPA1 и без warning
+        strncpy((char *)ap_cfg.ap.password, cfg->ap_password, sizeof(ap_cfg.ap.password) - 1);
+        ap_cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
+    }
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
@@ -364,11 +408,60 @@ const wifi_ap_record_t* wifi_get_ap_list(uint16_t *count)
 
 
 // --- Подключение к выбранной сети ---
+/*
 esp_err_t wifi_connect_to(const char* ssid, const char* password)
 {
     wifi_config_t sta_cfg = {0};
-    strncpy((char *)sta_cfg.sta.ssid, ssid, sizeof(sta_cfg.sta.ssid));
-    strncpy((char *)sta_cfg.sta.password, password, sizeof(sta_cfg.sta.password));
+
+    strncpy((char *)sta_cfg.sta.ssid, ssid,sizeof(sta_cfg.sta.ssid) - 1);
+    strncpy((char *)sta_cfg.sta.password,password,sizeof(sta_cfg.sta.password) - 1);
+
+   
+    if (password == NULL || strlen(password) == 0) {
+        sta_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
+    } else {
+        sta_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    }
+
+    sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+    sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
+    sta_cfg.sta.pmf_cfg.capable = true;
+    sta_cfg.sta.pmf_cfg.required = false;
+
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
+    ESP_ERROR_CHECK(esp_wifi_connect());
+
+    ESP_LOGI(TAG, "Connecting to SSID: %s", ssid);
+    return ESP_OK;
+}
+*/
+
+// --- Подключение к выбранной сети ---
+esp_err_t wifi_connect_to(const char* ssid, const char* password)
+{
+    wifi_config_t sta_cfg = {0};
+  //  strncpy((char *)sta_cfg.sta.ssid, ssid, sizeof(sta_cfg.sta.ssid));
+  //  strncpy((char *)sta_cfg.sta.password, password, sizeof(sta_cfg.sta.password));
+    memset(&sta_cfg, 0, sizeof(sta_cfg));
+
+    // SSID
+    strncpy((char *)sta_cfg.sta.ssid, ssid,
+            sizeof(sta_cfg.sta.ssid) - 1);
+
+    size_t pass_len = password ? strlen(password) : 0;
+    memset(sta_cfg.sta.password, 0, sizeof(sta_cfg.sta.password));
+    if (pass_len >= 8 && pass_len <= 63) {
+        // WPA2
+        strncpy((char *)sta_cfg.sta.password, password,
+                sizeof(sta_cfg.sta.password) - 1);
+
+        sta_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
+    } else {
+        // OPEN (важно: пароль пустой)
+        sta_cfg.sta.password[0] = '\0';
+        sta_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
+    }
 
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));

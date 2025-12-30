@@ -215,7 +215,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     strncpy(ws_password, password, sizeof(ws_password) - 1);
     strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
 
-    char uri[256];
+    char uri[512];
     snprintf(uri, sizeof(uri), "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s", session_id);
 
     esp_websocket_client_config_t websocket_cfg = {
