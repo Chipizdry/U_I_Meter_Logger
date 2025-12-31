@@ -24,7 +24,7 @@ typedef struct {
     char account_login[32];
     char account_password[32];
     char language[8];
-    char serial[16];
+    char serial[32];
 } user_settings_t;
 
 typedef struct {
