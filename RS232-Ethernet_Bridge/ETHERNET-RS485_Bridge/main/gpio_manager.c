@@ -78,6 +78,17 @@ esp_err_t gpio_manager_init(void)
     };
     gpio_config(&btn_conf);
 
+    //====== Сброс ETHERNET=======
+    gpio_config_t rst_conf = {
+        .pin_bit_mask = (1ULL << ETH_RST_PIN),
+        .mode = GPIO_MODE_OUTPUT,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .intr_type = GPIO_INTR_DISABLE
+    };
+    gpio_config(&rst_conf);
+
+
      // Настройка DE-пина
     gpio_config_t io_conf = {
         .pin_bit_mask = (1ULL << RS485_DE_PIN),

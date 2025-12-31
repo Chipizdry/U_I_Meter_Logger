@@ -16,6 +16,7 @@
 #include "lwip/netif.h"
 #include "nvs_settings.h"
 #include "network_state.h"
+#include "gpio_manager.h"
 
 static const char *TAG = "ethernet_manager";
 
@@ -62,22 +63,11 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
 // ======================= РУЧНОЙ RESET PHY =======================
 static void phy_hard_reset(void)
 {
-    const gpio_num_t rst_pin = GPIO_NUM_16;
-
-    gpio_config_t io_conf = {
-        .pin_bit_mask = (1ULL << rst_pin),
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE
-    };
-    gpio_config(&io_conf);
-
-    gpio_set_level(rst_pin, 1);
+    gpio_set_level(ETH_RST_PIN, 1);
     vTaskDelay(pdMS_TO_TICKS(10));
-    gpio_set_level(rst_pin, 0);
+    gpio_set_level(ETH_RST_PIN, 0);
     vTaskDelay(pdMS_TO_TICKS(200));
-    gpio_set_level(rst_pin, 1);
+    gpio_set_level(ETH_RST_PIN, 1);
     vTaskDelay(pdMS_TO_TICKS(200));
 
     ESP_LOGI(TAG, "PHY Reset: DONE");
@@ -89,9 +79,6 @@ esp_err_t ethernet_init(void)
     ESP_LOGI(TAG, "Initializing Ethernet...");
 
     phy_hard_reset();
-
-  //  ESP_ERROR_CHECK(esp_netif_init());
-  //  ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     esp_netif_config_t cfg = ESP_NETIF_DEFAULT_ETH();
     s_eth_netif = esp_netif_new(&cfg);
@@ -135,7 +122,6 @@ esp_err_t ethernet_init(void)
 
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler, NULL));
-
     ESP_ERROR_CHECK(esp_eth_start(s_eth_handle));
 
  //   ESP_LOGI(TAG, "Ethernet started successfully");
