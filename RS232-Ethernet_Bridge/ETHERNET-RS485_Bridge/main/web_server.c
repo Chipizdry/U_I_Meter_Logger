@@ -32,6 +32,7 @@ extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 static void url_decode(char *dst, const char *src);
 
+/*
 static const char* wifi_mode_to_string(wifi_mode_t mode) { 
     switch (mode) { case WIFI_MODE_NULL: return "WIFI_MODE_NULL";
         case WIFI_MODE_STA: return "WIFI_MODE_STA";
@@ -40,7 +41,7 @@ static const char* wifi_mode_to_string(wifi_mode_t mode) {
         case WIFI_MODE_MAX: return "WIFI_MODE_MAX"; 
         default: return "UNKNOWN"; } }
 
-
+*/
         
 /// GET /get_settings
 
@@ -668,7 +669,7 @@ static esp_err_t ping_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-
+/*
 esp_err_t captive_redirect_handler(httpd_req_t *req)
 {
     wifi_mode_t mode;
@@ -700,6 +701,93 @@ esp_err_t captive_redirect_handler(httpd_req_t *req)
     httpd_resp_send(req, NULL, 0);
     return ESP_OK;
 }
+*/
+
+
+static bool is_static_resource(const char *uri)
+{
+    if (!uri) return false;
+
+    const char *exts[] = { ".css", ".js", ".png", ".jpg", ".ico", ".svg", ".woff", ".ttf" };
+    for (size_t i = 0; i < sizeof(exts)/sizeof(exts[0]); i++) {
+        if (strstr(uri, exts[i])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+esp_err_t captive_redirect_handler(httpd_req_t *req)
+{
+    wifi_mode_t mode;
+    esp_wifi_get_mode(&mode);
+
+    // Работает только в AP или AP+STA
+    if (mode != WIFI_MODE_AP && mode != WIFI_MODE_APSTA) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    // Уже авторизован — не трогаем
+    if (check_token(req)) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    const char *uri = req->uri;
+
+    // Пропускаем статику, API и WebSocket
+    if ((strncmp(uri, "/api", 4) == 0 ||
+     strncmp(uri, "/ws", 3) == 0 ||
+     is_static_resource(uri)) &&
+    strcmp(uri, "/hotspot-detect.html") != 0 &&
+    strcmp(uri, "/generate_204") != 0) {
+    return ESP_ERR_NOT_FOUND;
+    }
+    
+    ESP_LOGW("CAPTIVE", "Captive hit: %s", uri);
+
+    // --- Windows probes ---
+    if (strcmp(uri, "/connecttest.txt") == 0) {
+        httpd_resp_set_status(req, "204 No Content");
+        httpd_resp_send(req, NULL, 0);
+        return ESP_OK;
+    }
+
+    if (strcmp(uri, "/ncsi.txt") == 0) {
+        httpd_resp_set_type(req, "text/plain");
+        httpd_resp_sendstr(req, "Microsoft NCSI");
+        return ESP_OK;
+    }
+
+    // --- iOS / Android probes ---
+    if (strcmp(uri, "/hotspot-detect.html") == 0 ||
+        strcmp(uri, "/generate_204") == 0) {
+        httpd_resp_set_status(req, "302 Found");
+        httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+        httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
+        httpd_resp_set_hdr(req, "Pragma", "no-cache");
+        httpd_resp_set_hdr(req, "Expires", "0");
+        httpd_resp_set_type(req, "text/html");
+        httpd_resp_sendstr(req,
+            "<html><body>"
+            "Redirecting to <a href='http://192.168.4.1/'>captive portal</a>"
+            "</body></html>");
+        return ESP_OK;
+    }
+
+    // --- Остальные URI → редирект на главную страницу AP ---
+    httpd_resp_set_status(req, "302 Found");
+    httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+    httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
+    httpd_resp_set_hdr(req, "Pragma", "no-cache");
+    httpd_resp_set_hdr(req, "Expires", "0");
+    httpd_resp_set_type(req, "text/html");
+    httpd_resp_sendstr(req,
+        "<html><body>"
+        "Redirecting to <a href='http://192.168.4.1/'>captive portal</a>"
+        "</body></html>");
+    return ESP_OK;
+}
+
 
 // ==== Конфигурация сервера ====
 esp_err_t web_server_start(void)
