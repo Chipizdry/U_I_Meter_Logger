@@ -50,24 +50,59 @@ static void check_and_stop_wifi(void)
 }
 
 
-
-static const char* wifi_reason_to_str(wifi_err_reason_t reason) {
+static const char* wifi_reason_to_str(uint8_t reason)
+{
     switch (reason) {
-        case WIFI_REASON_UNSPECIFIED: return "Unspecified";
-        case WIFI_REASON_AUTH_EXPIRE: return "Auth expired";
-        case WIFI_REASON_NO_AP_FOUND: return "AP not found";
-        case WIFI_REASON_AUTH_FAIL: return "Auth failed";
-        case WIFI_REASON_ASSOC_FAIL: return "Association failed";
-        case WIFI_REASON_HANDSHAKE_TIMEOUT: return "Handshake timeout";
-        default: return "Other";
+        // --- Стандартные коды ESP-IDF ---
+        case 0: return "0: Unspecified / Unknown reason";
+        case 1: return "1: Auth expired (deauthenticated because auth timed out)";
+        case 2: return "2: Auth leave (station leaving network)";
+        case 3: return "3: Assoc expired (association expired)";
+        case 4: return "4: Assoc too many (AP reached max assoc limit)";
+        case 5: return "5: Not authed (station not authenticated)";
+        case 6: return "6: Not assoced (station not associated)";
+        case 7: return "7: Assoc leave (station leaving network)";
+        case 8: return "8: Assoc not authed (association without auth)";
+        case 9: return "9: Disassoc pwrcap bad (power capability mismatch)";
+        case 10: return "10: Disassoc supchan bad (unsupported channel)";
+        case 11: return "11: BSS transition management not supported";
+        case 12: return "12: Disassoc unspecified reason";
+        case 13: return "13: IE invalid (invalid information element in frame)";
+        case 14: return "14: MIC failure (Michael MIC failure)";
+        case 15: return "15: 4-way handshake timeout (common WPA2 failure)";
+        case 16: return "16: 4-way handshake timeout";
+        case 17: return "17: Group key update timeout";
+        case 18: return "18: IE in 4-way differs (mismatch in handshake)";
+        case 19: return "19: Group cipher invalid";
+        case 20: return "20: Pairwise cipher invalid";
+        case 21: return "21: AKMP invalid (authentication key management problem)";
+        case 22: return "22: Unsupported RSN IE version";
+        case 23: return "23: Invalid RSN IE capabilities";
+        case 24: return "24: 802.1X authentication failed";
+        case 25: return "25: Cipher suite rejected";
+
+        // --- Часто встречающиеся нестандартные / ESP32 внутренние ---
+        case 26: return "26: TSN timeout / proprietary reason";
+        case 27: return "27: WPA handshake failed / proprietary reason";
+        case 28: return "28: DHCP failure";
+        case 29: return "29: Beacon timeout";
+        case 205: return "205: WPA handshake failed / proprietary ESP32 internal";
+
+        // --- Любые неизвестные коды ---
+        default: {
+            static char buf[64];
+            snprintf(buf, sizeof(buf), "Unknown reason %d", reason);
+            return buf;
+        }
     }
 }
+
 
 static void wifi_manager_init_once(void)
 {
     if (wifi_initialized) return;
 
-    ESP_ERROR_CHECK(esp_netif_init());
+  //  ESP_ERROR_CHECK(esp_netif_init());
 
     sta_netif = esp_netif_create_default_wifi_sta();
     ap_netif  = esp_netif_create_default_wifi_ap();
@@ -268,15 +303,15 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
             case WIFI_EVENT_STA_START:
                 ESP_LOGI(TAG, "STA started, connecting...");
                 esp_wifi_connect();
-                network_set_state(NET_STATE_CONNECTING);
+                network_set_wifi_state(NET_STATE_WIFI_CONNECTING);
                 break;
             case WIFI_EVENT_STA_CONNECTED:
                 ESP_LOGI(TAG, "STA connected");
                 break;
             case WIFI_EVENT_STA_DISCONNECTED: {
                 wifi_event_sta_disconnected_t *disconn = event_data;
-                ESP_LOGW(TAG, "STA disconnected, reason=%d", disconn->reason);
-                 network_set_state(NET_STATE_DOWN);
+                 ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)",disconn->reason, wifi_reason_to_str(disconn->reason));
+                 network_set_wifi_state(NET_STATE_WIFI_DOWN);
                 esp_wifi_connect();
                 break;
             }
@@ -371,7 +406,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
         }
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t*)event_data;
-         network_set_state(NET_STATE_UP);
+         network_set_wifi_state(NET_STATE_WIFI_UP);
         ESP_LOGI(TAG, "STA got IP: " IPSTR, IP2STR(&event->ip_info.ip));
     }
 }
@@ -405,37 +440,6 @@ const wifi_ap_record_t* wifi_get_ap_list(uint16_t *count)
     return ap_list;
 }
 
-
-
-// --- Подключение к выбранной сети ---
-/*
-esp_err_t wifi_connect_to(const char* ssid, const char* password)
-{
-    wifi_config_t sta_cfg = {0};
-
-    strncpy((char *)sta_cfg.sta.ssid, ssid,sizeof(sta_cfg.sta.ssid) - 1);
-    strncpy((char *)sta_cfg.sta.password,password,sizeof(sta_cfg.sta.password) - 1);
-
-   
-    if (password == NULL || strlen(password) == 0) {
-        sta_cfg.sta.threshold.authmode = WIFI_AUTH_OPEN;
-    } else {
-        sta_cfg.sta.threshold.authmode = WIFI_AUTH_WPA2_PSK;
-    }
-
-    sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
-    sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
-    sta_cfg.sta.pmf_cfg.capable = true;
-    sta_cfg.sta.pmf_cfg.required = false;
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
-    ESP_ERROR_CHECK(esp_wifi_connect());
-
-    ESP_LOGI(TAG, "Connecting to SSID: %s", ssid);
-    return ESP_OK;
-}
-*/
 
 // --- Подключение к выбранной сети ---
 esp_err_t wifi_connect_to(const char* ssid, const char* password)

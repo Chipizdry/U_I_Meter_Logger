@@ -7,13 +7,16 @@
 
 static const char *TAG = "NET_STATE";
 
-static net_state_t g_net_state = NET_STATE_DOWN;
+static net_state_t g_wifi_state = NET_STATE_WIFI_DOWN;
+static net_state_t g_eth_state  = NET_STATE_ETHERNET_DOWN;
 static SemaphoreHandle_t net_state_mutex = NULL;
 
 void network_state_init(void)
 {
     net_state_mutex = xSemaphoreCreateMutex();
-     g_net_state = NET_STATE_DOWN;
+     g_wifi_state = NET_STATE_WIFI_DOWN;
+     g_eth_state  = NET_STATE_ETHERNET_DOWN;
+     
     if (!net_state_mutex) {
         ESP_LOGE(TAG, "Failed to create net_state_mutex");
         abort(); // это фатальная ошибка
@@ -21,29 +24,38 @@ void network_state_init(void)
     ESP_LOGI(TAG, "Network state initialized");
 }
 
-void network_set_state(net_state_t state)
+void network_set_wifi_state(net_state_t state)
 {
-     ESP_LOGI(TAG, "Network state changed: %d", state);
-    if (!net_state_mutex) return;
-
     xSemaphoreTake(net_state_mutex, portMAX_DELAY);
-    g_net_state = state;
+    g_wifi_state = state;
     xSemaphoreGive(net_state_mutex);
 }
 
-net_state_t network_get_state(void)
+void network_set_ethernet_state(net_state_t state)
 {
-    if (!net_state_mutex) return NET_STATE_DOWN;
-     if (net_state_mutex == NULL) {
-        return NET_STATE_DOWN;   // безопасное значение
-    }
+    xSemaphoreTake(net_state_mutex, portMAX_DELAY);
+    g_eth_state = state;
+    xSemaphoreGive(net_state_mutex);
+}
 
+net_state_t network_get_wifi_state(void)
+{
     net_state_t state;
     xSemaphoreTake(net_state_mutex, portMAX_DELAY);
-    state = g_net_state;
+    state = g_wifi_state;
     xSemaphoreGive(net_state_mutex);
     return state;
 }
+
+net_state_t network_get_ethernet_state(void)
+{
+    net_state_t state;
+    xSemaphoreTake(net_state_mutex, portMAX_DELAY);
+    state = g_eth_state;
+    xSemaphoreGive(net_state_mutex);
+    return state;
+}
+
 
 
 

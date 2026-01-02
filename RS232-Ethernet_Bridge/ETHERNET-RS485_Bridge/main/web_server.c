@@ -669,40 +669,6 @@ static esp_err_t ping_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-/*
-esp_err_t captive_redirect_handler(httpd_req_t *req)
-{
-    wifi_mode_t mode;
-    esp_wifi_get_mode(&mode);
-
-    // ❌ Не AP режим
-    if (mode != WIFI_MODE_AP && mode != WIFI_MODE_APSTA) {
-        return ESP_ERR_NOT_FOUND;
-    }
-
-    // ❌ Уже авторизован
-    if (check_token(req)) {
-        return ESP_ERR_NOT_FOUND;
-    }
-
-    // ❌ API и WS не трогаем
-    if (strncmp(req->uri, "/api", 4) == 0 ||
-        strcmp(req->uri, "/ws") == 0 ||
-        strstr(req->uri, ".js") ||
-        strstr(req->uri, ".css") ||
-        strstr(req->uri, ".png")) {
-        return ESP_ERR_NOT_FOUND;
-    }
-
-    ESP_LOGW("CAPTIVE", "Redirecting captive request: %s", req->uri);
-
-    httpd_resp_set_status(req, "302 Found");
-    httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
-    httpd_resp_send(req, NULL, 0);
-    return ESP_OK;
-}
-*/
-
 
 static bool is_static_resource(const char *uri)
 {

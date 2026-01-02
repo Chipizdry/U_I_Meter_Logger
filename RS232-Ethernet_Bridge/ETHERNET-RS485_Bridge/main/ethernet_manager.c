@@ -23,6 +23,7 @@ static const char *TAG = "ethernet_manager";
 static esp_eth_handle_t s_eth_handle = NULL;
 static esp_netif_t *s_eth_netif = NULL;
 static bool s_connected = false;
+static void phy_hard_reset(void);
 
 // ======================= Event Handlers =======================
 
@@ -37,15 +38,15 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
         case ETHERNET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Ethernet Link Down");
             s_connected = false;
-            network_set_state(NET_STATE_DOWN);
+            network_set_ethernet_state(NET_STATE_ETHERNET_DOWN);
             break;
         case ETHERNET_EVENT_START:
             ESP_LOGI(TAG, "Ethernet Started");
-            network_set_state(NET_STATE_CONNECTING);
+            network_set_ethernet_state(NET_STATE_ETHERNET_CONNECTING);
             break;
         case ETHERNET_EVENT_STOP:
             ESP_LOGI(TAG, "Ethernet Stopped");
-            network_set_state(NET_STATE_DOWN);
+            network_set_ethernet_state(NET_STATE_ETHERNET_DOWN);
             s_connected = false;
             break;
         default:
@@ -56,7 +57,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
-    network_set_state(NET_STATE_UP);
+    network_set_ethernet_state(NET_STATE_ETHERNET_UP);
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
 }
 

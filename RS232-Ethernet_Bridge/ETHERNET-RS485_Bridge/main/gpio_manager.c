@@ -163,24 +163,24 @@ static void status_led_task(void *arg)
     bool led = false;
 
     while (1) {
-        net_state_t state = network_get_state();
+        net_state_t wifi_state = network_get_wifi_state();
+        net_state_t eth_state  = network_get_ethernet_state();
 
-        switch (state) {
-        case NET_STATE_DOWN:
+         // LED выкл, если оба DOWN
+        if ((wifi_state == NET_STATE_WIFI_DOWN) && (eth_state == NET_STATE_ETHERNET_DOWN)) {
             gpio_set_level(GPIO_STATUS_LED, 0);
             vTaskDelay(pdMS_TO_TICKS(500));
-            break;
-
-        case NET_STATE_CONNECTING:
+        }
+        // Мигаем, если хотя бы один CONNECTING
+        else if ((wifi_state == NET_STATE_WIFI_CONNECTING) || (eth_state == NET_STATE_ETHERNET_CONNECTING)) {
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
             vTaskDelay(pdMS_TO_TICKS(200));
-            break;
-
-        case NET_STATE_UP:
+        }
+        // Включен, если хотя бы один UP
+        else if ((wifi_state == NET_STATE_WIFI_UP) || (eth_state == NET_STATE_ETHERNET_UP)) {
             gpio_set_level(GPIO_STATUS_LED, 1);
             vTaskDelay(pdMS_TO_TICKS(1000));
-            break;
         }
     }
 }
