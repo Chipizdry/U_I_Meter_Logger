@@ -31,14 +31,8 @@ static const char *TAG = "rs485_master";
 static esp_timer_handle_t s_de_off_timer = NULL;
 static void rs485_request_task(void *arg);
 static void de_off_timer_cb(void *arg);
-static QueueHandle_t s_req_queue = NULL;
+QueueHandle_t s_req_queue = NULL;
 static TaskHandle_t s_req_task = NULL;
-
-
-typedef struct {
-    uint8_t data[32];
-    size_t len;
-} rs485_req_t;
 
 
 /* --- внутренние структуры --- */
@@ -544,8 +538,8 @@ static void rs485_request_task(void *arg)
                 bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));
 
                 // --- переиспользуем ws_msg здесь ---
-                snprintf(ws_msg, sizeof(ws_msg),"{\"hex_response\": \"%s\"}", hex_resp);
-
+               // snprintf(ws_msg, sizeof(ws_msg),"{\"hex_response\": \"%s\"}", hex_resp);`
+             snprintf(ws_msg, sizeof(ws_msg), "{\"cmd\":\"%s\",\"hex_response\":\"%s\"}",req.cmd[0] ? req.cmd : "UNKNOWN", hex_resp);
                 websocket_send_text(ws_msg);
              //   ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
 
@@ -560,3 +554,13 @@ static void rs485_request_task(void *arg)
     }
     vTaskDelete(NULL);
 }
+
+
+esp_err_t rs485_master_send_req(const rs485_req_t *req)
+{
+    if (!s_req_queue || !req) return ESP_FAIL;
+    return xQueueSend(s_req_queue, req, pdMS_TO_TICKS(10)) == pdTRUE
+           ? ESP_OK
+           : ESP_ERR_TIMEOUT;
+}
+

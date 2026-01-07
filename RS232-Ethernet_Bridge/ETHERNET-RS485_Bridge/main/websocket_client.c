@@ -157,7 +157,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "📤Sent auth message:%s", auth_msg);
             }
             ws_connected = true;
-             gpio_set_net_led(true);
+           //  gpio_set_net_led(true);
              ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
              last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
         break;
@@ -189,7 +189,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
                 if (!data->fin) return;
                 ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
-                    
+                     
                 handle_msg_data(ws_rx_buf);
                 handle_hex_data(ws_rx_buf);
                 handle_pi30_data(ws_rx_buf);
@@ -508,7 +508,19 @@ static bool handle_pi30_data(const char *json)
   //  ESP_LOGI(TAG, "📤 UART send %d bytes", byte_len);
   //  ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
 
-    rs485_master_send(bytes, byte_len);
+        rs485_req_t req = {0};
+        memcpy(req.data, bytes, byte_len);
+        req.len = byte_len;
+        // 🔥 извлекаем команду ИЗ ЗАПРОСА
+        if (byte_len >= 5 &&
+            bytes[0] >= 'A' && bytes[0] <= 'Z') {
+            // QPIGS / QMOD / QFLAG / etc
+            memcpy(req.cmd, bytes, 5);
+            req.cmd[5] = 0;
+        } else {
+            strcpy(req.cmd, "UNKNOWN");
+        }
+        rs485_master_send_req(&req);
     return true;
 }
 
@@ -536,6 +548,7 @@ static bool handle_pi30_data(const char *json)
 
                     if (strcmp(cloud_status_msg, "authenticated") == 0 ||
                             strcmp(cloud_status_msg, "connected") == 0) {
+                                 gpio_set_net_led(true);
                             ws_connected = true;
                         } else {
                             ws_connected = false;

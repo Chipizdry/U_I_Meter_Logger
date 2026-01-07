@@ -29,6 +29,16 @@ extern "C" {
 // Максимальное количество опрашиваемых устройств
 #define RS485_MAX_SLAVES      32
 
+
+typedef struct {
+    uint8_t data[32];
+    size_t len;
+    char cmd[8];
+} rs485_req_t;
+
+esp_err_t rs485_master_send_req(const rs485_req_t *req);
+
+
 typedef struct {
     uint8_t slave_addr;        // Modbus address
     uint16_t reg_start;        // адрес первого регистра (Modbus: 0-based)
