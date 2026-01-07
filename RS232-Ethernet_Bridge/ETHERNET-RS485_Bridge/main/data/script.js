@@ -705,3 +705,15 @@ function addDiagRow(text) {
 }
 
 
+document.querySelectorAll('input[name="netType"]').forEach(radio => {
+    radio.addEventListener("change", () => {
+        document.getElementById("ethernetBlock")
+            .classList.toggle("hidden", radio.value !== "ethernet");
+
+        document.getElementById("wifiBlock")
+            .classList.toggle("hidden", radio.value !== "wifi");
+    });
+});
+
+
+
