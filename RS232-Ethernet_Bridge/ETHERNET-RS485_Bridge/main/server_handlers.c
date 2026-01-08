@@ -222,7 +222,9 @@ esp_err_t logout_post_handler(httpd_req_t *req)
 
     // ===== 3. Отправляем ответ =====
     httpd_resp_set_type(req, "application/json");
-    httpd_resp_sendstr(req, "{\"status\":\"ok\"}");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_sendstr(req, "{\"status\":\"ok\",\"message\":\"Logged out successfully\"}");
 
     return ESP_OK;
 }
@@ -244,6 +246,10 @@ esp_err_t factory_reset_post_handler(httpd_req_t *req)
     httpd_resp_set_status(req, "200 OK");
     httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
     httpd_resp_sendstr(req,"{\"status\":\"ok\",\"message\":\"Factory reset started\"}");
+
+     // Небольшая задержка, чтобы ответ успел уйти
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+
     ESP_LOGW(TAG, "Performing reset...");
     reset_to_factory_defaults();
     return ESP_OK;

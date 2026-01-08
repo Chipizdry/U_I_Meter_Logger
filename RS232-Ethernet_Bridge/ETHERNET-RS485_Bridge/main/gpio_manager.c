@@ -7,7 +7,7 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "nvs_flash.h"
+#include "nvs_settings.h"
 #include "network_state.h"
 
 static const char *TAG = "GPIO_MANAGER";
@@ -16,39 +16,18 @@ static void status_led_task(void *arg);
 // ================================
 // ========== PRIVATE =============
 // ================================
-/*
-static void reset_to_factory_defaults(void)
-{
-    ESP_LOGW(TAG, "RESET button held for 5s — restoring factory defaults!");
-
-    esp_err_t err = nvs_flash_erase();
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, "NVS successfully erased");
-    } else {
-        ESP_LOGE(TAG, "Failed to erase NVS: %s", esp_err_to_name(err));
-    }
-
-    vTaskDelay(pdMS_TO_TICKS(1000));
-    esp_restart();
-}
-*/
 
 static void factory_reset_task(void *arg)
 {
     ESP_LOGW(TAG, "Factory reset requested via WEB");
 
     vTaskDelay(pdMS_TO_TICKS(200)); // дать HTTP ответу уйти
-
-    esp_err_t err = nvs_flash_erase();
-    if (err == ESP_OK) {
-        ESP_LOGI(TAG, "NVS erased successfully");
-    } else {
-        ESP_LOGE(TAG, "NVS erase failed: %s", esp_err_to_name(err));
-    }
+     nvs_factory_reset();
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     esp_restart();
 }
+
 
  void reset_to_factory_defaults(void)
 {

@@ -118,6 +118,9 @@ esp_err_t nvs_save_wifi_settings(const wifi_settings_t *settings);
 esp_err_t nvs_load_wifi_settings(wifi_settings_t *settings);
 esp_err_t nvs_clear_wifi_settings(void);
 
+
+// ======== Фабричный сброс ========
+void nvs_factory_reset(void);
 // ======== FS сессия ========
 esp_err_t nvs_save_fs_session(const fs_session_t *s);
 esp_err_t nvs_load_fs_session(fs_session_t *s);

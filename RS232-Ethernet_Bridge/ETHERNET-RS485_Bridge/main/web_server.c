@@ -33,6 +33,8 @@ extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 static void url_decode(char *dst, const char *src);
 
+static void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
+
 /// GET /get_settings
 
 static esp_err_t get_settings_handler(httpd_req_t *req)
@@ -73,6 +75,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     nvs_load_wifi_settings(&wifi_cfg);
 
     // Если DHCP включен, берем текущие настройки с Ethernet
+    /*
     if (net.dhcp_enabled) {
         esp_netif_ip_info_t ip_info = ethernet_get_ip_info();
         char ip[16], mask[16], gw[16];
@@ -94,8 +97,32 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             strcpy(net.dns, "0.0.0.0");
         }
     }
+  */
+
+        if (net.dhcp_enabled) {
+        fill_netif_ip_info(
+            "ETH_DEF",
+            net.ip,
+            net.mask,
+            net.gateway,
+            net.dns,
+            sizeof(net.ip)
+        );
+    }
 
 
+        if (wifi_cfg.dhcp_enabled &&
+        (wifi_cfg.mode == WIFI_MODE_STA || wifi_cfg.mode == WIFI_MODE_APSTA)) {
+
+        fill_netif_ip_info(
+            "WIFI_STA_DEF",
+            wifi_cfg.ip,
+            wifi_cfg.mask,
+            wifi_cfg.gateway,
+            wifi_cfg.dns,
+            sizeof(wifi_cfg.ip)
+        );
+    }
     // Сбор JSON
     cJSON *json = cJSON_CreateObject();
 
@@ -124,6 +151,13 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddStringToObject(n, "dns", net.dns); 
             cJSON_AddNumberToObject(n, "port", net.port);
             cJSON_AddBoolToObject(n, "dhcp_enabled", net.dhcp_enabled);
+
+            cJSON_AddStringToObject(n, "wifi_ip", wifi_cfg.ip);
+            cJSON_AddStringToObject(n, "wifi_mask", wifi_cfg.mask);
+            cJSON_AddStringToObject(n, "wifi_gateway", wifi_cfg.gateway);
+            cJSON_AddStringToObject(n, "wifi_dns", wifi_cfg.dns);
+            cJSON_AddBoolToObject(n, "wifi_dhcp_enabled", wifi_cfg.dhcp_enabled);
+            
             cJSON_AddItemToObject(json, "network", n);
             if (section != ALL) break;
             [[fallthrough]]; 
@@ -632,6 +666,40 @@ static void url_decode(char *dst, const char *src)
         }
     }
     *dst = '\0';
+}
+
+
+static void fill_netif_ip_info(
+    const char *ifkey,
+    char *ip,
+    char *mask,
+    char *gw,
+    char *dns,
+    size_t len)
+{
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey(ifkey);
+    if (!netif) {
+        ESP_LOGW("NET", "netif %s not found", ifkey);
+        strcpy(ip, "0.0.0.0");
+        strcpy(mask, "0.0.0.0");
+        strcpy(gw, "0.0.0.0");
+        strcpy(dns, "0.0.0.0");
+        return;
+    }
+
+    esp_netif_ip_info_t ip_info;
+    if (esp_netif_get_ip_info(netif, &ip_info) == ESP_OK) {
+        inet_ntoa_r(ip_info.ip, ip, len);
+        inet_ntoa_r(ip_info.netmask, mask, len);
+        inet_ntoa_r(ip_info.gw, gw, len);
+    }
+
+    esp_netif_dns_info_t dns_info;
+    if (esp_netif_get_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns_info) == ESP_OK) {
+        inet_ntoa_r(dns_info.ip.u_addr.ip4, dns, len);
+    } else {
+        strcpy(dns, "0.0.0.0");
+    }
 }
 
 

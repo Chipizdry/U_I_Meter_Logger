@@ -17,6 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
     dhcpCheckbox.addEventListener("change", updateIPFieldsState);
+    wifiDhcpCheckbox.addEventListener("change", updateIPFieldsState);
     
     if (token) {
         fetchSettings();
@@ -175,11 +176,21 @@ function applySettingsToForm(tab, data) {
     switch (tab) {
         case "LAN": {
             const net = data.network || {};
+
+            // Ethernet
             document.getElementById("ip").value = net.ip || "";
             document.getElementById("mask").value = net.mask || "";
             document.getElementById("gateway").value = net.gateway || "";
             document.getElementById("dns").value = net.dns || "";
             document.getElementById("dhcp").checked = !!net.dhcp_enabled;
+
+            // Wi-Fi
+            document.getElementById("wifi_ip").value = net.wifi_ip || "";
+            document.getElementById("wifi_mask").value = net.wifi_mask || "";
+            document.getElementById("wifi_gateway").value = net.wifi_gateway || "";
+            document.getElementById("wifi_dns").value = net.wifi_dns || "";
+            document.getElementById("wifi_dhcp").checked = !!net.wifi_dhcp_enabled;
+
             document.getElementById("port").value = net.port || 80;
             break;
         }
@@ -200,14 +211,6 @@ function applySettingsToForm(tab, data) {
             document.querySelector("[name='ap-password']").value = wifi.ap_password || "";
             document.querySelector("[name='ap-channel']").value = wifi.ap_channel || 1;
 
-            // LAN
-            document.querySelector("[name='ip']").value = wifi.ip || "";
-            document.querySelector("[name='mask']").value = wifi.mask || "";
-            document.querySelector("[name='gateway']").value = wifi.gateway || "";
-            document.querySelector("[name='dns']").value = wifi.dns || "";
-
-            // DHCP
-            document.querySelector("[name='dhcp']").checked = !!wifi.dhcp_enabled;
             updateWiFiVisibility();
             break;
         }
@@ -544,19 +547,22 @@ function updateWiFiVisibility() {
             console.log("Полученные настройки:", data);
 
             // === Заполняем форму LAN ===
+            
             if (data.network) {
                 const net = data.network;
-                document.getElementById("ip").value = net.ip || "";
-                document.getElementById("mask").value = net.mask || "";
-                document.getElementById("gateway").value = net.gateway || "";
-                document.getElementById("dns").value = net.dns || "";
+               
                 document.getElementById("dhcp").checked = !!net.dhcp_enabled;
-                document.getElementById("port").value = net.port;
+                document.getElementById("wifi_dhcp").checked = !!net.wifi_dhcp_enabled;
+
+
+                
 
                 // Обновляем состояние полей IP в зависимости от DHCP
                 updateIPFieldsState();
             }
+            
 
+         //  updateIPFieldsState();
                // === Автоматически применяем настройки на активную вкладку ===
           const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
           loadTabSettings(activeTab);
@@ -616,13 +622,14 @@ function validateIP(ip) {
             field.disabled = disabled;
             field.style.opacity = disabled ? "0.6" : "1.0";
         });
+        wifiIpFields.forEach(id => {
+            const field = document.getElementById(id);
+            field.disabled = disabled;
+            field.style.opacity = disabled ? "0.6" : "1.0";
+        });
     }
 
 
-
-
-
- 
  // === Форматирование и маска ввода ===
  function applyIPMask(input) {
      input.addEventListener("input", (e) => {

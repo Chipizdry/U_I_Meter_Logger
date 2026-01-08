@@ -325,6 +325,38 @@ void nvs_clear_fs_session(void)
 }
 
 
+
+
+
+void nvs_factory_reset(void)
+{
+    ESP_LOGW(TAG, "Applying factory default settings");
+
+    user_settings_t user;
+    network_settings_t net;
+    wifi_settings_t wifi;
+    system_settings_t sys;
+    uart_settings_t uart;
+
+    set_default_user_settings(&user);
+    set_default_network_settings(&net);
+    set_default_wifi_settings(&wifi);
+    set_default_system_settings(&sys);
+    set_default_uart_settings(&uart);
+
+    ESP_ERROR_CHECK(nvs_save_user_settings(&user));
+    ESP_ERROR_CHECK(nvs_save_network_settings(&net));
+    ESP_ERROR_CHECK(nvs_save_wifi_settings(&wifi));
+    ESP_ERROR_CHECK(nvs_save_system_settings(&sys));
+    ESP_ERROR_CHECK(nvs_save_uart_settings(&uart));
+
+    ESP_LOGW(TAG, "Factory defaults applied successfully");
+}
+
+
+
+
+
 void system_update_build_info(void)
 {
     if (sys.build_number == BUILD_NUMBER &&
