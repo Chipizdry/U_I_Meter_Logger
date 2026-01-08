@@ -258,7 +258,7 @@
                     <h2>Параметры сети</h2>
 
                     <!-- 🔘 Выбор типа сети -->
-                    <div class="net-selector">
+                    <div class="uart-mode-box">
                         <label>
                             <input type="radio" name="netType" value="ethernet" checked>
                             🌐 Ethernet
@@ -298,9 +298,8 @@
                     <!-- ===== Wi-Fi ===== -->
                     <div class="net-block hidden" id="wifiBlock">
                         <h3>Wi-Fi</h3>
-
-                                
-                    <form id="wifiForm" class="settings-form">
+           
+                    <form id="wifiLANForm" class="settings-form">
                         <label class="switch-label">
                             <input type="checkbox" id="wifi_dhcp" name="dhcp">
                             <span class="switch"></span>
@@ -351,7 +350,7 @@
         const wifiDhcpCheckbox = document.getElementById("wifi_dhcp");
         const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
         const userForm = document.getElementById("UserForm");
-        const ipFields = ["ip", "mask", "gateway", "dns"];
+        const ethIpFields = ["ip", "mask", "gateway", "dns"];
         const wifiIpFields = ["wifi_ip", "wifi_mask", "wifi_gateway", "wifi_dns"];
         const DIAG_MAX_ROWS = 10;
         const diagList = document.getElementById("diagList");

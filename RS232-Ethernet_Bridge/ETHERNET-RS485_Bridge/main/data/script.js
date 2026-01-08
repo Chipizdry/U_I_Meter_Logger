@@ -5,19 +5,29 @@ document.addEventListener("DOMContentLoaded", () => {
    
     const eye = document.getElementById("eyeIcon");
     const token = sessionStorage.getItem('auth_token');
+     const dhcpCheckbox = document.getElementById("dhcp");
+    const wifiDhcpCheckbox = document.getElementById("wifi_dhcp");
+
     updateEyeIcon(eye, false); // false = закрытый глаз
     initAllEyeIcons();
 
     
 
-    ipFields.forEach(id => {
+
+        [...ethIpFields, ...wifiIpFields].forEach(id => {
         const field = document.getElementById(id);
         if (field) applyIPMask(field);
     });
 
+        dhcpCheckbox.addEventListener("change", () => {
+        console.log("ETH DHCP:", dhcpCheckbox.checked);
+        updateEthIPFieldsState();
+    });
 
-    dhcpCheckbox.addEventListener("change", updateIPFieldsState);
-    wifiDhcpCheckbox.addEventListener("change", updateIPFieldsState);
+    wifiDhcpCheckbox.addEventListener("change", () => {
+        console.log("WiFi DHCP:", wifiDhcpCheckbox.checked);
+        updateWifiIPFieldsState();
+    });
     
     if (token) {
         fetchSettings();
@@ -88,13 +98,6 @@ async function saveWiFiSettings() {
         ap_ssid: wifiForm.querySelector("[name='ap-ssid']").value,
         ap_password: wifiForm.querySelector("[name='ap-password']").value,
         ap_channel: parseInt(wifiForm.querySelector("[name='ap-channel']").value),
-
-        ip: wifiForm.querySelector("[name='ip']").value,
-        mask: wifiForm.querySelector("[name='mask']").value,
-        gateway: wifiForm.querySelector("[name='gateway']").value,
-        dns: wifiForm.querySelector("[name='dns']").value,
-
-        dhcp_enabled: wifiForm.querySelector("[name='dhcp']").checked ? 1 : 0
     };
 
     const res = await fetch('/save_settings/wifi', {
@@ -558,7 +561,7 @@ function updateWiFiVisibility() {
                 
 
                 // Обновляем состояние полей IP в зависимости от DHCP
-                updateIPFieldsState();
+                updateAllIPFieldsState();
             }
             
 
@@ -614,20 +617,41 @@ function validateIP(ip) {
     });
 
 
-// === Включение / выключение DHCP ===
-    function updateIPFieldsState() {
-        const disabled = dhcpCheckbox.checked;
-        ipFields.forEach(id => {
-            const field = document.getElementById(id);
-            field.disabled = disabled;
-            field.style.opacity = disabled ? "0.6" : "1.0";
-        });
-        wifiIpFields.forEach(id => {
-            const field = document.getElementById(id);
-            field.disabled = disabled;
-            field.style.opacity = disabled ? "0.6" : "1.0";
-        });
-    }
+function setFieldsDisabled(fieldIds, disabled) {
+    fieldIds.forEach(id => {
+        const field = document.getElementById(id);
+        if (!field) return;
+
+        field.disabled = disabled;
+
+        // 💡 важно
+        field.classList.toggle("ip-disabled", disabled);
+
+        // 💡 чтобы required не ломал форму
+        if (disabled) {
+            field.removeAttribute("required");
+        } else {
+            field.setAttribute("required", "required");
+        }
+    });
+}
+
+
+function updateEthIPFieldsState() {
+    const disabled = dhcpCheckbox.checked;
+    setFieldsDisabled(ethIpFields, disabled);
+}
+
+function updateWifiIPFieldsState() {
+    const disabled = wifiDhcpCheckbox.checked;
+    setFieldsDisabled(wifiIpFields, disabled);
+}
+
+function updateAllIPFieldsState() {
+    updateEthIPFieldsState();
+    updateWifiIPFieldsState();
+}
+
 
 
  // === Форматирование и маска ввода ===

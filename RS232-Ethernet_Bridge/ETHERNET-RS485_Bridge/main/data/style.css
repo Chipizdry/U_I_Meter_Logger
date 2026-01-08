@@ -972,6 +972,18 @@ select#deviceType:checked {
     margin-top: 1px;
 }
 
+.ip-disabled {
+    opacity: 0.5;
+    background-color: #f0f0f0;
+    color: #888;
+    cursor: not-allowed;
+}
+
+.ip-disabled::placeholder {
+    color: #666;
+}
+
+
 
 .file-upload-form {
     display: flex;
