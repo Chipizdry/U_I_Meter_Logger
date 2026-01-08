@@ -16,6 +16,8 @@ idf_component_register(
         "ws_server.c"
         "web_auth.c"
         "dns_server.c"
+        "server_handlers.c"
+        
 
     INCLUDE_DIRS "."
     REQUIRES 

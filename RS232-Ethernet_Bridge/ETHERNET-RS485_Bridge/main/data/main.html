@@ -288,19 +288,19 @@
 
 
                 <div class="tab-content" id="LAN">
-                <h2>Параметры сети</h2>
+                    <h2>Параметры сети</h2>
 
-                <!-- 🔘 Выбор типа сети -->
-                <div class="net-selector">
-                    <label>
-                        <input type="radio" name="netType" value="ethernet" checked>
-                        🌐 Ethernet
-                    </label>
-                    <label>
-                        <input type="radio" name="netType" value="wifi">
-                        📡 Wi-Fi
-                    </label>
-                </div>
+                    <!-- 🔘 Выбор типа сети -->
+                    <div class="net-selector">
+                        <label>
+                            <input type="radio" name="netType" value="ethernet" checked>
+                            🌐 Ethernet
+                        </label>
+                        <label>
+                            <input type="radio" name="netType" value="wifi">
+                            📡 Wi-Fi
+                        </label>
+                    </div>
 
                     <!-- ===== Ethernet ===== -->
                     <div class="net-block" id="ethernetBlock">
@@ -325,11 +325,6 @@
                 
                         <label for="dns">DNS сервер:</label>
                         <input type="text" id="dns" name="dns" placeholder="008.008.008.008">
-                
-                        <label for="port">Порт:</label>
-                        <input type="number" id="port" name="port" min="1" max="65535" value="80" required>
-                
-                        <button type="submit">💾 Сохранить</button>
                       </form>
                     </div>
 
@@ -357,13 +352,18 @@
                         <label>DNS сервер:</label>
                         <input type="text" id="wifi_dns">
 
-                        <label>Порт:</label>
-                        <input type="number" id="wifi_port" value="80">
-
-                        <button type="submit">💾 Сохранить Wi-Fi</button>
                     </form>
-                    </div>
+                    </div> 
+                    
+                        <label for="port">Порт:</label>
+                        <input type="number" id="port" name="port" min="1" max="65535" value="80" required>
+                        <button type="submit">💾 Сохранить</button>
+
+                  
                 </div>
+
+
+
 
         
             </div>
