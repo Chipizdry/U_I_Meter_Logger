@@ -116,33 +116,24 @@ esp_err_t captive_redirect_handler(httpd_req_t *req)
     wifi_mode_t mode;
     esp_wifi_get_mode(&mode);
 
-    // Работает только в AP или AP+STA
+    // Только AP / APSTA
     if (mode != WIFI_MODE_AP && mode != WIFI_MODE_APSTA) {
         return ESP_ERR_NOT_FOUND;
     }
 
-    // Уже авторизован — не трогаем
+    // Уже авторизован
     if (check_token(req)) {
         return ESP_ERR_NOT_FOUND;
     }
 
     const char *uri = req->uri;
-
-    // Пропускаем статику, API и WebSocket
-    if ((strncmp(uri, "/api", 4) == 0 ||
-     strncmp(uri, "/ws", 3) == 0 ||
-     is_static_resource(uri)) &&
-    strcmp(uri, "/hotspot-detect.html") != 0 &&
-    strcmp(uri, "/generate_204") != 0) {
-    return ESP_ERR_NOT_FOUND;
-    }
-    
     ESP_LOGW("CAPTIVE", "Captive hit: %s", uri);
 
-    // --- Windows probes ---
+    /* ================= WINDOWS ================= */
+
     if (strcmp(uri, "/connecttest.txt") == 0) {
-        httpd_resp_set_status(req, "204 No Content");
-        httpd_resp_send(req, NULL, 0);
+        httpd_resp_set_type(req, "text/plain");
+        httpd_resp_sendstr(req, "Microsoft Connect Test");
         return ESP_OK;
     }
 
@@ -152,36 +143,58 @@ esp_err_t captive_redirect_handler(httpd_req_t *req)
         return ESP_OK;
     }
 
-    // --- iOS / Android probes ---
-    if (strcmp(uri, "/hotspot-detect.html") == 0 ||
-        strcmp(uri, "/generate_204") == 0) {
-        httpd_resp_set_status(req, "302 Found");
-        httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+    /* ================= iOS ================= */
+
+    if (strcmp(uri, "/hotspot-detect.html") == 0) {
+        httpd_resp_set_status(req, "200 OK");
+        httpd_resp_set_type(req, "text/html");
         httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
         httpd_resp_set_hdr(req, "Pragma", "no-cache");
         httpd_resp_set_hdr(req, "Expires", "0");
-        httpd_resp_set_type(req, "text/html");
+
         httpd_resp_sendstr(req,
-            "<html><body>"
-            "Redirecting to <a href='http://192.168.4.1/'>captive portal</a>"
+            "<html><head><title>Login</title></head>"
+            "<body>"
+            "<h1>Captive Portal</h1>"
+            "<a href='http://192.168.4.1/'>Open portal</a>"
             "</body></html>");
         return ESP_OK;
     }
 
-    // --- Остальные URI → редирект на главную страницу AP ---
+    /* ================= Android ================= */
+
+    if (strcmp(uri, "/generate_204") == 0) {
+        httpd_resp_set_status(req, "200 OK");
+        httpd_resp_set_type(req, "text/html");
+        httpd_resp_sendstr(req, "<html>Login required</html>");
+        return ESP_OK;
+    }
+
+    /* ================= НЕ captive URI ================= */
+
+    // Пропускаем API / WS / статику
+    if (strncmp(uri, "/api", 4) == 0 ||
+        strncmp(uri, "/ws", 3) == 0 ||
+        is_static_resource(uri)) {
+        return ESP_ERR_NOT_FOUND;
+    }
+
+    /* ================= ОБЩИЙ REDIRECT ================= */
+
     httpd_resp_set_status(req, "302 Found");
     httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
     httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
     httpd_resp_set_hdr(req, "Pragma", "no-cache");
     httpd_resp_set_hdr(req, "Expires", "0");
     httpd_resp_set_type(req, "text/html");
+
     httpd_resp_sendstr(req,
         "<html><body>"
         "Redirecting to <a href='http://192.168.4.1/'>captive portal</a>"
         "</body></html>");
+
     return ESP_OK;
 }
-
 
 
 esp_err_t ping_handler(httpd_req_t *req)

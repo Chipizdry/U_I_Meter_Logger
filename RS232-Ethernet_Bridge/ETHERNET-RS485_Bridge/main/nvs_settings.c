@@ -35,6 +35,7 @@ void generate_device_serial(char *serial, size_t size)
 }
 
 
+
 esp_err_t nvs_settings_init(void) {
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
@@ -58,7 +59,7 @@ static void set_default_user_settings(user_settings_t *s) {
     s->version = USER_SETTINGS_VERSION;
     strcpy(s->login, "admin");
     strcpy(s->password, "admin");
-    snprintf(s->node_name, sizeof(s->node_name), "COR-Bridge-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    snprintf(s->node_name, sizeof(s->node_name), "COR-Agent-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     strcpy(s->account_login, "");
     strcpy(s->account_password, "");
     strcpy(s->language, "RU");
@@ -68,6 +69,7 @@ static void set_default_user_settings(user_settings_t *s) {
 
 
 static void set_default_network_settings(network_settings_t *s) {
+    
     memset(s, 0, sizeof(*s));
     s->version = NETWORK_SETTINGS_VERSION;
     strcpy(s->ap_ssid, "COR-Bridge");
@@ -84,16 +86,19 @@ static void set_default_network_settings(network_settings_t *s) {
 }
 
 static void set_default_wifi_settings(wifi_settings_t *s) {
+    uint8_t mac[6];
+    esp_efuse_mac_get_default(mac); 
+
     memset(s, 0, sizeof(*s));
-    strcpy(s->ap_ssid, "COR-Bridge");
+    snprintf(s->ap_ssid, sizeof(s->ap_ssid), "COR-Bridge-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     strcpy(s->ap_password, "12345678");
     strcpy(s->sta_ssid, " ");
     strcpy(s->sta_password, " ");
     s->mode = WIFI_MODE_AP;
-    strcpy(s->ip, " 192.168.1.1 ");
-    strcpy(s->gateway, " 192.168.1.1 ");
-    strcpy(s->mask, "255.255.255.0");
-    strcpy(s->dns, "8.8.8.8.");
+    strcpy(s->ip, "_._._._");
+    strcpy(s->gateway, "_._._._");
+    strcpy(s->mask, "_._._._");
+    strcpy(s->dns, "_._._._");
     s->dhcp_enabled = true;
 }   
 
