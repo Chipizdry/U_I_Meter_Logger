@@ -13,6 +13,7 @@
 #include "esp_websocket_client.h"
 #include "rs485_master.h"
 #include "nvs_settings.h"
+#include "network_state.h"
 
 // === Внешние переменные из web_server.c ===
 extern char auth_token[64];
@@ -320,6 +321,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
                     break;
                 }
             }
+            network_notify_ws();
           //  ESP_LOGI(TAG, "WS: client authorized fd=%d", client_fd);
         }
         else {

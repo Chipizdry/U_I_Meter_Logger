@@ -124,7 +124,42 @@ async function FactoryDefaults() {
 
     } catch (err) {
         console.error("Factory reset failed:", err);
-        alert("Ошибка соединения: " + err);
+       // alert("Ошибка соединения: " + err);
+    }
+}
+
+
+
+async function rebootDevice() {
+    const token = sessionStorage.getItem("auth_token");
+
+    try {
+        const res = await fetch("/reboot", {
+            method: "POST",
+            headers: { "Authorization": "Bearer " + token }
+        });
+
+        if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+        }
+
+        const json = await res.json();
+
+        showPopup({
+            type: "info",
+            title: "Перезапуск...",
+            message: json.message,
+            timeout: 4000
+        });
+
+    } catch (err) {
+        showPopup({
+            type: "error",
+            title: "Ошибка",
+            message: "Нет соединения с устройством"
+        });
     }
 }
 

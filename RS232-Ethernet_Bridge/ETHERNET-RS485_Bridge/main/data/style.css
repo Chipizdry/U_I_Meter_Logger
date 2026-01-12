@@ -919,7 +919,7 @@ select#deviceType:checked {
 }
 
 .menu-item:hover {
-    background: #3e4c57;
+    background: #f1f1f1;
 }
 
 .menu-item.active {
@@ -1111,6 +1111,9 @@ select#deviceType:checked {
 }
 
 
+
+
+
 select {
     appearance: none;
     -webkit-appearance: none;
@@ -1125,9 +1128,7 @@ select {
     font-size: 12px;
     cursor: pointer;
 
-    background-image: url("data:image/svg+xml;utf8,\
-<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235B4296'>\
-<path d='M7 10l5 5 5-5z'/></svg>");
+    background-image: url("data:image/svg+xml;utf8,\<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%235B4296'>\<path d='M7 10l5 5 5-5z'/></svg>");
     background-repeat: no-repeat;
     background-position: right 10px center;
     background-size: 14px;
@@ -1144,3 +1145,71 @@ select:focus {
     box-shadow: 0 0 5px rgba(117, 39, 178, 0.5);
 }
 
+
+#popup-container {
+    position: fixed;
+    top: auto;
+    right: auto;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.popup {
+    min-width: 280px;
+    max-width: 360px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    animation: slideIn 0.25s ease-out;
+}
+
+.popup h4 {
+    margin: 0 0 6px;
+    font-size: 15px;
+}
+
+.popup.success { background: #11d31b; }
+.popup.error   { background: #ea0606; }
+.popup.warning { background: #ed6c02; }
+.popup.info    { background: #3a90f3; }
+.popup.loading { background: #455a64; }
+
+@keyframes slideIn {
+    from { transform: translateX(40px); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+
+.net-status {
+    margin-left: 12px;
+    font-size: 0.85em;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #eee;
+    color: #666;
+}
+
+.net-status.up {
+    background: #e6f4ea;
+    color: #09eb3e;
+}
+
+.net-status.down {
+    background: #fdecea;
+    color: #e70c0c;
+}
+
+.net-status.connecting {
+    background: #fff4e5;
+    color: #f45e0d;
+}
+
+.net-status.unknown {
+    background: #eee;
+    color: #777;
+}

@@ -344,32 +344,6 @@ document.getElementById("firmwareFile").addEventListener("change", function () {
     }
 });
 
-async function rebootDevice() {
-
-    const token = sessionStorage.getItem("auth_token");
-
-    const res = await fetch('/reboot', {
-        method: 'POST',
-        headers: {
-            'Authorization': 'Bearer ' + token
-        }
-    });
-
-    if (res.ok) {
-        const text = await res.text();      // читаем ответ от бэка
-        alert("Ответ устройства: " + text); // выводим пользователю
-    } 
-    
-    else if (res.status === 401) {
-        sessionStorage.removeItem("auth_token");
-        showTokenExpiredModal();
-        return;
-    } 
-    
-    else {
-        alert("Ошибка: " + res.status + " ❌");
-    }
-}
 
 
 // === Гамбургер меню ===
@@ -746,5 +720,35 @@ document.querySelectorAll('input[name="netType"]').forEach(radio => {
     });
 });
 
+
+
+function showPopup({
+    type = "info",
+    title = "",
+    message = "",
+    timeout = 3000
+}) {
+    const container = document.getElementById("popup-container");
+    if (!container) return;
+
+    const popup = document.createElement("div");
+    popup.className = `popup ${type}`;
+
+    popup.innerHTML = `
+        ${title ? `<h4>${title}</h4>` : ""}
+        <div>${message}</div>
+    `;
+
+    container.appendChild(popup);
+
+    if (timeout > 0) {
+        setTimeout(() => {
+            popup.style.opacity = "0";
+            setTimeout(() => popup.remove(), 300);
+        }, timeout);
+    }
+
+    return popup;
+}
 
 

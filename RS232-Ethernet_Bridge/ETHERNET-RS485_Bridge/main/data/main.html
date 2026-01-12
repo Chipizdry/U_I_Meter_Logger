@@ -29,7 +29,7 @@
             <button type="submit">Войти</button>
         </form>
 
-        <!-- === Основной экран (Wi-Fi настройки) === -->
+        <!-- === Основной экран === -->
         <div id="mainScreen" class="hidden">
 
             <!-- === Кнопка гамбургера === -->
@@ -271,7 +271,7 @@
 
                     <!-- ===== Ethernet ===== -->
                     <div class="net-block" id="ethernetBlock">
-                        <h3>Ethernet</h3>
+                        <h3><span id="ethernet-status" class="net-status">UNKNOWN</span></h3>
 
                       <form id="lanForm" class="settings-form">
 
@@ -297,7 +297,7 @@
 
                     <!-- ===== Wi-Fi ===== -->
                     <div class="net-block hidden" id="wifiBlock">
-                        <h3>Wi-Fi</h3>
+                        <h3><span id="wifi-status" class="net-status">UNKNOWN</span></h3>
            
                     <form id="wifiLANForm" class="settings-form">
                         <label class="switch-label">
@@ -335,6 +335,9 @@
         
             </div>
         </div>
+
+        <div id="popup-container"></div>
+
     </div>
 
     <script>

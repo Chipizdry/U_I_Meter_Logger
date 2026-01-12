@@ -19,3 +19,6 @@ void network_set_wifi_state(net_state_t state);
 void network_set_ethernet_state(net_state_t state);
 net_state_t network_get_wifi_state(void);
 net_state_t network_get_ethernet_state(void);
+
+const char* net_state_to_str(net_state_t state);
+void network_notify_ws(void);

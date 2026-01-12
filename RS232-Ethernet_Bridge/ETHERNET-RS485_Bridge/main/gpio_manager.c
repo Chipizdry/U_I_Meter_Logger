@@ -137,32 +137,35 @@ void gpio_manager_task(void *arg)
 }
 
 
+
 static void status_led_task(void *arg)
 {
     bool led = false;
 
     while (1) {
-        net_state_t wifi_state = network_get_wifi_state();
-        net_state_t eth_state  = network_get_ethernet_state();
+        net_state_t wifi = network_get_wifi_state();
+        net_state_t eth  = network_get_ethernet_state();
 
-         // LED выкл, если оба DOWN
-        if ((wifi_state == NET_STATE_WIFI_DOWN) && (eth_state == NET_STATE_ETHERNET_DOWN)) {
-            gpio_set_level(GPIO_STATUS_LED, 0);
-            vTaskDelay(pdMS_TO_TICKS(500));
+        /* 🔴 1. Если есть UP — LED всегда ВКЛ */
+        if (wifi == NET_STATE_WIFI_UP || eth == NET_STATE_ETHERNET_UP) {
+            gpio_set_level(GPIO_STATUS_LED, 1);
+            vTaskDelay(pdMS_TO_TICKS(1000));
         }
-        // Мигаем, если хотя бы один CONNECTING
-        else if ((wifi_state == NET_STATE_WIFI_CONNECTING) || (eth_state == NET_STATE_ETHERNET_CONNECTING)) {
+        /* 🟡 2. Иначе если кто-то CONNECTING — мигаем */
+        else if (wifi == NET_STATE_WIFI_CONNECTING ||
+                 eth  == NET_STATE_ETHERNET_CONNECTING) {
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
             vTaskDelay(pdMS_TO_TICKS(200));
         }
-        // Включен, если хотя бы один UP
-        else if ((wifi_state == NET_STATE_WIFI_UP) || (eth_state == NET_STATE_ETHERNET_UP)) {
-            gpio_set_level(GPIO_STATUS_LED, 1);
-            vTaskDelay(pdMS_TO_TICKS(1000));
+        /* ⚫ 3. Иначе оба DOWN */
+        else {
+            gpio_set_level(GPIO_STATUS_LED, 0);
+            vTaskDelay(pdMS_TO_TICKS(500));
         }
     }
 }
+
 
 // ================================
 // ======= ИНДИКАТОРЫ ============

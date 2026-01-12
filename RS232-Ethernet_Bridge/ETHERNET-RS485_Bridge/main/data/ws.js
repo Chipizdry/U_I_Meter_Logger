@@ -143,6 +143,45 @@ function handleWsMessage(msg) {
         if (msg.payload?.status) updateStatus(msg.payload.status);
     }
 
+   if (msg.type === "network" && msg.network) {
+
+    function updateNetStatus(elementId, label, state) {
+        const el = document.getElementById(elementId);
+        if (!el || !state) return;
+
+        let color = "gray";
+        let text  = state.toUpperCase();
+
+        switch (state) {
+            case "up":
+                color = "green";
+                break;
+            case "connecting":
+                color = "orange";
+                break;
+            case "down":
+                color = "red";
+                break;
+        }
+
+        el.textContent = `${label}: ${text}`;
+        el.style.color = color;
+    }
+
+    updateNetStatus(
+        "ethernet-status",
+        "Ethernet",
+        msg.network?.ethernet?.state
+    );
+
+    updateNetStatus(
+        "wifi-status",
+        "Wi-Fi",
+        msg.network?.wifi_sta?.state
+    );
+}
+
+
     // === Wi-Fi scan started ===
     if (msg.type === "wifi_scan") {
         if (msg.status === "started") {
