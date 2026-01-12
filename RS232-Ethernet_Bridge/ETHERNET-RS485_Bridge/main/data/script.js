@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (token) {
         fetchSettings();
-        initWebSocket();  
+       // initWebSocket();  
 
         showMainScreen();
        
@@ -461,6 +461,7 @@ function updateWiFiVisibility() {
             if (buildInfoText) {
                 buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
             }
+            isLoggingOut = false;
             initWebSocket();
            // Показ успешного сообщения
            loginStatus.textContent = "Вход выполнен";

@@ -5,70 +5,57 @@ let ws = null;
 let reconnectTimer = null;
 let heartbeatTimer = null;
 let lastPongTime = 0;
-
+let isLoggingOut = false;
 const HEARTBEAT_INTERVAL = 10000; // 15 сек
 const HEARTBEAT_TIMEOUT  = 30000; // 30 сек без pong → разрыв
 const RECONNECT_DELAY    = 5000;  // 5 сек
 
 function initWebSocket() {
+    if (isLoggingOut) {
+        console.log("Skip WS init: logging out");
+        return;
+    }
+
     const token = sessionStorage.getItem("auth_token");
     if (!token) {
         console.log("No auth token");
         return;
     }
 
-    // 🔥 Защита: не создавать 2 сокета
-    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
-        console.warn("WS already active");
+    if (ws) {
+        console.warn("WS exists → skipping init");
         return;
     }
+
+    console.log("🚀 Creating WS...");
 
     ws = new WebSocket(`ws://${location.host}/ws`);
 
     ws.onopen = () => {
         console.log("WS connected");
-        updateStatus("Connected");
-
-        // Отправляем авторизацию
         ws.send(JSON.stringify({ type: "auth", token }));
-
-        // Ставим отметку времени pong-а
         lastPongTime = Date.now();
-
         startHeartbeat();
     };
 
-    ws.onmessage = (event) => {
-        const data = event.data;
-    
-        // Игнорируем чистые ping/pong
-        if (data === "ping" || data === "pong") {
-            console.log("WS heartbeat:", data);
-            if (data === "ping") ws.send("pong"); // отвечаем серверу
-            if (data === "pong") lastPongTime = Date.now(); // обновляем отметку времени
-            return;
-        }
-    
-        try {
-            const msg = JSON.parse(data);
-            handleWsMessage(msg);
-            console.log("WS msg:", msg);
-        } catch (err) {
-            console.warn("Invalid WS message:", data);
-        }
-    };
+    ws.onmessage = onWsMessage;
 
     ws.onclose = () => {
-        console.log("WS disconnected → reconnect in 5s");
-        updateStatus("Disconnected");
+        console.log("WS closed");
+
         stopHeartbeat();
         ws = null;
+
+        if (isLoggingOut) {
+            console.log("Logout → no reconnect");
+            return;
+        }
 
         scheduleReconnect();
     };
 
-    ws.onerror = (err) => {
-        console.error("WS error:", err);
+    ws.onerror = err => {
+        console.error("WS error", err);
     };
 }
 
@@ -98,9 +85,8 @@ function stopHeartbeat() {
 }
 
 
-
 function scheduleReconnect() {
-    if (reconnectTimer) return;
+    if (reconnectTimer || isLoggingOut) return;
 
     reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
@@ -145,27 +131,17 @@ function handleWsMessage(msg) {
 
    if (msg.type === "network" && msg.network) {
 
-    function updateNetStatus(elementId, label, state) {
+        function updateNetStatus(elementId, label, state) {
         const el = document.getElementById(elementId);
-        if (!el || !state) return;
+        if (!el) return;
+        const allowedStates = ["up", "down", "connecting"];
+        const status = allowedStates.includes(state) ? state : "unknown";
+        el.classList.remove("up", "down", "connecting", "unknown");
+        // ✅ добавляем новый класс
+        el.classList.add("net-status", status);
 
-        let color = "gray";
-        let text  = state.toUpperCase();
-
-        switch (state) {
-            case "up":
-                color = "green";
-                break;
-            case "connecting":
-                color = "orange";
-                break;
-            case "down":
-                color = "red";
-                break;
-        }
-
-        el.textContent = `${label}: ${text}`;
-        el.style.color = color;
+        // текст
+        el.textContent = `${label}: ${status.toUpperCase()}`;
     }
 
     updateNetStatus(
@@ -248,7 +224,7 @@ function updateStatus(text) {
     if (el) el.innerText = text;
 }
 
-window.addEventListener("load", initWebSocket);
+//window.addEventListener("load", initWebSocket);
 
 function diagnosticsOn() {
     if (diagnosticsActive || !ws || ws.readyState !== WebSocket.OPEN) return;
@@ -265,4 +241,50 @@ function diagnosticsOff() {
     ws.send(JSON.stringify({ action: "diagnostics_off" }));
     console.log("🔍 Diagnostics OFF");
 }
+
+
+
+
+function shutdownWebSocket(reason = "manual") {
+    console.log("🔌 WS shutdown:", reason);
+    isLoggingOut = true;
+    stopHeartbeat();
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    if (ws) {
+        ws.onclose = null;
+        ws.onerror = null;
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close(1000, reason);
+        }
+        ws = null;
+    }
+}
+
+
+
+
+function onWsMessage(event) {
+    const data = event.data;
+
+    // heartbeat
+    if (data === "ping" || data === "pong") {
+        console.log("WS heartbeat:", data);
+        if (data === "ping") ws.send("pong");
+        if (data === "pong") lastPongTime = Date.now();
+        return;
+    }
+
+    try {
+        const msg = JSON.parse(data);
+        handleWsMessage(msg);
+        console.log("WS msg:", msg);
+    } catch (err) {
+        console.warn("Invalid WS message:", data);
+    }
+}
+
+
 

@@ -61,6 +61,7 @@ static void add_client(int sockfd)
             ws_clients[i].fd = sockfd;
             ws_clients[i].authorized = false;
           //  ESP_LOGI(TAG, "WS: client added, fd=%d (slot %d)", sockfd, i);
+          network_notify_ws();
             return;
         }
     }

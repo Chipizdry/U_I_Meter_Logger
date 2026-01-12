@@ -4,7 +4,8 @@
    // === Выход из аккаунта ===
 logoutBtn.addEventListener("click", async () => {
     console.log("Logout...");
-
+    isLoggingOut = true;
+     shutdownWebSocket("logout");
     const token = sessionStorage.getItem("auth_token");
 
     // 1) Уведомляем сервер (если есть токен)
@@ -37,14 +38,18 @@ logoutBtn.addEventListener("click", async () => {
 
     // 5) Отключаем WS
     if (window.ws) {
-        console.log("Closing WebSocket on logout");
-        ws.onclose = null; // 🔥 отключаем авто-реконнект
-        ws.close();
-        window.ws = null;
+        console.log("Closing WebSocket (logout)");
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.onclose = null; // 💥 обязательно
+        ws.close(1000, "Logout");
+        ws = null;
     }
 
     // 6) Возврат к экрану логина
     //alert("Вы вышли из системы 👋");
+     updateStatus("Disconnected");
     showLogin();
     loginStatus.classList.add("hidden");
 });
@@ -403,3 +408,6 @@ wifiForm.addEventListener("submit", async (e) => {
 
             throw new Error("Device did not come online in time");
         }
+
+
+
