@@ -48,41 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-async function saveUARTSettings() {
-   
-    const token = sessionStorage.getItem("auth_token");
-    const mode = parseInt(document.querySelector('input[name="uart-mode"]:checked')?.value || 0);
-    const payload = {
-        mode: mode,
-        baud: parseInt(document.getElementById('uart-baud').value),
-        parity: parseInt(document.getElementById('uart-parity').value),
-        stop_bits: parseInt(document.getElementById('uart-stop-bits').value),
-        data_bits: parseInt(document.getElementById('uart-data-bits').value)
-    };
-    const res = await fetch('/save_settings/uart', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify(payload)
-    });
-    if (res.ok) {
-        alert('UART настройки сохранены ✅');
-    } 
-    
-    else if (res.status === 401) {
-            sessionStorage.removeItem("auth_token");
-            showTokenExpiredModal();
-            return;
-    }
-
-    else {
-        alert('Ошибка при сохранении UART настроек ❌');
-    }
-}
-
-
 
 async function saveWiFiSettings() {
     const token = sessionStorage.getItem("auth_token");

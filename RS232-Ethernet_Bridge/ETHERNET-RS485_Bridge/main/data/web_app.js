@@ -169,6 +169,114 @@ async function rebootDevice() {
 }
 
 
+/*
+
+async function saveUARTSettings() {
+   
+    const token = sessionStorage.getItem("auth_token");
+    const mode = parseInt(document.querySelector('input[name="uart-mode"]:checked')?.value || 0);
+    const payload = {
+        mode: mode,
+        baud: parseInt(document.getElementById('uart-baud').value),
+        parity: parseInt(document.getElementById('uart-parity').value),
+        stop_bits: parseInt(document.getElementById('uart-stop-bits').value),
+        data_bits: parseInt(document.getElementById('uart-data-bits').value)
+    };
+    const res = await fetch('/save_settings/uart', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+    });
+    if (res.ok) {
+        alert('UART настройки сохранены ✅');
+    } 
+    
+    else if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+    }
+
+    else {
+        alert('Ошибка при сохранении UART настроек ❌');
+    }
+}
+
+*/
+
+async function saveUARTSettings() {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+        showLogin();
+        return;
+    }
+
+    const mode = parseInt(
+        document.querySelector('input[name="uart-mode"]:checked')?.value || 0
+    );
+
+    const payload = {
+        mode,
+        baud: parseInt(document.getElementById('uart-baud').value),
+        parity: parseInt(document.getElementById('uart-parity').value),
+        stop_bits: parseInt(document.getElementById('uart-stop-bits').value),
+        data_bits: parseInt(document.getElementById('uart-data-bits').value)
+    };
+
+    try {
+        const res = await fetch('/save_settings/uart', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+            },
+            body: JSON.stringify(payload)
+        });
+
+        // 🔐 Сессия истекла
+        if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+        }
+
+        let json = {};
+        try {
+            json = await res.json();
+        } catch (_) {}
+
+        if (!res.ok) {
+            showPopup({
+                type: "error",
+                title: "Ошибка",
+                message: json.message || "Ошибка сохранения UART настроек"
+            });
+            return;
+        }
+
+        // ✅ Успех
+        showPopup({
+            type: "success",
+            title: "Сохранено",
+            message: json.message || "UART настройки сохранены",
+            timeout: 3000
+        });
+
+    } catch (err) {
+        console.error("UART save failed:", err);
+        showPopup({
+            type: "error",
+            title: "Нет соединения",
+            message: "Не удалось сохранить UART настройки"
+        });
+    }
+}
+
+
+
 
    // === Сохранение Wi-Fi настроек ===
 wifiForm.addEventListener("submit", async (e) => {
@@ -213,6 +321,7 @@ wifiForm.addEventListener("submit", async (e) => {
 
 
     // === Сохранение настроек аккаунта ===
+    /*
     saveAccountBtn.addEventListener('click', async () => {
         const token = sessionStorage.getItem("auth_token");
         if (!token) {
@@ -256,17 +365,78 @@ wifiForm.addEventListener("submit", async (e) => {
             const text = await res.text();
             console.log("Сохранено успешно:", text);
 
-            if (wsStatus) {
-                wsStatus.textContent = "Настройки аккаунта сохранены ✔️";
-                wsStatus.style.color = "#4CAF50";
-                setTimeout(() => wsStatus.textContent = "", 2000);
-            }
-
         } catch (err) {
             console.error("Ошибка при сохранении аккаунта:", err);
             alert("Ошибка при сохранении аккаунта: " + err);
         }
     });
+
+*/
+
+    // === Сохранение настроек аккаунта ===
+saveAccountBtn.addEventListener('click', async () => {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+        showLogin();
+        return;
+    }
+
+    const formData = new FormData(accountForm);
+    const data = new URLSearchParams(formData);
+
+    try {
+        const res = await fetch('/save_settings/account', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Authorization': 'Bearer ' + token
+            },
+            body: data.toString()
+        });
+
+        // 🔐 Сессия истекла
+        if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+        }
+
+        let json = {};
+        try {
+            json = await res.json();
+        } catch (_) {
+            // backend может вернуть невалидный JSON
+        }
+
+        if (!res.ok) {
+            showPopup({
+                type: "error",
+                title: "Ошибка",
+                message: json.message || "Ошибка сохранения настроек аккаунта"
+            });
+            return;
+        }
+
+        // ✅ Успех
+        showPopup({
+            type: "success",
+            title: "Сохранено",
+            message: json.message || "Настройки аккаунта сохранены",
+            timeout: 3000
+        });
+
+    } catch (err) {
+        console.error("Account save failed:", err);
+        showPopup({
+            type: "error",
+            title: "Нет соединения",
+            message: "Не удалось сохранить настройки аккаунта"
+        });
+    }
+});
+
+
+
 
 
     // === Сохранение настроек пользователя ===

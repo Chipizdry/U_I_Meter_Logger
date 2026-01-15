@@ -25,6 +25,7 @@
 #include "web_auth.h"
 #include "ws_server.h"
 #include "gpio_manager.h"
+#include "network_state.h"
 #include "driver/uart.h"
 
 
@@ -75,30 +76,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     nvs_load_wifi_settings(&wifi_cfg);
 
     // Если DHCP включен, берем текущие настройки с Ethernet
-    /*
-    if (net.dhcp_enabled) {
-        esp_netif_ip_info_t ip_info = ethernet_get_ip_info();
-        char ip[16], mask[16], gw[16];
-        inet_ntoa_r(ip_info.ip, ip, sizeof(ip));
-        inet_ntoa_r(ip_info.netmask, mask, sizeof(mask));
-        inet_ntoa_r(ip_info.gw, gw, sizeof(gw));
-
-        strncpy(net.ip, ip, sizeof(net.ip));
-        strncpy(net.mask, mask, sizeof(net.mask));
-        strncpy(net.gateway, gw, sizeof(net.gateway));
-        // DNS можно оставить как есть или брать с DHCP клиента
-
-        esp_netif_t *eth_if = esp_netif_get_handle_from_ifkey("ETH_DEF"); // или ваш Ethernet интерфейс
-        esp_netif_dns_info_t dns_info;
-        
-        if (esp_netif_get_dns_info(eth_if, ESP_NETIF_DNS_MAIN, &dns_info) == ESP_OK) {
-            inet_ntoa_r(dns_info.ip.u_addr.ip4, net.dns, sizeof(net.dns));
-        } else {
-            strcpy(net.dns, "0.0.0.0");
-        }
-    }
-  */
-
+  
         if (net.dhcp_enabled) {
         fill_netif_ip_info(
             "ETH_DEF",
@@ -159,6 +137,7 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddBoolToObject(n, "wifi_dhcp_enabled", wifi_cfg.dhcp_enabled);
             
             cJSON_AddItemToObject(json, "network", n);
+            network_notify_ws();
             if (section != ALL) break;
             [[fallthrough]]; 
         }
@@ -174,13 +153,6 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
             cJSON_AddNumberToObject(w, "ap_channel", wifi_cfg.ap_channel);
             // Режим WiFi
             cJSON_AddNumberToObject(w, "mode", wifi_cfg.mode);
-            // IP / DHCP 
-            cJSON_AddStringToObject(w, "ip", wifi_cfg.ip);
-            cJSON_AddStringToObject(w, "mask", wifi_cfg.mask);
-            cJSON_AddStringToObject(w, "gateway", wifi_cfg.gateway);
-            cJSON_AddStringToObject(w, "dns", wifi_cfg.dns);
-            cJSON_AddBoolToObject(w, "dhcp_enabled", wifi_cfg.dhcp_enabled);
-
             cJSON_AddItemToObject(json, "wifi", w);
             if (section != ALL) break;
             [[fallthrough]]; 
@@ -329,15 +301,17 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
         ESP_LOGI("UART_SETTINGS", "Received UART config: baud=%d, data_bits=%d, stop_bits=%d, parity=%d  ,mode=%s ",uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
 
         nvs_save_uart_settings(&uart_cfg);
-        cJSON_Delete(json);
-    
+        cJSON_Delete(json); 
           // --- Применяем новые настройки сразу ---
-        rs485_master_deinit();                              // останавливаем текущий UART/RS485 master
-       
+        rs485_master_deinit();                              // останавливаем текущий UART/RS485 master 
         rs485_master_init_from_cfg(&uart_cfg, 2048, 1024);  // инициализируем заново с новыми параметрами
 
-        httpd_resp_sendstr(req, "UART settings saved successfully 💾");
-        return ESP_OK;
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_set_status(req, "200 OK");
+        httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+        httpd_resp_sendstr(req, "{\"status\":\"ok\",\"message\":\"Настройки UART сохранены !!!💾\"}");
+
+    return ESP_OK;
     }
 
   if (section == SECTION_WIFI) {
@@ -464,7 +438,11 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
             ESP_LOGI("ACCOUNT", "Saved OK: login=%s password=%s node_name=%s",user_cfg.account_login, user_cfg.account_password, user_cfg.node_name);
             memcpy(&user, &user_cfg, sizeof(user_settings_t));
             websocket_restart(user_cfg.account_login, user_cfg.account_password, user_cfg.node_name);
-            httpd_resp_sendstr(req, "Account settings saved successfully 💾");
+
+            httpd_resp_set_type(req, "application/json");
+            httpd_resp_set_status(req, "200 OK");
+            httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+            httpd_resp_sendstr(req, "{\"status\":\"ok\",\"message\":\"Настройки аккаунта сохранены !!!💾\"}");
             return ESP_OK;
         }
 
