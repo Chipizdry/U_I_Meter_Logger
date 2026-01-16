@@ -49,50 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 
-async function saveWiFiSettings() {
-    const token = sessionStorage.getItem("auth_token");
-
-    const wifiForm = document.getElementById("wifiForm");
-
-    const payload = {
-        mode: parseInt(document.getElementById("wifiMode").value),
-
-        sta_ssid: wifiForm.querySelector("[name='sta-ssid']").value,
-        sta_password: wifiForm.querySelector("[name='sta-password']").value,
-
-        ap_ssid: wifiForm.querySelector("[name='ap-ssid']").value,
-        ap_password: wifiForm.querySelector("[name='ap-password']").value,
-        ap_channel: parseInt(wifiForm.querySelector("[name='ap-channel']").value),
-    };
-
-    const res = await fetch('/save_settings/wifi', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer ' + token
-        },
-        body: JSON.stringify(payload)
-    });
-
-    if (res.ok) {
-        alert('Wi-Fi настройки сохранены ✅');
-    } 
-    else if (res.status === 401) {
-        sessionStorage.removeItem("auth_token");
-        showTokenExpiredModal();
-        return;
-    }
-    else {
-        alert('Ошибка при сохранении Wi-Fi настроек ❌');
-    }
-}
-
-
-
-
-let testAccountActive = false; // флаг тестового режима
-
-
 async function loadTabSettings(tab) {
     const token = sessionStorage.getItem("auth_token");
     if (!token) return;
@@ -642,6 +598,116 @@ function updateAllIPFieldsState() {
      });
  }
  
+
+
+  
+
+
+
+async function uploadFirmware() {
+    const fileInput = document.getElementById("firmwareFile");
+    const status = document.getElementById("status");
+
+    if (!fileInput.files.length) {
+        status.innerText = "Select firmware file!";
+        return;
+    }
+
+    const file = fileInput.files[0];
+    const totalSize = file.size;
+    let offset = 0;
+    let chunkNumber = 1;
+    status.innerText = "Uploading...";
+
+    async function sendNextChunk(retry = 0) {
+        const chunk = file.slice(offset, offset + CHUNK_SIZE);
+        const ab = await chunk.arrayBuffer();
+        const token = sessionStorage.getItem("auth_token");
+        if (!token) return;
+
+        const md5sum = md5(ab);
+        console.log(`Chunk ${chunkNumber}: ${ab.byteLength} bytes, MD5=${md5sum}`);
+
+        const form = new FormData();
+        form.append("fileName", file.name);
+        form.append("totalSize", totalSize);
+        form.append("chunkNumber", chunkNumber);
+        form.append("md5", md5sum);
+        form.append("chunk", new Blob([ab]), "chunk.bin");
+
+        const response = await fetch("/ota", { method: "POST", headers: {
+                "Authorization": `Bearer ${token}`
+            }, body: form });
+
+        if (!response.ok) {
+            if (response.status === 409 && retry < MAX_RETRIES) {
+                console.warn(`MD5 mismatch → retry chunk ${chunkNumber}`);
+                return sendNextChunk(retry + 1);
+            }
+
+            if (response.status === 401) {
+                showTokenExpiredModal();
+                return;
+            }
+            status.innerText = "Upload failed!";
+            throw new Error(`Chunk ${chunkNumber} failed.`);
+        }
+/////////////////////////////////////////////////////////////////////////////
+    // ⬇️ если это последний chunk — ждём ответ с OTA-session
+            if (offset + ab.byteLength >= totalSize) {
+                const json = await response.json();
+
+                if (!json.ota_session) {
+                    throw new Error("OTA session not received");
+                }
+
+                sessionStorage.setItem("ota_session", json.ota_session);
+                console.log("OTA session received:", json.ota_session);
+
+                status.innerText = "✅ Firmware uploaded, rebooting...";
+                // ждём, пока ESP32 появится в сети
+                try {
+                    await waitDeviceOnline();
+                    await uploadLittleFS();
+                } catch(e) {
+                    // alert(e.message);
+                    console.log(e.message);
+                }
+                return;
+            }
+
+
+
+///////////////////////////////////////////////////////////////////////////////
+        offset += ab.byteLength;
+        chunkNumber++;
+        status.innerText = `Uploaded ${offset} / ${totalSize}`;
+
+        if (offset < totalSize) {
+            sendNextChunk(0);
+        } else {
+            status.innerText = "✅ Upload completed, ESP32 flashing...";
+        }
+    }
+
+    sendNextChunk();
+}
+
+
+
+
+
+
+
+function md5(arrayBuffer) {
+    const bytes = new Uint8Array(arrayBuffer);
+    const words = [];
+    for (let i = 0; i < bytes.length; i++) {
+        words[i >>> 2] |= bytes[i] << (24 - (i % 4) * 8);
+    }
+    const wordArray = CryptoJS.lib.WordArray.create(words, bytes.length);
+    return CryptoJS.MD5(wordArray).toString();
+}
 
 
 function addDiagRow(text) {

@@ -357,8 +357,11 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     ESP_LOGI("WIFI", " AP PASS: %s", wifi_cfg.ap_password);
     ESP_LOGI("WIFI", " AP CHANNEL: %d", wifi_cfg.ap_channel);
     wifi_manager_request_apply();
-    httpd_resp_sendstr(req, "WiFi settings saved. Applying… 🔄");
-   
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_sendstr(req, "{\"status\":\"ok\",\"message\":\"Настройки Wi-Fi сохранены !!!💾\"}");
     return ESP_OK;      
   }
 
