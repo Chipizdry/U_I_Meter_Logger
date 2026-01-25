@@ -72,11 +72,6 @@ static void set_default_network_settings(network_settings_t *s) {
     
     memset(s, 0, sizeof(*s));
     s->version = NETWORK_SETTINGS_VERSION;
-    strcpy(s->ap_ssid, "COR-Bridge");
-    strcpy(s->ap_password, "12345678");
-    strcpy(s->sta_ssid, " ");
-    strcpy(s->sta_password, " ");
-    s->mode = WIFI_MODE_AP;
     strcpy(s->ip, "192.168.1.100");
     strcpy(s->gateway, "192.168.1.1");
     strcpy(s->mask, "255.255.255.0");
@@ -92,8 +87,8 @@ static void set_default_wifi_settings(wifi_settings_t *s) {
     memset(s, 0, sizeof(*s));
     snprintf(s->ap_ssid, sizeof(s->ap_ssid), "COR-Bridge-%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
     strcpy(s->ap_password, "12345678");
-    strcpy(s->sta_ssid, " ");
-    strcpy(s->sta_password, " ");
+    strcpy(s->sta_ssid, "");
+    strcpy(s->sta_password, "");
     s->mode = WIFI_MODE_AP;
     strcpy(s->ip, "_._._._");
     strcpy(s->gateway, "_._._._");

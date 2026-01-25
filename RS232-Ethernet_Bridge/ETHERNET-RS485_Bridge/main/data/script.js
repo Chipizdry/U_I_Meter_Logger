@@ -5,13 +5,11 @@ document.addEventListener("DOMContentLoaded", () => {
    
     const eye = document.getElementById("eyeIcon");
     const token = sessionStorage.getItem('auth_token');
-     const dhcpCheckbox = document.getElementById("dhcp");
+    const dhcpCheckbox = document.getElementById("dhcp");
     const wifiDhcpCheckbox = document.getElementById("wifi_dhcp");
 
     updateEyeIcon(eye, false); // false = закрытый глаз
     initAllEyeIcons();
-
-    
 
 
         [...ethIpFields, ...wifiIpFields].forEach(id => {
@@ -31,8 +29,6 @@ document.addEventListener("DOMContentLoaded", () => {
     
     if (token) {
         fetchSettings();
-       // initWebSocket();  
-
         showMainScreen();
        
         if (activeTab) {

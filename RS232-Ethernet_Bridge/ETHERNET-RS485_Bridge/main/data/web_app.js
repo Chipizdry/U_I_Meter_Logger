@@ -312,7 +312,7 @@ async function saveWiFiSettings() {
 }
 
 
-
+/*
    // === Сохранение Wi-Fi настроек ===
 wifiForm.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -354,7 +354,7 @@ wifiForm.addEventListener("submit", async (e) => {
     }
 });
 
-
+*/
     // === Сохранение настроек аккаунта ===
 saveAccountBtn.addEventListener('click', async () => {
     const token = sessionStorage.getItem("auth_token");

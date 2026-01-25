@@ -35,12 +35,6 @@ typedef struct {
     char dns[16];
     int port;
     bool dhcp_enabled;
-    char sta_ssid[64];
-    char sta_password[32];
-    char ap_ssid[64];
-    char ap_password[32];
-    wifi_mode_t mode;  
-
 } network_settings_t;
 
 typedef struct {

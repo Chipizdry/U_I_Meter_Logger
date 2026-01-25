@@ -16,6 +16,7 @@
 #include "nvs_flash.h"
 #include "esp_system.h"
 
+
 #include "ethernet_manager.h"
 #include "littlefs_manager.h"
 #include "rs485_master.h"
@@ -44,8 +45,7 @@ uart_settings_t uart_cfg;
 
 void app_main(void)
 {
-   
-
+  
     const esp_partition_t *running    = esp_ota_get_running_partition();
     const esp_partition_t *boot       = esp_ota_get_boot_partition();
     const esp_partition_t *next       = esp_ota_get_next_update_partition(NULL);

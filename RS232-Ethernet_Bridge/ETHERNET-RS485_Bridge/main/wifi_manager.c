@@ -24,11 +24,12 @@ static esp_netif_t *sta_netif = NULL;
 static esp_netif_t *ap_netif  = NULL;
 static bool wifi_initialized = false;
 
+static volatile bool wifi_scan_in_progress = false;
 
 
 static EventGroupHandle_t wifi_evt_group;
 #define WIFI_EVT_APPLY   BIT0
-
+static void wifi_stop_connecting_for_scan(void);
 extern void ws_broadcast(const char *text);
 extern void ws_send(int client_fd, const char *text);
 
@@ -98,15 +99,14 @@ static const char* wifi_reason_to_str(uint8_t reason)
 }
 
 
-static void wifi_manager_init_once(void)
+
+
+void wifi_manager_init_once(void)
 {
-    if (wifi_initialized) return;
-
-  //  ESP_ERROR_CHECK(esp_netif_init());
-
+    static bool inited = false;
+    if (inited) return;  
     sta_netif = esp_netif_create_default_wifi_sta();
     ap_netif  = esp_netif_create_default_wifi_ap();
-
     assert(sta_netif);
     assert(ap_netif);
 
@@ -114,12 +114,15 @@ static void wifi_manager_init_once(void)
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     ESP_ERROR_CHECK(esp_event_handler_register(
-        WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
+        WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(
-        IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
+        IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_event_handler, NULL));
 
-    wifi_initialized = true;
+    ESP_ERROR_CHECK(esp_wifi_start());
+
+    inited = true;
 }
+
 
  void wifi_apply_settings(const wifi_settings_t *cfg)
 {
@@ -179,8 +182,6 @@ static void wifi_manager_init_once(void)
             ap_cfg.ap.password[0] = '\0';
         }
 
-      //  ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
-
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
         ESP_LOGI(TAG, "AP config applied: SSID=%s", cfg->ap_ssid);
     }
@@ -221,6 +222,7 @@ void init_wifi_sta(const wifi_settings_t *cfg)
     strncpy((char*)sta_cfg.sta.ssid, cfg->sta_ssid, sizeof(sta_cfg.sta.ssid));
     strncpy((char*)sta_cfg.sta.password, cfg->sta_password, sizeof(sta_cfg.sta.password));
     sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
+    //sta_cfg.sta.scan_method = WIFI_FAST_SCAN;
     sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
     sta_cfg.sta.pmf_cfg.capable = true;
     sta_cfg.sta.pmf_cfg.required = false;
@@ -312,7 +314,11 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
                 wifi_event_sta_disconnected_t *disconn = event_data;
                  ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)",disconn->reason, wifi_reason_to_str(disconn->reason));
                  network_set_wifi_state(NET_STATE_WIFI_DOWN);
-                esp_wifi_connect();
+               if (!wifi_scan_in_progress) {
+                        esp_wifi_connect();
+                    } else {
+                        ESP_LOGI(TAG, "STA reconnect skipped due to scan");
+                    }
                 break;
             }
             case WIFI_EVENT_AP_START:
@@ -344,6 +350,10 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
                 ESP_ERROR_CHECK(esp_wifi_scan_get_ap_records(&count, ap_list));
 
                 ESP_LOGI(TAG, "Wi-Fi scan done. %d APs found", ap_count);
+
+                  wifi_scan_in_progress = false;
+
+        
 
                 // --- Детальный вывод списка AP ---
                 cJSON *json_root = cJSON_CreateObject();
@@ -416,6 +426,16 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base,int32_t ev
 // --- Неблокирующее сканирование ---
 esp_err_t wifi_scan_networks(void)
 {
+
+   if (wifi_scan_in_progress) {
+        ESP_LOGW(TAG, "Scan already in progress");
+        return ESP_ERR_INVALID_STATE;
+    }
+
+    wifi_stop_connecting_for_scan();
+
+
+
     wifi_scan_config_t scan_cfg = {
         .ssid = NULL,
         .bssid = NULL,
@@ -423,8 +443,14 @@ esp_err_t wifi_scan_networks(void)
         .show_hidden = true
     };
 
-    // false = неблокирующий вызов, результаты придут через событие WIFI_EVENT_SCAN_DONE
-    ESP_ERROR_CHECK(esp_wifi_scan_start(&scan_cfg, false));
+    esp_err_t err = esp_wifi_scan_start(&scan_cfg, false);
+    if (err != ESP_OK) {
+        ESP_LOGW(TAG, "wifi_scan skipped, err=%s", esp_err_to_name(err));
+          wifi_scan_in_progress = false;
+        return err;   
+    }
+
+
     ESP_LOGI(TAG, "Started Wi-Fi scan (non-blocking)");
     return ESP_OK;
 }
@@ -537,3 +563,17 @@ void start_wifi_manager_task(void)
     // 3️⃣ Создаем задачу менеджера Wi-Fi
     xTaskCreate(wifi_manager_task, "wifi_manager_task", 4096, NULL, 5, NULL);
 }
+
+
+
+static void wifi_stop_connecting_for_scan(void)
+{
+    wifi_scan_in_progress = true;
+
+    esp_wifi_disconnect();
+
+    ESP_LOGI(TAG, "STA connecting stopped for scan");
+}
+
+
+
