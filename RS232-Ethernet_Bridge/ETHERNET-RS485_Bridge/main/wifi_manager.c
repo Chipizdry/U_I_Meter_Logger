@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "nvs_flash.h"
 #include "esp_netif.h"
+#include "esp_netif_ip_addr.h"
 #include "freertos/semphr.h"
 #include "esp_heap_caps.h"
 #include "cJSON.h"
@@ -30,6 +31,7 @@ static volatile bool wifi_scan_in_progress = false;
 static EventGroupHandle_t wifi_evt_group;
 #define WIFI_EVT_APPLY   BIT0
 static void wifi_stop_connecting_for_scan(void);
+static void wifi_apply_ip_settings(const network_settings_t *cfg);
 extern void ws_broadcast(const char *text);
 extern void ws_send(int client_fd, const char *text);
 
@@ -188,6 +190,7 @@ void wifi_manager_init_once(void)
 
     // 5️⃣ Запускаем Wi-Fi
     ESP_ERROR_CHECK(esp_wifi_start());
+       wifi_apply_ip_settings(&net_cfg);
 
     ESP_LOGI(TAG, "Wi-Fi started successfully in mode %d", cfg->mode);
 }
@@ -197,104 +200,10 @@ esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
 {
     wifi_manager_init_once();
     wifi_apply_settings(cfg);
+    wifi_apply_ip_settings(&net_cfg);
     return ESP_OK;
 }
 
-
-// --- Инициализация STA ---
-void init_wifi_sta(const wifi_settings_t *cfg)
-{
-    ESP_LOGI(TAG, "Initializing STA mode...");
-
-    check_and_stop_wifi();
-
-    esp_netif_t *netif = esp_netif_create_default_wifi_sta();
-    assert(netif);
-
-    wifi_init_config_t wifi_cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&wifi_cfg));
-
-    // Регистрация обработчиков для STA
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &wifi_event_handler, NULL));
-
-    wifi_config_t sta_cfg = {0};
-    strncpy((char*)sta_cfg.sta.ssid, cfg->sta_ssid, sizeof(sta_cfg.sta.ssid));
-    strncpy((char*)sta_cfg.sta.password, cfg->sta_password, sizeof(sta_cfg.sta.password));
-    sta_cfg.sta.scan_method = WIFI_ALL_CHANNEL_SCAN;
-    //sta_cfg.sta.scan_method = WIFI_FAST_SCAN;
-    sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
-    sta_cfg.sta.pmf_cfg.capable = true;
-    sta_cfg.sta.pmf_cfg.required = false;
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "STA started, connecting to SSID: %s, PASS: %s, scan_method: %d, sort_method: %d, PMF capable: %d, PMF required: %d",cfg->sta_ssid,cfg->sta_password, sta_cfg.sta.scan_method,sta_cfg.sta.sort_method,sta_cfg.sta.pmf_cfg.capable, sta_cfg.sta.pmf_cfg.required);
-}
-
-// --- Инициализация AP с статическим IP ---
-void init_wifi_ap(const wifi_settings_t *cfg)
-{
-    ESP_LOGI(TAG, "Initializing AP mode...");
-
-    check_and_stop_wifi();
-
-    esp_netif_t *netif = esp_netif_create_default_wifi_ap();
-    assert(netif);
-
-    // Настройка статического IP для AP
-    esp_netif_ip_info_t ip_info;
-    ip_info.ip.addr = esp_ip4addr_aton("192.168.4.1");
-    ip_info.gw.addr = esp_ip4addr_aton("192.168.4.1");
-    ip_info.netmask.addr = esp_ip4addr_aton("255.255.255.0");
-
-    ESP_ERROR_CHECK(esp_netif_dhcps_stop(netif));
-    ESP_ERROR_CHECK(esp_netif_set_ip_info(netif, &ip_info));
-    ESP_ERROR_CHECK(esp_netif_dhcps_start(netif));
-
-    wifi_init_config_t wifi_cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&wifi_cfg));
-
-    // Регистрация обработчиков для AP
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_START, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STOP, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STACONNECTED, &wifi_event_handler, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, WIFI_EVENT_AP_STADISCONNECTED, &wifi_event_handler, NULL));
-
-    wifi_config_t ap_cfg = {0};
-    strncpy((char*)ap_cfg.ap.ssid, cfg->ap_ssid, sizeof(ap_cfg.ap.ssid));
-    strncpy((char*)ap_cfg.ap.password, cfg->ap_password, sizeof(ap_cfg.ap.password));
-    ap_cfg.ap.ssid_len = strlen(cfg->ap_ssid);
-    ap_cfg.ap.channel = cfg->ap_channel > 0 ? cfg->ap_channel : 1;
-    ap_cfg.ap.max_connection = 4;
-   // ap_cfg.ap.authmode = strlen(cfg->ap_password) ? WIFI_AUTH_WPA_WPA2_PSK : WIFI_AUTH_OPEN;
-    size_t pass_len = strlen(cfg->ap_password);
-
-    if (pass_len == 0) {
-        // Открытая точка
-        ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
-        ap_cfg.ap.password[0] = '\0';
-    } 
-    else if (pass_len < 8) {
-        // Невалидный пароль для WPA — принудительно OPEN
-        ESP_LOGW(TAG, "AP password too short (%d), forcing OPEN auth", pass_len);
-        ap_cfg.ap.authmode = WIFI_AUTH_OPEN;
-        ap_cfg.ap.password[0] = '\0';
-    } 
-    else {
-        // Явно WPA2, без WPA1 и без warning
-        strncpy((char *)ap_cfg.ap.password, cfg->ap_password, sizeof(ap_cfg.ap.password) - 1);
-        ap_cfg.ap.authmode = WIFI_AUTH_WPA2_PSK;
-    }
-
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
-    ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_AP, &ap_cfg));
-    ESP_ERROR_CHECK(esp_wifi_start());
-
-    ESP_LOGI(TAG, "AP started, SSID: %s, IP: 192.168.4.1", cfg->ap_ssid);
-}
 
 
 // --- Обработчик событий Wi-Fi ---
@@ -504,7 +413,6 @@ esp_err_t wifi_connect_to(const char* ssid, const char* password)
 void wifi_manager_stop(void)
 {
     esp_wifi_stop();
-   // esp_wifi_deinit();
     ESP_LOGI(TAG, "Wi-Fi stopped");
 }
 
@@ -576,4 +484,40 @@ static void wifi_stop_connecting_for_scan(void)
 }
 
 
+static void wifi_apply_ip_settings(const network_settings_t *cfg)
+{
+    esp_netif_t *netif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    if (!netif) {
+        ESP_LOGE(TAG, "STA netif not found");
+        return;
+    }
 
+    if (cfg->wifi_dhcp_enabled) {
+        ESP_LOGI(TAG, "Enabling DHCP client");
+        esp_netif_dhcpc_start(netif);
+        return;
+    }
+
+    ESP_LOGI(TAG, "Applying static IP");
+    esp_netif_dhcpc_stop(netif);
+
+    esp_netif_ip_info_t ip;
+    memset(&ip, 0, sizeof(ip));
+
+    ip.ip.addr      = esp_ip4addr_aton(cfg->wifi_ip);
+    ip.netmask.addr = esp_ip4addr_aton(cfg->wifi_mask);
+    ip.gw.addr      = esp_ip4addr_aton(cfg->wifi_gateway);
+
+    ESP_ERROR_CHECK(esp_netif_set_ip_info(netif, &ip));
+
+    // DNS
+    if (strlen(cfg->wifi_dns)) {
+        esp_netif_dns_info_t dns;
+        memset(&dns, 0, sizeof(dns));
+        dns.ip.u_addr.ip4.addr = esp_ip4addr_aton(cfg->wifi_dns);
+        dns.ip.type = ESP_IPADDR_TYPE_V4;
+        esp_netif_set_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns);
+    }
+
+    ESP_LOGI(TAG, "Static IP applied: %s", cfg->wifi_ip);
+}

@@ -271,8 +271,7 @@
 
                     <!-- ===== Ethernet ===== -->
                     <div class="net-block" id="ethernetBlock">
-                        <h3><span id="ethernet-status" class="net-status">UNKNOWN</span></h3>
-
+                    <span id="ethernet-status" class="net-status">UNKNOWN</span>
                       <form id="lanForm" class="settings-form">
 
                         <label class="switch-label">
@@ -297,7 +296,7 @@
 
                     <!-- ===== Wi-Fi ===== -->
                     <div class="net-block hidden" id="wifiBlock">
-                        <h3><span id="wifi-status" class="net-status">UNKNOWN</span></h3>
+                    <span id="wifi-status" class="net-status">UNKNOWN</span>
            
                     <form id="wifiLANForm" class="settings-form">
                         <label class="switch-label">
@@ -353,6 +352,11 @@
     const wifiDhcpCheckbox = document.getElementById("wifi_dhcp");
     const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
     const userForm = document.getElementById("UserForm");
+
+    const lanForm = document.getElementById("lanForm");
+    const wifiLANForm = document.getElementById("wifiLANForm");
+    const saveNetworkBtn = document.querySelector("#LAN button[type='submit']");
+
     const ethIpFields = ["ip", "mask", "gateway", "dns"];
     const wifiIpFields = ["wifi_ip", "wifi_mask", "wifi_gateway", "wifi_dns"];
     const DIAG_MAX_ROWS = 10;

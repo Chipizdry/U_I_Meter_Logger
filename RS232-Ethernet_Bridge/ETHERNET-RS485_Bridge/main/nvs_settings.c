@@ -76,8 +76,14 @@ static void set_default_network_settings(network_settings_t *s) {
     strcpy(s->gateway, "192.168.1.1");
     strcpy(s->mask, "255.255.255.0");
     strcpy(s->dns, "8.8.8.8");
-    s->port =80;
     s->dhcp_enabled = true;
+
+    strcpy(s->wifi_ip, "_._._._");
+    strcpy(s->wifi_gateway, "_._._._"); 
+    strcpy(s->wifi_mask, "_._._._");
+    strcpy(s->wifi_dns, "_._._._");
+    s->wifi_dhcp_enabled = true;    
+    s->port =80;
 }
 
 static void set_default_wifi_settings(wifi_settings_t *s) {
@@ -90,11 +96,6 @@ static void set_default_wifi_settings(wifi_settings_t *s) {
     strcpy(s->sta_ssid, "");
     strcpy(s->sta_password, "");
     s->mode = WIFI_MODE_AP;
-    strcpy(s->ip, "_._._._");
-    strcpy(s->gateway, "_._._._");
-    strcpy(s->mask, "_._._._");
-    strcpy(s->dns, "_._._._");
-    s->dhcp_enabled = true;
 }   
 
 static void set_default_system_settings(system_settings_t *s) {

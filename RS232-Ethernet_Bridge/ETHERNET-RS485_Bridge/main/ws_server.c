@@ -27,7 +27,7 @@ extern esp_websocket_client_handle_t client;
 extern uint32_t last_ws_event_tick;
 
 extern bool ws_connected;
-extern user_settings_t user;   // из get_settings()
+extern user_settings_t user_cfg;   // из get_settings()
 
 static const char *TAG = "ws_server";
 bool test_account_active = false;
@@ -178,7 +178,7 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
     
 
         // 3️⃣ Перезапуск WebSocket клиента с новыми данными
-        esp_err_t err = websocket_client_start(user.serial,ws_email,ws_password , user.node_name);
+        esp_err_t err = websocket_client_start(user_cfg.serial,ws_email,ws_password , user_cfg.node_name);
 
         if (err == ESP_OK) {
             ESP_LOGI("WS", "🚀 Cloud WS reconnect started successfully");
@@ -373,8 +373,8 @@ void handle_ws_custom_message(int client_fd, cJSON *msg) {
 // Функция отмены тестового аккаунта
 void cancel_test_account(void) {
     test_account_active = false;
-    strncpy(ws_email, user.account_login, sizeof(ws_email)-1);
-    strncpy(ws_password, user.account_password, sizeof(ws_password)-1);
+    strncpy(ws_email, user_cfg.account_login, sizeof(ws_email)-1);
+    strncpy(ws_password, user_cfg.account_password, sizeof(ws_password)-1);
     websocket_disable_reconnect();
     // Перезапуск WS с обычным аккаунтом
     if (client) {
@@ -383,7 +383,7 @@ void cancel_test_account(void) {
         esp_websocket_client_destroy(client);
         client = NULL;
     }
-    websocket_client_start(user.serial, ws_email, ws_password, user.node_name);
+    websocket_client_start(user_cfg.serial, ws_email, ws_password, user_cfg.node_name);
     websocket_enable_reconnect();
 }
 

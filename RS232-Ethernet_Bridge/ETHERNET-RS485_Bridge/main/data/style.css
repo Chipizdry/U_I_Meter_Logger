@@ -1185,8 +1185,8 @@ select:focus {
 
 
 .net-status {
-    margin-left: 12px;
-    font-size: 0.85em;
+    margin-bottom: 12px;
+    font-size: 13px;
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 6px;

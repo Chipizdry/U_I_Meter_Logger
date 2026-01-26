@@ -37,8 +37,8 @@ static const char *TAG = "main";
 char login[64];
 char password[64];
 
-user_settings_t user;
-network_settings_t net;
+user_settings_t user_cfg;
+network_settings_t net_cfg;
 wifi_settings_t wifi_cfg;
 system_settings_t sys;
 uart_settings_t uart_cfg;
@@ -64,8 +64,8 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
    
-    nvs_load_user_settings(&user);
-    nvs_load_network_settings(&net);
+    nvs_load_user_settings(&user_cfg);
+    nvs_load_network_settings(&net_cfg);
     nvs_load_wifi_settings(&wifi_cfg);
     nvs_load_system_settings(&sys);
     nvs_load_uart_settings(&uart_cfg);
@@ -74,8 +74,9 @@ void app_main(void)
     /* === АВТО-ОБНОВЛЕНИЕ BUILD INFO ПРИ НОВОЙ ПРОШИВКЕ === */
     system_update_build_info();
 
-    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Name=%s Account:%s ? Pass:%s",user.login, user.password, user.language, user.serial, user.node_name , user.account_login, user.account_password);
-    ESP_LOGI("MAIN", "Network: IP=%s DHCP=%d", net.ip, net.dhcp_enabled);
+    ESP_LOGI("MAIN", "User: %s / %s (%s) SN=%s Name=%s Account:%s ? Pass:%s",user_cfg.login, user_cfg.password, user_cfg.language, user_cfg.serial, user_cfg.node_name , user_cfg.account_login, user_cfg.account_password);
+    ESP_LOGI("MAIN", "Network_ETH: IP=%s DHCP=%d", net_cfg.ip, net_cfg.dhcp_enabled);
+    ESP_LOGI("MAIN", "Network_WIFI: IP=%s DHCP=%d", net_cfg.wifi_ip, net_cfg.wifi_dhcp_enabled);
     ESP_LOGI("MAIN", "WiFi Settings:");
     ESP_LOGI("MAIN", "Mode: %s", wifi_cfg.mode == WIFI_MODE_STA   ? "STA" :wifi_cfg.mode == WIFI_MODE_AP    ? "AP" : wifi_cfg.mode == WIFI_MODE_APSTA ? "AP+STA" : "UNKNOWN");
     ESP_LOGI("MAIN", "STA: SSID=%s  PASS=%s", wifi_cfg.sta_ssid, wifi_cfg.sta_password);
@@ -115,7 +116,7 @@ void app_main(void)
     }
     initialize_sntp();
    
-    websocket_client_start(user.serial, user.account_login, user.account_password , user.node_name); 
+    websocket_client_start(user_cfg.serial, user_cfg.account_login, user_cfg.account_password , user_cfg.node_name); 
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
     start_wifi_manager_task();
 }

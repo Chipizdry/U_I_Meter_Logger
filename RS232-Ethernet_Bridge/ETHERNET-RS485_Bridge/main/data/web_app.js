@@ -312,49 +312,6 @@ async function saveWiFiSettings() {
 }
 
 
-/*
-   // === Сохранение Wi-Fi настроек ===
-wifiForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData(wifiForm);
-    const params = new URLSearchParams(formData);
-    const token = sessionStorage.getItem('auth_token');
-
-    console.log("Отправляем токен:", token);
-
-    try {
-        const response = await fetch("/save_settings", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": `Bearer ${token}`
-            },
-            body: params.toString()
-        });
-
-        // Если сервер вернул 401 — токен недействителен
-        if (response.status === 401) {
-           // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
-            sessionStorage.removeItem("auth_token");
-            showTokenExpiredModal();
-           // showLogin();
-            return;
-        }
-
-        const text = await response.text();
-
-        if (response.ok) {
-            alert(text);
-        } else {
-            alert(`Ошибка: ${text}`);
-        }
-    } catch (err) {
-        alert(`Ошибка соединения: ${err}`);
-    }
-});
-
-*/
     // === Сохранение настроек аккаунта ===
 saveAccountBtn.addEventListener('click', async () => {
     const token = sessionStorage.getItem("auth_token");
@@ -464,6 +421,7 @@ saveAccountBtn.addEventListener('click', async () => {
                     body: params.toString()
                 });
 
+                   // 🔐 Токен истёк
                 if (res.status === 401) {
                     sessionStorage.removeItem("auth_token");
                     showTokenExpiredModal();
@@ -471,30 +429,40 @@ saveAccountBtn.addEventListener('click', async () => {
                     return;
                 }
 
-                const text = await res.text();
+                let json = {};
+                try {
+                    json = await res.json();
+                } catch (_) {
+                    // backend может вернуть не JSON
+                }
 
                 if (!res.ok) {
-                    console.error("Ошибка сохранения пользователя:", text);
-                    alert("Ошибка: " + text);
+                    showPopup({
+                        type: "error",
+                        title: "Ошибка",
+                        message: json.message || "Ошибка сохранения пользователя"
+                    });
                     return;
                 }
 
-                console.log("USER settings saved:", text);
+            // ✅ Успех
+            showPopup({
+                type: "success",
+                title: "Сохранено",
+                message: json.message || "Настройки пользователя сохранены 💾",
+                timeout: 3000
+            });
 
-                // Статус в интерфейсе
-                const wsStatus = document.getElementById("ws-status");
-                if (wsStatus) {
-                    wsStatus.textContent = "Пользователь обновлён ✔️";
-                    wsStatus.style.color = "#4CAF50";
-                    setTimeout(() => wsStatus.textContent = "", 2000);
-                }
+        
 
-                alert("Настройки пользователя сохранены");
-
-            } catch (err) {
-                console.error("Ошибка при сохранении пользователя:", err);
-                alert("Ошибка: " + err);
-            }
+    } catch (err) {
+        console.error("User save failed:", err);
+        showPopup({
+            type: "error",
+            title: "Нет соединения",
+            message: "Не удалось сохранить настройки пользователя"
+        });
+    }
         });
 
 
@@ -561,5 +529,83 @@ saveAccountBtn.addEventListener('click', async () => {
             throw new Error("Device did not come online in time");
         }
 
+
+
+
+saveNetworkBtn.addEventListener("click", async (e) => {
+    e.preventDefault();
+
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+        showLogin();
+        return;
+    }
+
+    const netType = document.querySelector('input[name="netType"]:checked').value;
+
+    const payload = {
+        dhcp_enabled: document.getElementById("dhcp").checked,
+        ip: document.getElementById("ip").value.trim(),
+        mask: document.getElementById("mask").value.trim(),
+        gateway: document.getElementById("gateway").value.trim(),
+        dns: document.getElementById("dns").value.trim(),
+
+        wifi_dhcp_enabled: document.getElementById("wifi_dhcp").checked,
+        wifi_ip: document.getElementById("wifi_ip").value.trim(),
+        wifi_mask: document.getElementById("wifi_mask").value.trim(),
+        wifi_gateway: document.getElementById("wifi_gateway").value.trim(),
+        wifi_dns: document.getElementById("wifi_dns").value.trim(),
+
+        port: parseInt(document.getElementById("port").value, 10),
+        net_type: netType // ethernet | wifi (если понадобится)
+    };
+
+    console.log("Saving NETWORK:", payload);
+
+    try {
+        const res = await fetch("/save_settings/network", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            showLogin();
+            return;
+        }
+
+        let json = {};
+        try { json = await res.json(); } catch {}
+
+        if (!res.ok) {
+            showPopup({
+                type: "error",
+                title: "Ошибка",
+                message: json.message || "Ошибка сохранения сети"
+            });
+            return;
+        }
+
+        showPopup({
+            type: "success",
+            title: "Сохранено",
+            message: json.message || "Сетевые настройки сохранены 💾",
+            timeout: 3000
+        });
+
+    } catch (err) {
+        console.error("Network save failed:", err);
+        showPopup({
+            type: "error",
+            title: "Нет соединения",
+            message: "Не удалось сохранить сетевые настройки"
+        });
+    }
+});
 
 

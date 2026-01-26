@@ -114,12 +114,12 @@ void websocket_enable_reconnect(void)
         ws_connected = false;
     }
 
-    const char *email_to_use = test_account_active ? ws_email : user.account_login;
-    const char *pass_to_use  = test_account_active ? ws_password : user.account_password;
-    const char *node_name_use  = test_account_active ? ws_node_name : user.node_name;
+    const char *email_to_use = test_account_active ? ws_email : user_cfg.account_login;
+    const char *pass_to_use  = test_account_active ? ws_password : user_cfg.account_password;
+    const char *node_name_use  = test_account_active ? ws_node_name : user_cfg.node_name;
 
 
-    esp_err_t ok = websocket_client_start(user.serial, email_to_use, pass_to_use, node_name_use);
+    esp_err_t ok = websocket_client_start(user_cfg.serial, email_to_use, pass_to_use, node_name_use);
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "Reconnect started");
     } else {
@@ -359,7 +359,7 @@ void websocket_restart(const char *email, const char *password, const char *node
     
 
     // Стартуем заново
-    esp_err_t ok = websocket_client_start(user.serial, ws_email, ws_password, user.node_name);
+    esp_err_t ok = websocket_client_start(user_cfg.serial, ws_email, ws_password, user_cfg.node_name);
 
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "✅ WebSocket restarted successfully");

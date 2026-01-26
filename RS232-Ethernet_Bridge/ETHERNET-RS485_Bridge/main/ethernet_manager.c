@@ -89,16 +89,16 @@ esp_err_t ethernet_init(void)
     }
 
     // --- Используем настройки из NVS ---
-    if (net.dhcp_enabled) {
+    if (net_cfg.dhcp_enabled) {
         ESP_LOGI(TAG, "Using DHCP mode");
     } else {
-        ESP_LOGI(TAG, "Using static IP: %s", net.ip);
+        ESP_LOGI(TAG, "Using static IP: %s", net_cfg.ip);
         esp_netif_dhcpc_stop(s_eth_netif);
 
         esp_netif_ip_info_t ip_info;
-        inet_pton(AF_INET, net.ip, &ip_info.ip);
-        inet_pton(AF_INET, net.mask, &ip_info.netmask);
-        inet_pton(AF_INET, net.gateway, &ip_info.gw);
+        inet_pton(AF_INET, net_cfg.ip, &ip_info.ip);
+        inet_pton(AF_INET, net_cfg.mask, &ip_info.netmask);
+        inet_pton(AF_INET, net_cfg.gateway, &ip_info.gw);
         esp_netif_set_ip_info(s_eth_netif, &ip_info);
     }
 

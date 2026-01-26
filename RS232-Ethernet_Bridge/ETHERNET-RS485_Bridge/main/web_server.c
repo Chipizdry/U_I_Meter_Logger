@@ -63,43 +63,22 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
     }
 
     // Загружаем настройки
-    user_settings_t user = {0};
-    network_settings_t net = {0};
-    system_settings_t sys = {0};
-    uart_settings_t uart_cfg = {0};
-    wifi_settings_t wifi_cfg= {0};    
-
-    nvs_load_user_settings(&user);
-    nvs_load_network_settings(&net);
-    nvs_load_system_settings(&sys);
-    nvs_load_uart_settings(&uart_cfg);
-    nvs_load_wifi_settings(&wifi_cfg);
+    extern user_settings_t user_cfg;
+    extern network_settings_t net_cfg;
+    extern wifi_settings_t wifi_cfg;
+    extern system_settings_t sys;
+    extern uart_settings_t uart_cfg;
 
     // Если DHCP включен, берем текущие настройки с Ethernet
   
-        if (net.dhcp_enabled) {
-        fill_netif_ip_info(
-            "ETH_DEF",
-            net.ip,
-            net.mask,
-            net.gateway,
-            net.dns,
-            sizeof(net.ip)
-        );
+        if (net_cfg.dhcp_enabled) {
+        fill_netif_ip_info("ETH_DEF", net_cfg.ip, net_cfg.mask,net_cfg.gateway,net_cfg.dns, sizeof(net_cfg.ip) );
     }
 
 
-        if (wifi_cfg.dhcp_enabled &&
+        if (net_cfg.wifi_dhcp_enabled &&
         (wifi_cfg.mode == WIFI_MODE_STA || wifi_cfg.mode == WIFI_MODE_APSTA)) {
-
-        fill_netif_ip_info(
-            "WIFI_STA_DEF",
-            wifi_cfg.ip,
-            wifi_cfg.mask,
-            wifi_cfg.gateway,
-            wifi_cfg.dns,
-            sizeof(wifi_cfg.ip)
-        );
+        fill_netif_ip_info("WIFI_STA_DEF", net_cfg.wifi_ip, net_cfg.wifi_mask, net_cfg.wifi_gateway, net_cfg.wifi_dns,sizeof(net_cfg.wifi_ip) );
     }
     // Сбор JSON
     cJSON *json = cJSON_CreateObject();
@@ -109,11 +88,11 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
         case ALL:
         case USER: {
             cJSON *u = cJSON_CreateObject();
-            cJSON_AddStringToObject(u, "node_name", user.node_name); // ✅ имя узла
-            cJSON_AddStringToObject(u, "login", user.login);
-            cJSON_AddStringToObject(u, "account_login", user.account_login);  // ✅ имя аккаунта
-            cJSON_AddStringToObject(u, "language", user.language);
-            cJSON_AddStringToObject(u, "serial", user.serial);     // ✅ серийный номер      
+            cJSON_AddStringToObject(u, "node_name", user_cfg.node_name); // ✅ имя узла
+            cJSON_AddStringToObject(u, "login", user_cfg.login);
+            cJSON_AddStringToObject(u, "account_login", user_cfg.account_login);  // ✅ имя аккаунта
+            cJSON_AddStringToObject(u, "language", user_cfg.language);
+            cJSON_AddStringToObject(u, "serial", user_cfg.serial);     // ✅ серийный номер      
             cJSON_AddBoolToObject(u, "connected", ws_connected); 
             cJSON_AddStringToObject(u, "status", cloud_status_msg);
             cJSON_AddItemToObject(json, "user", u);
@@ -123,18 +102,18 @@ static esp_err_t get_settings_handler(httpd_req_t *req)
 
         case NETWORK: {
             cJSON *n = cJSON_CreateObject();
-            cJSON_AddStringToObject(n, "ip", net.ip);
-            cJSON_AddStringToObject(n, "mask", net.mask);
-            cJSON_AddStringToObject(n, "gateway", net.gateway);
-            cJSON_AddStringToObject(n, "dns", net.dns); 
-            cJSON_AddNumberToObject(n, "port", net.port);
-            cJSON_AddBoolToObject(n, "dhcp_enabled", net.dhcp_enabled);
+            cJSON_AddStringToObject(n, "ip", net_cfg.ip);
+            cJSON_AddStringToObject(n, "mask", net_cfg.mask);
+            cJSON_AddStringToObject(n, "gateway", net_cfg.gateway);
+            cJSON_AddStringToObject(n, "dns", net_cfg.dns); 
+            cJSON_AddNumberToObject(n, "port", net_cfg.port);
+            cJSON_AddBoolToObject(n, "dhcp_enabled", net_cfg.dhcp_enabled);
 
-            cJSON_AddStringToObject(n, "wifi_ip", wifi_cfg.ip);
-            cJSON_AddStringToObject(n, "wifi_mask", wifi_cfg.mask);
-            cJSON_AddStringToObject(n, "wifi_gateway", wifi_cfg.gateway);
-            cJSON_AddStringToObject(n, "wifi_dns", wifi_cfg.dns);
-            cJSON_AddBoolToObject(n, "wifi_dhcp_enabled", wifi_cfg.dhcp_enabled);
+            cJSON_AddStringToObject(n, "wifi_ip", net_cfg.wifi_ip);
+            cJSON_AddStringToObject(n, "wifi_mask", net_cfg.wifi_mask);
+            cJSON_AddStringToObject(n, "wifi_gateway", net_cfg.wifi_gateway);
+            cJSON_AddStringToObject(n, "wifi_dns", net_cfg.wifi_dns);
+            cJSON_AddBoolToObject(n, "wifi_dhcp_enabled", net_cfg.wifi_dhcp_enabled);
             
             cJSON_AddItemToObject(json, "network", n);
             network_notify_ws();
@@ -237,7 +216,84 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     }
 
 
-    
+    if (section == SECTION_NETWORK) {
+
+    char body[512] = {0};
+    int ret = httpd_req_recv(req, body, sizeof(body) - 1);
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
+        return ESP_FAIL;
+    }
+    body[ret] = '\0';
+
+    ESP_LOGI("NETWORK", "Received NETWORK JSON: %s", body);
+
+    cJSON *json = cJSON_Parse(body);
+    if (!json) {
+        httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
+        return ESP_FAIL;
+    }
+
+
+    // ===== ETH =====
+    cJSON *dhcp = cJSON_GetObjectItem(json, "dhcp_enabled");
+    if (dhcp && cJSON_IsBool(dhcp)) {
+        net_cfg.dhcp_enabled = cJSON_IsTrue(dhcp);
+    }
+
+    if (!net_cfg.dhcp_enabled) {
+        cJSON *ip  = cJSON_GetObjectItem(json, "ip");
+        cJSON *msk = cJSON_GetObjectItem(json, "mask");
+        cJSON *gw  = cJSON_GetObjectItem(json, "gateway");
+        cJSON *dns = cJSON_GetObjectItem(json, "dns");
+
+        if (ip  && cJSON_IsString(ip))  strncpy(net_cfg.ip, ip->valuestring, sizeof(net_cfg.ip)-1);
+        if (msk && cJSON_IsString(msk)) strncpy(net_cfg.mask, msk->valuestring, sizeof(net_cfg.mask)-1);
+        if (gw  && cJSON_IsString(gw))  strncpy(net_cfg.gateway, gw->valuestring, sizeof(net_cfg.gateway)-1);
+        if (dns && cJSON_IsString(dns)) strncpy(net_cfg.dns, dns->valuestring, sizeof(net_cfg.dns)-1);
+    }
+
+    cJSON *port = cJSON_GetObjectItem(json, "port");
+    if (port && cJSON_IsNumber(port)) { net_cfg.port = port->valueint; }
+
+    // ===== WIFI STA (IP only) =====
+    cJSON *wifi_dhcp = cJSON_GetObjectItem(json, "wifi_dhcp_enabled");
+    if (wifi_dhcp && cJSON_IsBool(wifi_dhcp)) {
+        net_cfg.wifi_dhcp_enabled = cJSON_IsTrue(wifi_dhcp);
+    }
+
+    if (!net_cfg.wifi_dhcp_enabled) {
+        cJSON *ip  = cJSON_GetObjectItem(json, "wifi_ip");
+        cJSON *msk = cJSON_GetObjectItem(json, "wifi_mask");
+        cJSON *gw  = cJSON_GetObjectItem(json, "wifi_gateway");
+        cJSON *dns = cJSON_GetObjectItem(json, "wifi_dns");
+
+        if (ip  && cJSON_IsString(ip))  strncpy(net_cfg.wifi_ip, ip->valuestring, sizeof(net_cfg.wifi_ip)-1);
+        if (msk && cJSON_IsString(msk)) strncpy(net_cfg.wifi_mask, msk->valuestring, sizeof(net_cfg.wifi_mask)-1);
+        if (gw  && cJSON_IsString(gw))  strncpy(net_cfg.wifi_gateway, gw->valuestring, sizeof(net_cfg.wifi_gateway)-1);
+        if (dns && cJSON_IsString(dns)) strncpy(net_cfg.wifi_dns, dns->valuestring, sizeof(net_cfg.wifi_dns)-1);
+    }
+
+    // ===== SAVE =====
+    nvs_save_network_settings(&net_cfg);
+
+    ESP_LOGI("NETWORK", "ETH: DHCP=%d IP=%s" , net_cfg.dhcp_enabled, net_cfg.ip);
+    ESP_LOGI("NETWORK", "WIFI: DHCP=%d IP=%s", net_cfg.wifi_dhcp_enabled, net_cfg.wifi_ip);
+
+    cJSON_Delete(json);
+
+    // ===== APPLY =====
+  
+    wifi_manager_request_apply();
+    network_notify_ws();
+
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_sendstr(req,"{\"status\":\"ok\",\"message\":\"Сетевые настройки сохранены !!!💾\"}");
+    return ESP_OK;
+}
+
 
 
     if (section == SECTION_UART) {
@@ -254,11 +310,7 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
             httpd_resp_send_err(req, HTTPD_400_BAD_REQUEST, "Invalid JSON");
             return ESP_FAIL;
         }
-    
-        uart_settings_t uart_cfg = {0};
-        nvs_load_uart_settings(&uart_cfg);
-       
-       
+           
         cJSON *baud = cJSON_GetObjectItem(json, "baud");
         cJSON *data_bits = cJSON_GetObjectItem(json, "data_bits");
         cJSON *stop_bits = cJSON_GetObjectItem(json, "stop_bits");
@@ -331,9 +383,6 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
         return ESP_FAIL;
     }
 
-    wifi_settings_t wifi_cfg = {0};
-    nvs_load_wifi_settings(&wifi_cfg);
-
     cJSON *sta_ssid = cJSON_GetObjectItem(json, "sta_ssid");
     cJSON *sta_password = cJSON_GetObjectItem(json, "sta_password");
     cJSON *ap_ssid = cJSON_GetObjectItem(json, "ap_ssid");
@@ -365,89 +414,82 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     return ESP_OK;      
   }
 
+if (section == SECTION_ACCOUNT) {
 
-    if (section == SECTION_ACCOUNT) {
+    char body[256] = {0};
+    int ret = httpd_req_recv(req, body, sizeof(body) - 1);
+    if (ret <= 0) {
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
+        return ESP_FAIL;
+    }
+    body[ret] = '\0';
 
-            char body[256] = {0};
-            int ret = httpd_req_recv(req, body, sizeof(body) - 1);
-            if (ret <= 0) {
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to read body");
-                return ESP_FAIL;
-            }
-            body[ret] = '\0';
+    ESP_LOGI("ACCOUNT", "Received body: %s", body);
 
-            ESP_LOGI("ACCOUNT", "Received body: %s", body);
+    // -------- PARSE form-urlencoded --------
+    char raw_login[128] = {0};
+    char raw_password[128] = {0};
+    char raw_node_name[96] = {0};
 
-            // -------- ПАРСИНГ form-urlencoded --------
-            char raw_login[128] = {0};
-            char raw_password[128] = {0};
-            char raw_node_name[96] = {0};
+    char *p;
+    if ((p = strstr(body, "account-login="))) {
+        p += strlen("account-login=");
+        sscanf(p, "%127[^&]", raw_login);
+    }
 
-            {
-                char *p = strstr(body, "account-login=");
-                if (p) {
-                    p += strlen("account-login=");
-                    sscanf(p, "%127[^&]", raw_login);
-                }
+    if ((p = strstr(body, "account-password="))) {
+        p += strlen("account-password=");
+        sscanf(p, "%127[^&]", raw_password);
+    }
 
-                p = strstr(body, "account-password=");
-                if (p) {
-                    p += strlen("account-password=");
-                    sscanf(p, "%127[^&]", raw_password);
-                }
+    if ((p = strstr(body, "node-name="))) {
+        p += strlen("node-name=");
+        sscanf(p, "%95[^&]", raw_node_name);
+    }
 
-                p = strstr(body, "node-name=");
-                if (p) {
-                    p += strlen("node-name=");
-                    sscanf(p, "%95[^&]", raw_node_name);
-                }   
-            }
+    // -------- URL decode --------
+    char login_dec[128] = {0};
+    char pass_dec[128]  = {0};
+    char node_name_dec[32] = {0};
 
-            ESP_LOGI("ACCOUNT", "Raw parsed: login=%s password=%s node_name=%s", raw_login, raw_password, raw_node_name);
+    url_decode(login_dec, raw_login);
+    url_decode(pass_dec, raw_password);
+    url_decode(node_name_dec, raw_node_name);
 
-            // -------- URL DECODE --------
-            char login_dec[128] = {0};
-            char pass_dec[128]  = {0};
-            char node_name_dec[32] = {0};
+    // -------- UPDATE GLOBAL user_cfg --------
+    if (strlen(login_dec) > 0)
+        strncpy(user_cfg.account_login, login_dec, sizeof(user_cfg.account_login) - 1);
 
-            url_decode(login_dec, raw_login);
-            url_decode(pass_dec, raw_password);
-            url_decode(node_name_dec, raw_node_name);
+    if (strlen(pass_dec) > 0)
+        strncpy(user_cfg.account_password, pass_dec, sizeof(user_cfg.account_password) - 1);
 
-            ESP_LOGI("ACCOUNT", "Decoded: login=%s password=%s node_name=%s", login_dec, pass_dec, node_name_dec);
+    if (strlen(node_name_dec) > 0)
+        strncpy(user_cfg.node_name, node_name_dec, sizeof(user_cfg.node_name) - 1);
 
-            // -------- ЗАГРУЖАЕМ СТАРЫЕ НАСТРОЙКИ --------
-            user_settings_t user_cfg = {0};
-            nvs_load_user_settings(&user_cfg);
+    // -------- SAVE TO NVS --------
+    esp_err_t err = nvs_save_user_settings(&user_cfg);
+    if (err != ESP_OK) {
+        ESP_LOGE("ACCOUNT", "Failed to save: %s", esp_err_to_name(err));
+        httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save");
+        return ESP_FAIL;
+    }
 
-            // -------- ОБНОВЛЯЕМ --------
-            if (strlen(login_dec) > 0)
-                strncpy(user_cfg.account_login, login_dec, sizeof(user_cfg.account_login) - 1);
+    ESP_LOGI("ACCOUNT","Saved OK: login=%s password=%s node_name=%s",user_cfg.account_login,user_cfg.account_password,user_cfg.node_name);
 
-            if (strlen(pass_dec) > 0)
-                strncpy(user_cfg.account_password, pass_dec, sizeof(user_cfg.account_password) - 1);
-            if (strlen(node_name_dec) > 0)
-                strncpy(user_cfg.node_name, node_name_dec, sizeof(user_cfg.node_name) - 1);
+    // -------- APPLY RUNTIME SIDE EFFECTS --------
+    websocket_restart(user_cfg.account_login,user_cfg.account_password,user_cfg.node_name);
 
+    // -------- RESPONSE --------
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_sendstr(req,
+        "{\"status\":\"ok\",\"message\":\"Настройки аккаунта сохранены !!!💾\"}"
+    );
 
-            // -------- СОХРАНЯЕМ --------
-            esp_err_t err = nvs_save_user_settings(&user_cfg);
-            if (err != ESP_OK) {
-                ESP_LOGE("ACCOUNT", "Failed to save: %s", esp_err_to_name(err));
-                httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save");
-                return ESP_FAIL;
-            }
+    return ESP_OK;
+}
 
-            ESP_LOGI("ACCOUNT", "Saved OK: login=%s password=%s node_name=%s",user_cfg.account_login, user_cfg.account_password, user_cfg.node_name);
-            memcpy(&user, &user_cfg, sizeof(user_settings_t));
-            websocket_restart(user_cfg.account_login, user_cfg.account_password, user_cfg.node_name);
-
-            httpd_resp_set_type(req, "application/json");
-            httpd_resp_set_status(req, "200 OK");
-            httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
-            httpd_resp_sendstr(req, "{\"status\":\"ok\",\"message\":\"Настройки аккаунта сохранены !!!💾\"}");
-            return ESP_OK;
-        }
 
   if (section == SECTION_USER) {
 
@@ -474,20 +516,23 @@ static esp_err_t save_settings_post_handler(httpd_req_t *req)
     esp_err_t err = ESP_OK;
      // --- Сохраняем User Settings ---
     if (strlen(login_val) > 0 || strlen(password_val) > 0) {
-        user_settings_t user = {0};
-        nvs_load_user_settings(&user); // читаем старые данные
-        if (strlen(login_val) > 0) strncpy(user.login, login_val, sizeof(user.login) - 1);
-        if (strlen(password_val) > 0) strncpy(user.password, password_val, sizeof(user.password) - 1);
-        err = nvs_save_user_settings(&user);
+        if (strlen(login_val) > 0) strncpy(user_cfg.login, login_val, sizeof(user_cfg.login) - 1);
+        if (strlen(password_val) > 0) strncpy(user_cfg.password, password_val, sizeof(user_cfg.password) - 1);
+
+        err = nvs_save_user_settings(&user_cfg);
         if (err != ESP_OK) {
             ESP_LOGE(TAG, "Failed to save user settings: %s", esp_err_to_name(err));
             httpd_resp_send_err(req, HTTPD_500_INTERNAL_SERVER_ERROR, "Failed to save user settings");
             return ESP_FAIL;
         }
-        ESP_LOGI(TAG, "User settings saved: %s / %s", user.login, user.password);
+        ESP_LOGI(TAG, "User settings saved: %s / %s", user_cfg.login, user_cfg.password);
     }
-       httpd_resp_sendstr(req, "User settings saved successfully 💾");
-       return ESP_OK;
+       // -------- HTTP RESPONSE --------
+    httpd_resp_set_type(req, "application/json");
+    httpd_resp_set_status(req, "200 OK");
+    httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+    httpd_resp_sendstr(req,"{\"status\":\"ok\",\"message\":\"Пользовательские настройки сохранены 💾\"}");
+    return ESP_OK;
   }
 
 
@@ -502,7 +547,7 @@ esp_err_t web_server_start(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.uri_match_fn = httpd_uri_match_wildcard;
     config.ctrl_port = 32768;
-    config.server_port = net.port;
+    config.server_port = net_cfg.port;
     config.max_uri_handlers = 20;
     config.max_open_sockets = 10;
     config.stack_size = 8192;

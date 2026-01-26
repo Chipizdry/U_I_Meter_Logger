@@ -35,6 +35,12 @@ typedef struct {
     char dns[16];
     int port;
     bool dhcp_enabled;
+
+    char wifi_ip[16];
+    char wifi_gateway[16];
+    char wifi_mask[16];
+    char wifi_dns[16];
+    bool wifi_dhcp_enabled;
 } network_settings_t;
 
 typedef struct {
@@ -76,8 +82,8 @@ typedef struct {
     uint32_t expires;   // unix time (опционально)
 } fs_session_t;
 
-extern user_settings_t user;
-extern network_settings_t net;
+extern user_settings_t user_cfg;
+extern network_settings_t net_cfg;
 extern wifi_settings_t wifi_cfg;    
 extern system_settings_t sys;
 extern uart_settings_t uart_cfg;
