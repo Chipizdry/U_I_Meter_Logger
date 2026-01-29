@@ -51,7 +51,7 @@ static int ws_rx_len = 0;
 static bool handle_hex_data(const char *json);
 static bool handle_pi30_data(const char *json);
 static bool handle_msg_data(const char *json);
-
+static bool handle_settings_command(const char *json);
 
 static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
@@ -193,6 +193,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 handle_msg_data(ws_rx_buf);
                 handle_hex_data(ws_rx_buf);
                 handle_pi30_data(ws_rx_buf);
+                handle_settings_command(ws_rx_buf);
 
                 ws_rx_len = 0;
                 ws_rx_buf[0] = 0;
@@ -561,3 +562,264 @@ static bool handle_pi30_data(const char *json)
  return true;
 
 }   
+
+static bool handle_settings_command(const char *json)
+{
+    // ==========================================================
+    // 1) Ищем command_type
+    // ==========================================================
+    char *cmd_ptr = strstr(json, "\"command_type\"");
+    if (!cmd_ptr) return false;
+
+    char command_type[32] = {0};
+
+    char *start = strchr(cmd_ptr, ':');
+    if (!start || !(start = strchr(start, '"'))) return true;
+    start++;
+
+    char *end = strchr(start, '"');
+    if (!end) return true;
+
+    int len = end - start;
+    if (len >= sizeof(command_type)) return true;
+
+    memcpy(command_type, start, len);
+    command_type[len] = 0;
+
+    //ESP_LOGI(TAG, "⚙️ WS Settings command: %s", command_type);
+
+    // ==========================================================
+    // 2) GET SETTINGS
+    // ==========================================================
+    if (strcmp(command_type, "get_settings") == 0)
+    {
+        char category[32] = "all";
+
+        char *cat_ptr = strstr(json, "\"settings_requested\"");
+        if (cat_ptr)
+        {
+            char *s = strchr(cat_ptr, ':');
+            if (s && (s = strchr(s, '"')))
+            {
+                s++;
+                char *e = strchr(s, '"');
+                if (e)
+                {
+                    int l = e - s;
+                    if (l < sizeof(category))
+                    {
+                        memcpy(category, s, l);
+                        category[l] = 0;
+                    }
+                }
+            }
+        }
+
+        ESP_LOGI(TAG, "📥 Requested category: %s", category);
+
+        char ответ[768];
+
+        // ==================================================
+        // USER SETTINGS
+        // ==================================================
+        if (strcmp(category, "user") == 0)
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"user\","
+                     "\"data\":{"
+                     "\"login\":\"%s\""
+                     "}"
+                     "}",
+                     user_cfg.login);
+        }
+
+        // ==================================================
+        // ACCOUNT SETTINGS
+        // ==================================================
+        else if (strcmp(category, "account") == 0)
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"account\","
+                     "\"data\":{"
+                     "\"account_login\":\"%s\","
+                     "\"node_name\":\"%s\""
+                     "}"
+                     "}",
+                     user_cfg.account_login,
+                     user_cfg.node_name);
+        }
+
+        // ==================================================
+        // NETWORK SETTINGS
+        // ==================================================
+        else if (strcmp(category, "network") == 0)
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"network\","
+                     "\"data\":{"
+                     "\"dhcp_enabled\":%s,"
+                     "\"ip\":\"%s\","
+                     "\"mask\":\"%s\","
+                     "\"gateway\":\"%s\","
+                     "\"dns\":\"%s\","
+                     "\"port\":%d,"
+                     "\"wifi_dhcp_enabled\":%s,"
+                     "\"wifi_ip\":\"%s\","
+                     "\"wifi_mask\":\"%s\","
+                     "\"wifi_gateway\":\"%s\","
+                     "\"wifi_dns\":\"%s\""
+                     "}"
+                     "}",
+                     net_cfg.dhcp_enabled ? "true" : "false",
+                     net_cfg.ip,
+                     net_cfg.mask,
+                     net_cfg.gateway,
+                     net_cfg.dns,
+                     net_cfg.port,
+                     net_cfg.wifi_dhcp_enabled ? "true" : "false",
+                     net_cfg.wifi_ip,
+                     net_cfg.wifi_mask,
+                     net_cfg.wifi_gateway,
+                     net_cfg.wifi_dns);
+        }
+
+        // ==================================================
+        // WIFI SETTINGS
+        // ==================================================
+        else if (strcmp(category, "wifi") == 0)
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"wifi\","
+                     "\"data\":{"
+                     "\"mode\":%d,"
+                     "\"sta_ssid\":\"%s\","
+                     "\"ap_ssid\":\"%s\","
+                     "\"ap_channel\":%d"
+                     "}"
+                     "}",
+                     wifi_cfg.mode,
+                     wifi_cfg.sta_ssid,
+                     wifi_cfg.ap_ssid,
+                     wifi_cfg.ap_channel);
+        }
+
+        // ==================================================
+        // UART SETTINGS
+        // ==================================================
+        else if (strcmp(category, "uart") == 0)
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"uart\","
+                     "\"data\":{"
+                     "\"baud\":%d,"
+                     "\"data_bits\":%d,"
+                     "\"stop_bits\":%d,"
+                     "\"parity\":%d,"
+                     "\"mode\":%d"
+                     "}"
+                     "}",
+                     uart_cfg.baud_rate,
+                     uart_cfg.data_bits,
+                     uart_cfg.stop_bits,
+                     uart_cfg.parity,
+                     uart_cfg.rs485_mode);
+        }
+
+        // ==================================================
+        // SYSTEM SETTINGS (пример)
+        // ==================================================
+        else if (strcmp(category, "system") == 0)
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"system\","
+                     "\"data\":{"
+                     "\"cloud_status\":\"%s\""
+                     "}"
+                     "}",
+                     cloud_status_msg);
+        }
+
+        // ==================================================
+        // UNKNOWN CATEGORY
+        // ==================================================
+        else
+        {
+            snprintf(ответ, sizeof(ответ),
+                     "{"
+                     "\"command_type\":\"settings_response\","
+                     "\"category\":\"%s\","
+                     "\"error\":\"unknown_category\""
+                     "}",
+                     category);
+        }
+
+        websocket_send_text(ответ);
+        return true;
+    }
+
+    // ==========================================================
+    // 3) SET SETTINGS
+    // ==========================================================
+    if (strcmp(command_type, "set_settings") == 0)
+    {
+        ESP_LOGI(TAG, "✍️ SET SETTINGS received");
+
+        // тут нужно парсить category
+        char category[32] = {0};
+
+        char *cat_ptr = strstr(json, "\"category\"");
+        if (!cat_ptr)
+        {
+            websocket_send_text("{\"status\":\"error\",\"message\":\"Missing category\"}");
+            return true;
+        }
+
+        char *s = strchr(cat_ptr, ':');
+        if (s && (s = strchr(s, '"')))
+        {
+            s++;
+            char *e = strchr(s, '"');
+            if (e)
+            {
+                int l = e - s;
+                if (l < sizeof(category))
+                {
+                    memcpy(category, s, l);
+                    category[l] = 0;
+                }
+            }
+        }
+
+        ESP_LOGI(TAG, "Category to apply: %s", category);
+
+        // ⚠️ Здесь можно вызвать уже готовые apply функции:
+        // apply_wifi_settings(...)
+        // apply_uart_settings(...)
+        // save_network_settings(...)
+        // и т.д.
+
+        websocket_send_text(
+            "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}"
+        );
+
+        return true;
+    }
+
+    return true;
+}
+
+
+
+
