@@ -1,21 +1,20 @@
 
 
 
+
+
+
 #include "websocket_client.h"
 #include "esp_websocket_client.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_sntp.h"
-#include "cJSON.h"
-#include "driver/uart.h"
 
 #include "nvs_settings.h"
 #include "rs485_master.h"
 #include "ws_server.h"
 #include "gpio_manager.h"
-#include "wifi_manager.h"
-#include "network_state.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
 
@@ -54,6 +53,7 @@ static bool handle_pi30_data(const char *json);
 static bool handle_msg_data(const char *json);
 static bool handle_settings_command(const char *json);
 
+//static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
 
  static inline uint32_t ticks_to_ms(uint32_t ticks)
@@ -178,27 +178,47 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
         break;
 
         case WEBSOCKET_EVENT_DATA:
-            
-                last_ws_event_tick = xTaskGetTickCount();
-                if (!data->data_ptr || data->data_len <= 0) return;
+            last_ws_event_tick = xTaskGetTickCount();
+            if (!data->data_ptr || data->data_len <= 0) return;
+
+            // ─────── Разделение по типу ───────
+            if (data->op_code == 2)  {
+                // Heartbeat / keepalive пакеты
+                ESP_LOGI(TAG, "💓 Heartbeat/Binary received, len=%d", data->data_len);
+                ESP_LOG_BUFFER_HEX(TAG, data->data_ptr, data->data_len);
+                break;  // не парсим дальше
+            }
+
+            if (data->op_code == 1) {
+                // Текстовый пакет — собираем буфер на случай фрагментации
                 if (ws_rx_len + data->data_len < sizeof(ws_rx_buf) - 1) {
                     memcpy(ws_rx_buf + ws_rx_len, data->data_ptr, data->data_len);
                     ws_rx_len += data->data_len;
                     ws_rx_buf[ws_rx_len] = 0;
+                } else {
+                    ESP_LOGW(TAG, "⚠️ WS buffer overflow, discarding data");
+                    ws_rx_len = 0;
+                    ws_rx_buf[0] = 0;
+                    break;
                 }
 
+                // Если пакет ещё фрагментирован, ждём следующую часть
                 if (!data->fin) return;
-                ESP_LOGI(TAG, "As string: %s", ws_rx_buf);
-                     
+
+                // ─────── Обработка собранного текста ───────
+                ESP_LOGI(TAG, "📝 WS Text: %s", ws_rx_buf);
+
                 handle_msg_data(ws_rx_buf);
                 handle_hex_data(ws_rx_buf);
                 handle_pi30_data(ws_rx_buf);
                 handle_settings_command(ws_rx_buf);
 
+                // Очистка буфера
                 ws_rx_len = 0;
                 ws_rx_buf[0] = 0;
-            
-        break;
+            }
+        break;  
+
     }
 }
 
@@ -217,7 +237,8 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
 
     char uri[512];
-    snprintf(uri, sizeof(uri), "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s", session_id);
+   // snprintf(uri, sizeof(uri), "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s", session_id);
+    snprintf(uri, sizeof(uri), "%s%s", sys.ws_server, session_id);
 
     esp_websocket_client_config_t websocket_cfg = {
         .uri = uri,
@@ -769,262 +790,53 @@ static bool handle_settings_command(const char *json)
         return true;
     }
 
-  // ==========================================================
-// 3) SET SETTINGS
-// ==========================================================
-if (strcmp(command_type, "set_settings") == 0)
-{
-    ESP_LOGI(TAG, "✍️ SET SETTINGS received");
-
-    // ---------- JSON parse ----------
-    cJSON *root = cJSON_Parse(json);
-    if (!root) {
-        websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid JSON\"}");
-        return true;
-    }
-
-    // ---------- category ----------
-    cJSON *cat_item = cJSON_GetObjectItem(root, "category");
-    if (!cat_item || !cJSON_IsString(cat_item)) {
-        websocket_send_text("{\"status\":\"error\",\"message\":\"Missing category\"}");
-        cJSON_Delete(root);
-        return true;
-    }
-
-    const char *category = cat_item->valuestring;
-    ESP_LOGI(TAG, "📌 Category: %s", category);
-
-    // ---------- data ----------
-    cJSON *data_obj = cJSON_GetObjectItem(root, "data");
-    if (!data_obj || !cJSON_IsObject(data_obj)) {
-        websocket_send_text("{\"status\":\"error\",\"message\":\"Missing data object\"}");
-        cJSON_Delete(root);
-        return true;
-    }
-
     // ==========================================================
-    // WIFI SETTINGS
+    // 3) SET SETTINGS
     // ==========================================================
-    if (strcmp(category, "wifi") == 0)
+    if (strcmp(command_type, "set_settings") == 0)
     {
-        cJSON *sta_ssid = cJSON_GetObjectItem(data_obj, "sta_ssid");
-        cJSON *sta_pass = cJSON_GetObjectItem(data_obj, "sta_password");
-        cJSON *ap_ssid  = cJSON_GetObjectItem(data_obj, "ap_ssid");
-        cJSON *ap_pass  = cJSON_GetObjectItem(data_obj, "ap_password");
-        cJSON *mode     = cJSON_GetObjectItem(data_obj, "mode");
+        ESP_LOGI(TAG, "✍️ SET SETTINGS received");
 
-        if (sta_ssid && cJSON_IsString(sta_ssid))
-            strncpy(wifi_cfg.sta_ssid, sta_ssid->valuestring, sizeof(wifi_cfg.sta_ssid)-1);
+        // тут нужно парсить category
+        char category[32] = {0};
 
-        if (sta_pass && cJSON_IsString(sta_pass))
-            strncpy(wifi_cfg.sta_password, sta_pass->valuestring, sizeof(wifi_cfg.sta_password)-1);
+        char *cat_ptr = strstr(json, "\"category\"");
+        if (!cat_ptr)
+        {
+            websocket_send_text("{\"status\":\"error\",\"message\":\"Missing category\"}");
+            return true;
+        }
 
-        if (ap_ssid && cJSON_IsString(ap_ssid))
-            strncpy(wifi_cfg.ap_ssid, ap_ssid->valuestring, sizeof(wifi_cfg.ap_ssid)-1);
-
-        if (ap_pass && cJSON_IsString(ap_pass))
-            strncpy(wifi_cfg.ap_password, ap_pass->valuestring, sizeof(wifi_cfg.ap_password)-1);
-
-        if (mode && cJSON_IsNumber(mode))
-            wifi_cfg.mode = mode->valueint;
-
-        // SAVE + APPLY
-        nvs_save_wifi_settings(&wifi_cfg);
-        wifi_manager_request_apply();
-
-        websocket_send_text(
-            "{\"command_type\":\"set_settings_ack\",\"category\":\"wifi\",\"status\":\"ok\"}"
-        );
-    }
-
-    // ==========================================================
-    // NETWORK SETTINGS
-    // ==========================================================
-else if (strcmp(category, "network") == 0)
-{
-    ESP_LOGI(TAG, "🌐 Applying NETWORK settings (ETH + WIFI STA IP)");
-
-    // ======================================================
-    // ===== ETH SETTINGS
-    // ======================================================
-
-    cJSON *dhcp = cJSON_GetObjectItem(data_obj, "dhcp_enabled");
-    if (dhcp && cJSON_IsBool(dhcp))
-        net_cfg.dhcp_enabled = cJSON_IsTrue(dhcp);
-
-    if (!net_cfg.dhcp_enabled)
-    {
-        cJSON *ip  = cJSON_GetObjectItem(data_obj, "ip");
-        cJSON *msk = cJSON_GetObjectItem(data_obj, "mask");
-        cJSON *gw  = cJSON_GetObjectItem(data_obj, "gateway");
-        cJSON *dns = cJSON_GetObjectItem(data_obj, "dns");
-
-        if (ip  && cJSON_IsString(ip))
-            strncpy(net_cfg.ip, ip->valuestring, sizeof(net_cfg.ip) - 1);
-
-        if (msk && cJSON_IsString(msk))
-            strncpy(net_cfg.mask, msk->valuestring, sizeof(net_cfg.mask) - 1);
-
-        if (gw  && cJSON_IsString(gw))
-            strncpy(net_cfg.gateway, gw->valuestring, sizeof(net_cfg.gateway) - 1);
-
-        if (dns && cJSON_IsString(dns))
-            strncpy(net_cfg.dns, dns->valuestring, sizeof(net_cfg.dns) - 1);
-    }
-
-    cJSON *port = cJSON_GetObjectItem(data_obj, "port");
-    if (port && cJSON_IsNumber(port))
-        net_cfg.port = port->valueint;
-
-    // ======================================================
-    // ===== WIFI STA IP SETTINGS
-    // ======================================================
-
-    cJSON *wifi_dhcp = cJSON_GetObjectItem(data_obj, "wifi_dhcp_enabled");
-    if (wifi_dhcp && cJSON_IsBool(wifi_dhcp))
-        net_cfg.wifi_dhcp_enabled = cJSON_IsTrue(wifi_dhcp);
-
-    if (!net_cfg.wifi_dhcp_enabled)
-    {
-        cJSON *ip  = cJSON_GetObjectItem(data_obj, "wifi_ip");
-        cJSON *msk = cJSON_GetObjectItem(data_obj, "wifi_mask");
-        cJSON *gw  = cJSON_GetObjectItem(data_obj, "wifi_gateway");
-        cJSON *dns = cJSON_GetObjectItem(data_obj, "wifi_dns");
-
-        if (ip && cJSON_IsString(ip))
-            strncpy(net_cfg.wifi_ip, ip->valuestring, sizeof(net_cfg.wifi_ip) - 1);
-
-        if (msk && cJSON_IsString(msk))
-            strncpy(net_cfg.wifi_mask, msk->valuestring, sizeof(net_cfg.wifi_mask) - 1);
-
-        if (gw && cJSON_IsString(gw))
-            strncpy(net_cfg.wifi_gateway, gw->valuestring, sizeof(net_cfg.wifi_gateway) - 1);
-
-        if (dns && cJSON_IsString(dns))
-            strncpy(net_cfg.wifi_dns, dns->valuestring, sizeof(net_cfg.wifi_dns) - 1);
-    }
-
-    // ======================================================
-    // ===== SAVE
-    // ======================================================
-
-    nvs_save_network_settings(&net_cfg);
-
-    ESP_LOGI(TAG, "✅ NETWORK saved:");
-    ESP_LOGI(TAG, "ETH : DHCP=%d IP=%s", net_cfg.dhcp_enabled, net_cfg.ip);
-    ESP_LOGI(TAG, "WIFI: DHCP=%d IP=%s", net_cfg.wifi_dhcp_enabled, net_cfg.wifi_ip);
-
-    // ======================================================
-    // ===== APPLY
-    // ======================================================
-
-    wifi_manager_request_apply();
-    network_notify_ws();
-
-    // ======================================================
-    // ===== ACK RESPONSE
-    // ======================================================
-
-    websocket_send_text(
-        "{\"command_type\":\"set_settings_ack\","
-        "\"category\":\"network\","
-        "\"status\":\"ok\","
-        "\"message\":\"Network settings saved\"}"
-    );
-}
-
-
-    // ==========================================================
-    // UART SETTINGS
-    // ==========================================================
-    else if (strcmp(category, "uart") == 0)
-    {
-        cJSON *baud = cJSON_GetObjectItem(data_obj, "baud");
-        cJSON *bits = cJSON_GetObjectItem(data_obj, "data_bits");
-        cJSON *stop = cJSON_GetObjectItem(data_obj, "stop_bits");
-        cJSON *par  = cJSON_GetObjectItem(data_obj, "parity");
-        cJSON *mode = cJSON_GetObjectItem(data_obj, "mode");
-
-        if (baud && cJSON_IsNumber(baud))
-            uart_cfg.baud_rate = baud->valueint;
-
-        if (bits && cJSON_IsNumber(bits)) {
-            switch(bits->valueint) {
-                case 5: uart_cfg.data_bits = UART_DATA_5_BITS; break;
-                case 6: uart_cfg.data_bits = UART_DATA_6_BITS; break;
-                case 7: uart_cfg.data_bits = UART_DATA_7_BITS; break;
-                default: uart_cfg.data_bits = UART_DATA_8_BITS; break;
+        char *s = strchr(cat_ptr, ':');
+        if (s && (s = strchr(s, '"')))
+        {
+            s++;
+            char *e = strchr(s, '"');
+            if (e)
+            {
+                int l = e - s;
+                if (l < sizeof(category))
+                {
+                    memcpy(category, s, l);
+                    category[l] = 0;
+                }
             }
         }
 
-        if (stop && cJSON_IsNumber(stop)) {
-            uart_cfg.stop_bits = (stop->valueint == 2)
-                ? UART_STOP_BITS_2
-                : UART_STOP_BITS_1;
-        }
+        ESP_LOGI(TAG, "Category to apply: %s", category);
 
-        if (par && cJSON_IsNumber(par))
-            uart_cfg.parity = par->valueint;
-
-        if (mode && cJSON_IsNumber(mode))
-            uart_cfg.rs485_mode = mode->valueint;
-
-        // SAVE + APPLY
-        nvs_save_uart_settings(&uart_cfg);
-
-        rs485_master_deinit();
-        rs485_master_init_from_cfg(&uart_cfg, 2048, 1024);
+        // ⚠️ Здесь можно вызвать уже готовые apply функции:
+        // apply_wifi_settings(...)
+        // apply_uart_settings(...)
+        // save_network_settings(...)
+        // и т.д.
 
         websocket_send_text(
-            "{\"command_type\":\"set_settings_ack\",\"category\":\"uart\",\"status\":\"ok\"}"
+            "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}"
         );
+
+        return true;
     }
-
-    // ==========================================================
-    // ACCOUNT SETTINGS
-    // ==========================================================
-    else if (strcmp(category, "account") == 0)
-    {
-        cJSON *login = cJSON_GetObjectItem(data_obj, "account_login");
-        cJSON *pass  = cJSON_GetObjectItem(data_obj, "account_password");
-        cJSON *node  = cJSON_GetObjectItem(data_obj, "node_name");
-
-        if (login && cJSON_IsString(login))
-            strncpy(user_cfg.account_login, login->valuestring, sizeof(user_cfg.account_login)-1);
-
-        if (pass && cJSON_IsString(pass))
-            strncpy(user_cfg.account_password, pass->valuestring, sizeof(user_cfg.account_password)-1);
-
-        if (node && cJSON_IsString(node))
-            strncpy(user_cfg.node_name, node->valuestring, sizeof(user_cfg.node_name)-1);
-
-        nvs_save_user_settings(&user_cfg);
-
-        websocket_restart(
-            user_cfg.account_login,
-            user_cfg.account_password,
-            user_cfg.node_name
-        );
-
-        websocket_send_text(
-            "{\"command_type\":\"set_settings_ack\",\"category\":\"account\",\"status\":\"ok\"}"
-        );
-    }
-
-    // ==========================================================
-    // UNKNOWN CATEGORY
-    // ==========================================================
-    else
-    {
-        websocket_send_text(
-            "{\"command_type\":\"set_settings_ack\",\"status\":\"error\",\"message\":\"Unknown category\"}"
-        );
-    }
-
-    cJSON_Delete(root);
-    return true;
-}
-
 
     return true;
 }

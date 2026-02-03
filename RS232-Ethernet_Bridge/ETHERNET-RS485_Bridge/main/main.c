@@ -82,6 +82,7 @@ void app_main(void)
     ESP_LOGI("MAIN", "STA: SSID=%s  PASS=%s", wifi_cfg.sta_ssid, wifi_cfg.sta_password);
     ESP_LOGI("MAIN", "AP : SSID=%s  PASS=%s  Channel=%d " , wifi_cfg.ap_ssid, wifi_cfg.ap_password, wifi_cfg.ap_channel);
     ESP_LOGI("MAIN", "System: refresh=%dms log=%d debug=%d build=%d (%s)",sys.refresh_interval, sys.log_level, sys.debug_mode,sys.build_number, sys.build_date);
+    ESP_LOGI("MAIN", "WebSocket Server: %s", sys.ws_server);
     ESP_LOGI("MAIN", "Loaded UART config: baudrate:%d , DataBits:%d ,StopBits:%d ,Parity: %d, Mode:(%s) ", uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
     network_state_init();
     ESP_ERROR_CHECK(gpio_manager_init());
@@ -116,7 +117,6 @@ void app_main(void)
     }
     initialize_sntp();
    
-    websocket_client_start(user_cfg.serial, user_cfg.account_login, user_cfg.account_password , user_cfg.node_name); 
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
     start_wifi_manager_task();
 }

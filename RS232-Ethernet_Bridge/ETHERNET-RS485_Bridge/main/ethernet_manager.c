@@ -69,7 +69,7 @@ static void phy_hard_reset(void)
     gpio_set_level(ETH_RST_PIN, 0);
     vTaskDelay(pdMS_TO_TICKS(200));
     gpio_set_level(ETH_RST_PIN, 1);
-    vTaskDelay(pdMS_TO_TICKS(200));
+    vTaskDelay(pdMS_TO_TICKS(300));
 
     ESP_LOGI(TAG, "PHY Reset: DONE");
 }
@@ -102,7 +102,7 @@ esp_err_t ethernet_init(void)
         esp_netif_set_ip_info(s_eth_netif, &ip_info);
     }
 
-    // --- MAC/PHY как у тебя ---
+    
     eth_esp32_emac_config_t emac_config = ETH_ESP32_EMAC_DEFAULT_CONFIG();
     emac_config.smi_gpio.mdc_num = 23;
     emac_config.smi_gpio.mdio_num = 18;
@@ -128,6 +128,7 @@ esp_err_t ethernet_init(void)
  //   ESP_LOGI(TAG, "Ethernet started successfully");
     return ESP_OK;
 }
+
 
 // ======================= Deinit =======================
 esp_err_t ethernet_deinit(void)
