@@ -230,7 +230,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     if (client) {
         ESP_LOGW(TAG, "WebSocket client already started");
         return ESP_OK;
-    }
+    }   
 
     strncpy(ws_email, email, sizeof(ws_email) - 1);
     strncpy(ws_password, password, sizeof(ws_password) - 1);
@@ -762,14 +762,24 @@ static bool handle_settings_command(const char *json)
         else if (strcmp(category, "system") == 0)
         {
             snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"system\","
-                     "\"data\":{"
-                     "\"cloud_status\":\"%s\""
-                     "}"
-                     "}",
-                     cloud_status_msg);
+                    "{"
+                    "\"command_type\":\"settings_response\","
+                    "\"category\":\"system\","
+                    "\"data\":{"
+                    "\"refresh_interval\":%d,"
+                    "\"log_level\":%d,"
+                    "\"debug_mode\":%s,"
+                    "\"build_number\":%d,"
+                    "\"build_date\":\"%s\","
+                    "\"ws_server\":\"%s\""
+                    "}"
+                    "}",
+                    sys.refresh_interval,
+                    sys.log_level,
+                    sys.debug_mode ? "true" : "false",
+                    sys.build_number,
+                    sys.build_date,
+                    sys.ws_server);
         }
 
         // ==================================================

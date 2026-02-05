@@ -16,6 +16,7 @@ static const char *TAG = "OTA";
 
 static bool ota_started = false;
 static esp_ota_handle_t ota_handle = 0;
+
 static int total_received = 0;
 static int total_size = 0;
 static const esp_partition_t *ota_partition = NULL;
@@ -171,23 +172,7 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         }
     }
 
-    // уникальный маркер, который точно не встречается в коде
-    static const uint8_t fs_marker[] = {0x46,0x53,0x2D,0x43,0x4F,0x4E,0x54,0x45,0x4E,0x54, 0xAA, 0x55, 0x33, 0x77}; 
-    static const size_t fs_marker_len = sizeof(fs_marker);
-
-    // ===== Проверка FS_MARKER =====
-    if (data_len > (int)fs_marker_len) {
-        int search_start = data_len - 1024; // последние 1КБ
-        if (search_start < 0) search_start = 0;
-
-        uint8_t *fs_pos = memmem((uint8_t*)data_start + search_start, data_len - search_start, fs_marker, fs_marker_len);
-        if (fs_pos) {
-            size_t offset = fs_pos - (uint8_t*)data_start;
-            ESP_LOGW(TAG, "MARKER detected at offset %zu bytes in current chunk", offset);
-            data_len = offset;
-        }
-    }
-
+ 
 
     ESP_LOGI(TAG, "MD5 calc from %d bytes", data_len);
     for (int i = 0; i < 8; i++) {
@@ -310,6 +295,122 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
     return ESP_OK;
 }
 
+
+
+esp_err_t ota_data_post_handler(httpd_req_t *req)
+{
+    static const char *TAG = "OTA_DATA";
+
+    ESP_LOGI(TAG, "=== OTA DATA POST === len=%d", req->content_len);
+
+    if (!check_token(req)) {
+        httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
+        return ESP_FAIL;
+    }
+
+    char *buffer = malloc(req->content_len);
+    if (!buffer) {
+        httpd_resp_send_err(req, 500, "No memory");
+        return ESP_FAIL;
+    }
+
+    int received = 0;
+    while (received < req->content_len) {
+        int r = httpd_req_recv(req, buffer + received, req->content_len - received);
+        if (r <= 0) {
+            free(buffer);
+            httpd_resp_send_err(req, 500, "Read error");
+            return ESP_FAIL;
+        }
+        received += r;
+    }
+
+    /* ===== boundary ===== */
+    char ct[256] = {0};
+    httpd_req_get_hdr_value_str(req, "Content-Type", ct, sizeof(ct));
+
+    char *b = strstr(ct, "boundary=");
+    if (!b) {
+        free(buffer);
+        httpd_resp_send_err(req, 400, "No boundary");
+        return ESP_FAIL;
+    }
+    b += 9;
+
+    char boundary[128];
+    snprintf(boundary, sizeof(boundary), "--%s", b);
+    size_t boundary_len = strlen(boundary);
+
+    /* ===== ищем бинарь ===== */
+    char *file_hdr = strstr(buffer, "application/octet-stream");
+    if (!file_hdr) {
+        free(buffer);
+        httpd_resp_send_err(req, 400, "No binary part");
+        return ESP_FAIL;
+    }
+
+    char *data_start = strstr(file_hdr, "\r\n\r\n");
+    if (!data_start) {
+        free(buffer);
+        httpd_resp_send_err(req, 400, "Malformed multipart");
+        return ESP_FAIL;
+    }
+    data_start += 4;
+
+    int data_len = received - (data_start - buffer);
+
+    /* ===== отрезаем boundary ===== */
+    for (int i = 0; i <= data_len - boundary_len; i++) {
+        if (memcmp(data_start + i, boundary, boundary_len) == 0) {
+            data_len = i;
+            if (data_len >= 2 &&
+                data_start[data_len - 2] == '\r' &&
+                data_start[data_len - 1] == '\n') {
+                data_len -= 2;
+            }
+            break;
+        }
+    }
+
+    ESP_LOGI(TAG, "SPIFFS image size: %d bytes", data_len);
+
+    /* ===== ищем data partition ===== */
+    const esp_partition_t *part =
+        esp_partition_find_first(ESP_PARTITION_TYPE_DATA,
+                                 ESP_PARTITION_SUBTYPE_DATA_SPIFFS,
+                                 NULL);
+
+    if (!part) {
+        free(buffer);
+        httpd_resp_send_err(req, 500, "SPIFFS partition not found");
+        return ESP_FAIL;
+    }
+
+    if (data_len > part->size) {
+        free(buffer);
+        httpd_resp_send_err(req, 400, "Image too large");
+        return ESP_FAIL;
+    }
+
+    /* ===== erase ===== */
+    ESP_LOGI(TAG, "Erasing partition %s", part->label);
+    ESP_ERROR_CHECK(
+        esp_partition_erase_range(part, 0, part->size));
+
+    /* ===== write ===== */
+    esp_err_t err = esp_partition_write(part, 0, data_start, data_len);
+    if (err != ESP_OK) {
+        free(buffer);
+        httpd_resp_send_err(req, 500, "Write failed");
+        return ESP_FAIL;
+    }
+
+    ESP_LOGW(TAG, "✅ DATA partition updated");
+
+    httpd_resp_send(req, "OTA DATA OK", -1);
+    free(buffer);
+    return ESP_OK;
+}
 
 
 

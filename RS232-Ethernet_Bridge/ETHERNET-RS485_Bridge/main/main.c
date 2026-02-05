@@ -98,7 +98,6 @@ void app_main(void)
     rs485_master_add_slave(&s1);
 
     // Инициализируем Wi-Fi напрямую из wifi_cfg
-  
     wifi_manager_init(&wifi_cfg);
 
     if (ethernet_init() == ESP_OK) {
@@ -109,6 +108,8 @@ void app_main(void)
         vTaskDelay(pdMS_TO_TICKS(10000));
         esp_restart();
     }
+
+
     ota_init();
     if (web_server_start() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start web server");

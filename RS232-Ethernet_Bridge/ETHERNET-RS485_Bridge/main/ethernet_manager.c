@@ -118,7 +118,13 @@ esp_err_t ethernet_init(void)
     esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
 
     esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(mac, phy);
-    ESP_ERROR_CHECK(esp_eth_driver_install(&eth_config, &s_eth_handle));
+   // ESP_ERROR_CHECK(esp_eth_driver_install(&eth_config, &s_eth_handle));
+
+    esp_err_t err = esp_eth_driver_install(&eth_config, &s_eth_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Ethernet install failed: %s", esp_err_to_name(err));
+        return err;
+    }
     esp_netif_attach(s_eth_netif, esp_eth_new_netif_glue(s_eth_handle));
 
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, NULL));
