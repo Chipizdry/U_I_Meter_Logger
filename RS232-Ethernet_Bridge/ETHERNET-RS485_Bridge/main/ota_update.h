@@ -18,7 +18,7 @@ void ota_init(void);
 
 // HTTP обработчик OTA POST
 esp_err_t ota_post_handler(httpd_req_t *req);
-esp_err_t ota_data_post_handler(httpd_req_t *req);
+
 
 #ifdef __cplusplus
 }

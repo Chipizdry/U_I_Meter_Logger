@@ -576,14 +576,7 @@ esp_err_t web_server_start(void)
             .handler = ota_post_handler
         });
 
-          httpd_register_uri_handler(server, &(httpd_uri_t){
-            .uri      = "/ota/data",
-            .method   = HTTP_POST,
-            .handler  = ota_data_post_handler,
-            .user_ctx = NULL
-        });
-      
-
+        
         // ====== API эндпоинты ======
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/login",

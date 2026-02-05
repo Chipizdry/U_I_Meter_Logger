@@ -596,9 +596,6 @@ function updateAllIPFieldsState() {
  
 
 
-  
-
-
 
 async function uploadFirmware() {
     const fileInput = document.getElementById("firmwareFile");
