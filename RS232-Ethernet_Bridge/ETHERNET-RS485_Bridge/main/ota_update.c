@@ -22,6 +22,9 @@ static esp_ota_handle_t ota_handle = 0;
 static int total_received = 0;
 static int total_size = 0;
 static const esp_partition_t *ota_partition = NULL;
+static uint32_t fw_total_len = 0;
+static uint32_t fw_received  = 0;
+
 
 void ota_init(void) {
     ota_started = false;
@@ -30,6 +33,24 @@ void ota_init(void) {
     ota_partition = NULL;
     total_size = 0;
 }
+
+
+
+typedef enum {
+    OTA_PHASE_INIT = 0,
+    OTA_PHASE_DATA,
+    OTA_PHASE_FW
+} ota_phase_t;
+
+static ota_phase_t ota_phase = OTA_PHASE_INIT;
+
+static uint32_t data_total_len = 0;
+static uint32_t data_written   = 0;
+static uint32_t data_offset    = 0;
+
+static const esp_partition_t *data_partition = NULL;
+
+
 
 /** Сброс OTA состояния при ошибке */
 static void ota_cleanup(void) {
@@ -41,6 +62,15 @@ static void ota_cleanup(void) {
     total_received = 0;
     ota_partition = NULL;
     total_size = 0;
+
+    ota_phase = OTA_PHASE_INIT;
+    data_total_len = 0;
+    data_written = 0;
+    data_offset = 0;
+    data_partition = NULL;
+
+    fw_total_len = 0;
+    fw_received = 0;
 }
 
 esp_err_t ota_post_handler(httpd_req_t *req) {
@@ -174,23 +204,7 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         }
     }
 
-    // уникальный маркер, который точно не встречается в коде
-    static const uint8_t fs_marker[] = {0x46,0x53,0x2D,0x43,0x4F,0x4E,0x54,0x45,0x4E,0x54, 0xAA, 0x55, 0x33, 0x77}; 
-    static const size_t fs_marker_len = sizeof(fs_marker);
-
-    // ===== Проверка FS_MARKER =====
-    if (data_len > (int)fs_marker_len) {
-        int search_start = data_len - 1024; // последние 1КБ
-        if (search_start < 0) search_start = 0;
-
-        uint8_t *fs_pos = memmem((uint8_t*)data_start + search_start, data_len - search_start, fs_marker, fs_marker_len);
-        if (fs_pos) {
-            size_t offset = fs_pos - (uint8_t*)data_start;
-            ESP_LOGW(TAG, "MARKER detected at offset %zu bytes in current chunk", offset);
-            data_len = offset;
-        }
-    }
-
+   
 
     ESP_LOGI(TAG, "MD5 calc from %d bytes", data_len);
     for (int i = 0; i < 8; i++) {
@@ -200,7 +214,144 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
 
     ESP_LOGI(TAG, "CHUNK %d -> clean binary: %d bytes", chunk_number, data_len);
 
+
+
+
+uint8_t *ptr = (uint8_t *)data_start;
+int remaining = data_len;
+
+if (ota_phase == OTA_PHASE_INIT) {
+
+    // Нужно минимум 4 байта
+    if (remaining < 4) {
+        httpd_resp_send_err(req, 400, "Chunk too small for DATA header");
+        goto cleanup;
+    }
+
+    memcpy(&data_total_len, ptr, 4);
+    ptr += 4;
+    remaining -= 4;
+
+    ESP_LOGW(TAG, "📦 DATA total size: %lu bytes", data_total_len);
+
+    data_partition = esp_partition_find_first(
+        ESP_PARTITION_TYPE_DATA,
+        ESP_PARTITION_SUBTYPE_DATA_LITTLEFS,
+        NULL
+    );
+
+    if (!data_partition) {
+        httpd_resp_send_err(req, 500, "LittleFS partition not found");
+        goto cleanup;
+    }
+
+    esp_partition_erase_range(
+        data_partition,
+        0,
+        data_partition->size
+    );
+
+    ota_phase = OTA_PHASE_DATA;
+}
+
+
+
+
+// ================= DATA PHASE =================
+if (ota_phase == OTA_PHASE_DATA && remaining > 0) {
+
+    uint32_t to_write = data_total_len - data_written;
+    if (remaining < to_write) {
+        to_write = remaining;
+    }
+
+    if (to_write > 0) {
+        esp_err_t err = esp_partition_write(
+            data_partition,
+            data_offset,
+            ptr,
+            to_write
+        );
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "DATA write failed: 0x%x", err);
+            goto cleanup;
+        }
+
+        data_written += to_write;
+        data_offset  += to_write;
+        ptr          += to_write;
+        remaining    -= to_write;
+
+        ESP_LOGI(TAG, "📦 DATA write %lu / %lu",
+                 data_written, data_total_len);
+    }
+
+    // ===== DATA полностью записана =====
+    if (data_written == data_total_len) {
+
+        ESP_LOGW(TAG, "📦 DATA phase complete");
+
+        // Нужно минимум 4 байта для fw_len
+        if (remaining < 4) {
+            ESP_LOGI(TAG, "Waiting fw_len in next chunk");
+            httpd_resp_send(req, "Chunk OK", -1);
+            goto exit_ok;
+        }
+
+        memcpy(&fw_total_len, ptr, 4);
+        ptr += 4;
+        remaining -= 4;
+
+        ESP_LOGW(TAG, "🚀 FW total size: %lu bytes", fw_total_len);
+
+        ota_partition = esp_ota_get_next_update_partition(NULL);
+        if (!ota_partition) {
+            httpd_resp_send_err(req, 500, "No OTA partition");
+            goto cleanup;
+        }
+
+        if (esp_ota_begin(ota_partition, fw_total_len, &ota_handle) != ESP_OK) {
+            httpd_resp_send_err(req, 500, "OTA begin failed");
+            goto cleanup;
+        }
+
+        ota_started = true;
+        fw_received = 0;
+        ota_phase = OTA_PHASE_FW;
+
+        ESP_LOGW(TAG, "🚀 OTA FW started");
+
+    }
+}
+
+// ================= FW PHASE =================
+if (ota_phase == OTA_PHASE_FW && remaining > 0) {
+
+    uint32_t to_write = fw_total_len - fw_received;
+    if (remaining < to_write) {
+        to_write = remaining;
+    }
+
+    if (to_write > 0) {
+        esp_err_t err = esp_ota_write(ota_handle, ptr, to_write);
+
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "FW write failed: 0x%x", err);
+            goto cleanup;
+        }
+
+        fw_received += to_write;
+        ptr += to_write;
+        remaining -= to_write;
+
+        ESP_LOGI(TAG, "🚀 FW write %lu / %lu",
+                 fw_received, fw_total_len);
+    }
+}
+
     // ========= OTA старт ========== 
+    /*
     if (!ota_started) {
         ota_partition = esp_ota_get_next_update_partition(NULL);
 
@@ -224,7 +375,9 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         ota_started = true;
         total_received = 0;
         ESP_LOGI(TAG, "🚀 OTA started");
-    }
+    } 
+
+    */
 
     // ========= MD5 =========
     char *md5_ptr = memmem(buffer, received, "name=\"md5\"", 10);
@@ -251,23 +404,12 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
         return ESP_FAIL;
     }
 
-    // ========= Запись ==========
-    if (data_len > 0) {
-        if (esp_ota_write(ota_handle, data_start, data_len) != ESP_OK) {
-            httpd_resp_send_err(req, 500, "OTA write failed");
-            ota_cleanup();
-            free(buffer); free(boundary_value); free(boundary_marker);
-            return ESP_FAIL;
-        }
-        total_received += data_len;
-    }
-
-
+   
 
 
 
     // ========= Завершение OTA ==========
-    if (total_received >= total_size && ota_started) {
+    if (ota_phase == OTA_PHASE_FW && ota_started && fw_received == fw_total_len) {
         ESP_LOGI(TAG, "✅ OTA finalize...");
         if (!check_token(req)) {
             httpd_resp_send_err(req, HTTPD_401_UNAUTHORIZED, "Unauthorized");
@@ -311,6 +453,22 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
     free(boundary_value);
     free(boundary_marker);
     return ESP_OK;
+
+    exit_ok:
+    free(buffer);
+    if (boundary_value)  free(boundary_value);
+    if (boundary_marker) free(boundary_marker);
+    return ESP_OK;
+
+
+    cleanup:
+    ota_cleanup();
+
+    if (buffer) free(buffer);
+    if (boundary_value) free(boundary_value);
+    if (boundary_marker) free(boundary_marker);
+
+    return ESP_FAIL;
 }
 
 
