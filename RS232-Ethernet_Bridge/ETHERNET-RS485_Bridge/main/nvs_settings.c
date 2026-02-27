@@ -106,8 +106,8 @@ static void set_default_system_settings(system_settings_t *s) {
     s->debug_mode = false;
     s->build_number = BUILD_NUMBER;
     strncpy(s->build_date, BUILD_DATE, sizeof(s->build_date)-1);
-    strncpy(s->ws_server, "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
-   // strncpy(s->ws_server, "wss://dev.monitoring.cor-int.com/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
+    //strncpy(s->ws_server, "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
+    strncpy(s->ws_server, "wss://dev.monitoring.cor-int.com/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
 }
 
 

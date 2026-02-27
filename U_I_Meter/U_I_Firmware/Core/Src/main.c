@@ -25,6 +25,7 @@
 #include "modbusDevice.h"
 #include "modbusSlave.h"
 #include "Registers_handler.h"
+#include "ACS712.h"
 #include <math.h>
 /* USER CODE END Includes */
 
@@ -81,6 +82,8 @@ I2C_HandleTypeDef hi2c2;
 DMA_HandleTypeDef hdma_i2c2_rx;
 DMA_HandleTypeDef hdma_i2c2_tx;
 
+RTC_HandleTypeDef hrtc;
+
 TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart1;
@@ -99,6 +102,7 @@ static void MX_USART1_UART_Init(void);
 static void MX_ADC1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_TIM14_Init(void);
+static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -146,6 +150,7 @@ int main(void)
   MX_ADC1_Init();
   MX_I2C2_Init();
   MX_TIM14_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
 
@@ -164,8 +169,8 @@ int main(void)
 
 	// float t_float = calculate_ntc_temperature(adc_values[2]);
 	  Check_USART1_Timeout();
-	data_reg[0] = ma_filters[0].result*0.53;
-	data_reg[1] = ma_filters[1].result;
+	data_reg[0] = ma_filters[0].result*0.74;
+	data_reg[1] = ACS712_GetCurrent_mA(ma_filters[1].result);
 	memcpy(&data_reg[2], (int16_t[]){(int16_t)(calculate_ntc_temperature(adc_values[2]) * 10.0f + 0.5f)}, 2);
 	data_reg[3]=adc_values[3];
 	data_reg[4]=adc_values[4];
@@ -195,10 +200,11 @@ void SystemClock_Config(void)
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI;
   RCC_OscInitStruct.HSIState = RCC_HSI_ON;
   RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = RCC_PLLM_DIV1;
@@ -382,6 +388,43 @@ static void MX_I2C2_Init(void)
   /* USER CODE BEGIN I2C2_Init 2 */
 
   /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
+
+  /* USER CODE BEGIN RTC_Init 0 */
+
+  /* USER CODE END RTC_Init 0 */
+
+  /* USER CODE BEGIN RTC_Init 1 */
+
+  /* USER CODE END RTC_Init 1 */
+
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  hrtc.Init.OutPutPullUp = RTC_OUTPUT_PULLUP_NONE;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
 
 }
 
@@ -691,6 +734,16 @@ void Check_USART1_Timeout(void)
 
      uint8_t size = filter->filled ? MA_WINDOW_SIZE : filter->index;
      filter->result = filter->sum / (size ? size : 1);
+ }
+
+
+ void Process_Current(void)
+ {
+     uint16_t raw = adc_values[0];
+
+     uint16_t modbus_current = ACS712_GetCurrent_Modbus(raw);
+
+     data_reg[0] = modbus_current;
  }
 
 /* USER CODE END 4 */

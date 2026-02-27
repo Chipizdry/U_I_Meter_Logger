@@ -10,11 +10,15 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_sntp.h"
+#include "esp_https_ota.h"
+#include "driver/uart.h"
+
 
 #include "nvs_settings.h"
 #include "rs485_master.h"
 #include "ws_server.h"
 #include "gpio_manager.h"
+#include "web_server.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
 
@@ -26,6 +30,7 @@ static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(20000); // 20 секу�
  char ws_email[64];
  char ws_password[64];
  char ws_node_name[64];
+ static char ws_session_id[128] = {0};
 
 static bool ws_reconnect_in_progress = false;
 extern bool test_account_active;// из ws_server.c 
@@ -52,6 +57,7 @@ static bool handle_hex_data(const char *json);
 static bool handle_pi30_data(const char *json);
 static bool handle_msg_data(const char *json);
 static bool handle_settings_command(const char *json);
+static bool handle_ota_update(const char *json, const char *session_id);
 
 //static void websocket_start(void);
  void websocket_reconnect_task(void *pvParameters);
@@ -76,7 +82,7 @@ void websocket_enable_reconnect(void)
 
  void websocket_reconnect_task(void *pvParameters)
 {
-    const TickType_t check_interval = pdMS_TO_TICKS(1000); // проверяем каждую секунду
+    const TickType_t check_interval = pdMS_TO_TICKS(2000); // проверяем каждую секунду
 
     for (;;)
     {
@@ -97,8 +103,7 @@ void websocket_enable_reconnect(void)
             }
         }
 
-        if (need_reconnect) 
-{
+        if (need_reconnect) {
     if (ws_reconnect_in_progress) {
         vTaskDelay(check_interval);
         continue;
@@ -212,6 +217,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 handle_hex_data(ws_rx_buf);
                 handle_pi30_data(ws_rx_buf);
                 handle_settings_command(ws_rx_buf);
+                handle_ota_update(ws_rx_buf, ws_session_id);
 
                 // Очистка буфера
                 ws_rx_len = 0;
@@ -235,6 +241,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     strncpy(ws_email, email, sizeof(ws_email) - 1);
     strncpy(ws_password, password, sizeof(ws_password) - 1);
     strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
+    strncpy(ws_session_id, session_id, sizeof(ws_session_id)-1);
 
     char uri[512];
    // snprintf(uri, sizeof(uri), "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s", session_id);
@@ -586,6 +593,19 @@ static bool handle_pi30_data(const char *json)
 
 static bool handle_settings_command(const char *json)
 {
+
+
+      // Если DHCP включен, берем текущие настройки с Ethernet
+  
+        if (net_cfg.dhcp_enabled) {
+        fill_netif_ip_info("ETH_DEF", net_cfg.ip, net_cfg.mask,net_cfg.gateway,net_cfg.dns, sizeof(net_cfg.ip) );
+    }
+
+
+        if (net_cfg.wifi_dhcp_enabled &&
+        (wifi_cfg.mode == WIFI_MODE_STA || wifi_cfg.mode == WIFI_MODE_APSTA)) {
+        fill_netif_ip_info("WIFI_STA_DEF", net_cfg.wifi_ip, net_cfg.wifi_mask, net_cfg.wifi_gateway, net_cfg.wifi_dns,sizeof(net_cfg.wifi_ip) );
+    }
     // ==========================================================
     // 1) Ищем command_type
     // ==========================================================
@@ -737,6 +757,23 @@ static bool handle_settings_command(const char *json)
         // ==================================================
         else if (strcmp(category, "uart") == 0)
         {
+
+
+            int real_data_bits = 8; // по умолчанию
+            switch (uart_cfg.data_bits) {
+                case UART_DATA_5_BITS: real_data_bits = 5; break;
+                case UART_DATA_6_BITS: real_data_bits = 6; break;
+                case UART_DATA_7_BITS: real_data_bits = 7; break;
+                case UART_DATA_8_BITS: real_data_bits = 8; break;
+            }
+            
+            int real_stop_bits = 1;
+            switch (uart_cfg.stop_bits) {
+                case UART_STOP_BITS_1:   real_stop_bits = 1; break;
+                case UART_STOP_BITS_1_5: real_stop_bits = 15; break; // 1.5 бит
+                case UART_STOP_BITS_2:   real_stop_bits = 2; break;
+            }
+
             snprintf(ответ, sizeof(ответ),
                      "{"
                      "\"command_type\":\"settings_response\","
@@ -746,12 +783,12 @@ static bool handle_settings_command(const char *json)
                      "\"data_bits\":%d,"
                      "\"stop_bits\":%d,"
                      "\"parity\":%d,"
-                     "\"mode\":%d"
+                     "\"rs485_mode\":%d"
                      "}"
                      "}",
                      uart_cfg.baud_rate,
-                     uart_cfg.data_bits,
-                     uart_cfg.stop_bits,
+                     real_data_bits,
+                     real_stop_bits,  
                      uart_cfg.parity,
                      uart_cfg.rs485_mode);
         }
@@ -782,9 +819,150 @@ static bool handle_settings_command(const char *json)
                     sys.ws_server);
         }
 
-        // ==================================================
-        // UNKNOWN CATEGORY
-        // ==================================================
+      
+         // ==================================================
+// ALL SETTINGS
+// ==================================================
+else if (strcmp(category, "all") == 0)
+{
+    ESP_LOGI(TAG, "📦 Sending ALL settings");
+
+    // USER
+    snprintf(ответ, sizeof(ответ),
+             "{"
+             "\"command_type\":\"settings_response\","
+             "\"category\":\"user\","
+             "\"data\":{"
+             "\"login\":\"%s\""
+             "}"
+             "}",
+             user_cfg.login);
+    websocket_send_text(ответ);
+
+    // ACCOUNT
+    snprintf(ответ, sizeof(ответ),
+             "{"
+             "\"command_type\":\"settings_response\","
+             "\"category\":\"account\","
+             "\"data\":{"
+             "\"account_login\":\"%s\","
+             "\"node_name\":\"%s\""
+             "}"
+             "}",
+             user_cfg.account_login,
+             user_cfg.node_name);
+    websocket_send_text(ответ);
+
+    // NETWORK
+    snprintf(ответ, sizeof(ответ),
+             "{"
+             "\"command_type\":\"settings_response\","
+             "\"category\":\"network\","
+             "\"data\":{"
+             "\"dhcp_enabled\":%s,"
+             "\"ip\":\"%s\","
+             "\"mask\":\"%s\","
+             "\"gateway\":\"%s\","
+             "\"dns\":\"%s\","
+             "\"port\":%d,"
+             "\"wifi_dhcp_enabled\":%s,"
+             "\"wifi_ip\":\"%s\","
+             "\"wifi_mask\":\"%s\","
+             "\"wifi_gateway\":\"%s\","
+             "\"wifi_dns\":\"%s\""
+             "}"
+             "}",
+             net_cfg.dhcp_enabled ? "true" : "false",
+             net_cfg.ip,
+             net_cfg.mask,
+             net_cfg.gateway,
+             net_cfg.dns,
+             net_cfg.port,
+             net_cfg.wifi_dhcp_enabled ? "true" : "false",
+             net_cfg.wifi_ip,
+             net_cfg.wifi_mask,
+             net_cfg.wifi_gateway,
+             net_cfg.wifi_dns);
+    websocket_send_text(ответ);
+
+    // WIFI
+    snprintf(ответ, sizeof(ответ),
+             "{"
+             "\"command_type\":\"settings_response\","
+             "\"category\":\"wifi\","
+             "\"data\":{"
+             "\"mode\":%d,"
+             "\"sta_ssid\":\"%s\","
+             "\"ap_ssid\":\"%s\","
+             "\"ap_channel\":%d"
+             "}"
+             "}",
+             wifi_cfg.mode,
+             wifi_cfg.sta_ssid,
+             wifi_cfg.ap_ssid,
+             wifi_cfg.ap_channel);
+    websocket_send_text(ответ);
+
+    // UART
+    int real_data_bits = 8;
+    switch (uart_cfg.data_bits) {
+        case UART_DATA_5_BITS: real_data_bits = 5; break;
+        case UART_DATA_6_BITS: real_data_bits = 6; break;
+        case UART_DATA_7_BITS: real_data_bits = 7; break;
+        case UART_DATA_8_BITS: real_data_bits = 8; break;
+    }
+
+    int real_stop_bits = 1;
+    switch (uart_cfg.stop_bits) {
+        case UART_STOP_BITS_1:   real_stop_bits = 1; break;
+        case UART_STOP_BITS_1_5: real_stop_bits = 15; break;
+        case UART_STOP_BITS_2:   real_stop_bits = 2; break;
+    }
+
+    snprintf(ответ, sizeof(ответ),
+             "{"
+             "\"command_type\":\"settings_response\","
+             "\"category\":\"uart\","
+             "\"data\":{"
+             "\"baud\":%d,"
+             "\"data_bits\":%d,"
+             "\"stop_bits\":%d,"
+             "\"parity\":%d,"
+             "\"rs485_mode\":%d"
+             "}"
+             "}",
+             uart_cfg.baud_rate,
+             real_data_bits,
+             real_stop_bits,
+             uart_cfg.parity,
+             uart_cfg.rs485_mode);
+    websocket_send_text(ответ);
+
+    // SYSTEM
+    snprintf(ответ, sizeof(ответ),
+             "{"
+             "\"command_type\":\"settings_response\","
+             "\"category\":\"system\","
+             "\"data\":{"
+             "\"refresh_interval\":%d,"
+             "\"log_level\":%d,"
+             "\"debug_mode\":%s,"
+             "\"build_number\":%d,"
+             "\"build_date\":\"%s\","
+             "\"ws_server\":\"%s\""
+             "}"
+             "}",
+             sys.refresh_interval,
+             sys.log_level,
+             sys.debug_mode ? "true" : "false",
+             sys.build_number,
+             sys.build_date,
+             sys.ws_server);
+    websocket_send_text(ответ);
+
+    return true;
+}
+
         else
         {
             snprintf(ответ, sizeof(ответ),
@@ -850,6 +1028,47 @@ static bool handle_settings_command(const char *json)
 
     return true;
 }
+
+
+static bool handle_ota_update(const char *json, const char *session_id)
+{
+    if (!strstr(json, "update_firmware")) return false;
+
+    char url[256] = {0};
+
+  
+    snprintf(url, sizeof(url), "%s%s", sys.ws_server, session_id);
+
+    ESP_LOGW(TAG, "🚀 OTA from: %s", url);
+
+    websocket_disable_reconnect();
+
+    esp_http_client_config_t http_config = {
+        .url = url,
+        .cert_pem = (const char *)ca_cert_pem_start,
+        .timeout_ms = 60000,
+    };
+
+    esp_https_ota_config_t ota_config = {
+        .http_config = &http_config,
+    };
+
+    esp_err_t ret = esp_https_ota(&ota_config);
+
+    if (ret == ESP_OK) {
+        ESP_LOGW(TAG, "OTA OK — reboot");
+        esp_restart();
+    } else {
+        ESP_LOGE(TAG, "OTA failed");
+        websocket_enable_reconnect();
+    }
+
+    return true;
+}
+
+
+
+
 
 
 

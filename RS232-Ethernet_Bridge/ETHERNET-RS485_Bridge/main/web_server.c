@@ -33,8 +33,7 @@ static const char *TAG = "web_server";
 extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 static void url_decode(char *dst, const char *src);
-
-static void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
+void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
 
 /// GET /get_settings
 
@@ -696,7 +695,7 @@ static void url_decode(char *dst, const char *src)
 }
 
 
-static void fill_netif_ip_info(
+ void fill_netif_ip_info(
     const char *ifkey,
     char *ip,
     char *mask,
