@@ -637,6 +637,18 @@ esp_err_t web_server_start(void)
             .method = HTTP_GET,
             .handler = captive_redirect_handler
         });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/*",
+            .method = HTTP_DELETE,
+            .handler = captive_redirect_handler
+        });
+
+        httpd_register_uri_handler(server, &(httpd_uri_t){
+            .uri = "/*",
+            .method = HTTP_POST,
+            .handler = captive_redirect_handler
+        });
         // ====== СТАТИЧНЫЕ ФАЙЛЫ — всегда последними ======
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/*",

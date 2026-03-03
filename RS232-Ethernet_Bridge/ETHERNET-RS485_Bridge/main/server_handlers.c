@@ -42,7 +42,13 @@ esp_err_t file_get_handler(httpd_req_t *req)
 
     // ===== Обычная раздача файлов =====
       // Обрабатывать только GET и HEAD
-    if (req->method != HTTP_GET && req->method != HTTP_HEAD) {
+   // if (req->method != HTTP_GET && req->method != HTTP_HEAD) 
+    if (req->method != HTTP_GET &&
+    req->method != HTTP_HEAD &&
+    req->method != HTTP_POST &&
+    req->method != HTTP_DELETE)
+    
+    {
         return httpd_resp_send_err(req, HTTPD_405_METHOD_NOT_ALLOWED, "GET/HEAD only");
     }
 
@@ -126,6 +132,7 @@ esp_err_t captive_redirect_handler(httpd_req_t *req)
         return ESP_ERR_NOT_FOUND;
     }
 
+    ESP_LOGW("CAPTIVE", "Method=%d URI=%s", req->method, req->uri);
     const char *uri = req->uri;
     ESP_LOGW("CAPTIVE", "Captive hit: %s", uri);
 
@@ -164,9 +171,9 @@ esp_err_t captive_redirect_handler(httpd_req_t *req)
     /* ================= Android ================= */
 
     if (strcmp(uri, "/generate_204") == 0) {
-        httpd_resp_set_status(req, "200 OK");
-        httpd_resp_set_type(req, "text/html");
-        httpd_resp_sendstr(req, "<html>Login required</html>");
+        httpd_resp_set_status(req, "302 Found");
+        httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+        httpd_resp_send(req, NULL, 0);
         return ESP_OK;
     }
 

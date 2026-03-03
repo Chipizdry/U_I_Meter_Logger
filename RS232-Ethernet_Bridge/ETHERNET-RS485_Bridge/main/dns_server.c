@@ -72,7 +72,8 @@ void dns_start(void)
     ap_ip.type = IPADDR_TYPE_V4;
 
     // 🔒 биндимся ТОЛЬКО к AP IP
-    udp_bind(dns_pcb, &ap_ip, 53);
+   // udp_bind(dns_pcb, &ap_ip, 53);
+    udp_bind(dns_pcb, IP_ADDR_ANY, 53);
 
     udp_recv(dns_pcb, dns_recv_cb, NULL);
     ESP_LOGI("DNS", "Captive DNS started on AP only");
