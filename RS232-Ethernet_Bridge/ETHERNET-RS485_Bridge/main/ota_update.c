@@ -350,34 +350,7 @@ if (ota_phase == OTA_PHASE_FW && remaining > 0) {
     }
 }
 
-    // ========= OTA старт ========== 
-    /*
-    if (!ota_started) {
-        ota_partition = esp_ota_get_next_update_partition(NULL);
-
-        ESP_LOGW(TAG, "========== OTA UPDATE ==========");
-        ESP_LOGW(TAG, "Writing to partition : %s", ota_partition->label);
-        ESP_LOGW(TAG, "Address             : 0x%lx", ota_partition->address);
-        ESP_LOGW(TAG, "Size                : 0x%lx", ota_partition->size);
-        ESP_LOGW(TAG, "===============================");
-
-
-        if (!ota_partition) {
-            httpd_resp_send_err(req, 500, "No OTA partition");
-            free(buffer); free(boundary_value); free(boundary_marker);
-            return ESP_FAIL;
-        }
-        if (esp_ota_begin(ota_partition, OTA_SIZE_UNKNOWN, &ota_handle) != ESP_OK) {
-            httpd_resp_send_err(req, 500, "OTA begin failed");
-            free(buffer); free(boundary_value); free(boundary_marker);
-            return ESP_FAIL;
-        }
-        ota_started = true;
-        total_received = 0;
-        ESP_LOGI(TAG, "🚀 OTA started");
-    } 
-
-    */
+   
 
     // ========= MD5 =========
     char *md5_ptr = memmem(buffer, received, "name=\"md5\"", 10);
@@ -436,9 +409,16 @@ if (ota_phase == OTA_PHASE_FW && remaining > 0) {
         }
 
         ESP_LOGW(TAG, "🎉 OTA SUCCESS! Rebooting to new firmware...");
-        httpd_resp_send(req, "OTA complete, rebooting", -1);
+
+        httpd_resp_set_type(req, "application/json");
+        httpd_resp_set_status(req, "200 OK");
+        httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+        httpd_resp_sendstr(req,"{\"status\":\"ok\",\"message\":\"OTA completed successfully\"}");
+
         const esp_partition_t *after = esp_ota_get_boot_partition();
         ESP_LOGW(TAG, "🎯 Boot partition set to: %s", after->label);
+
+
         vTaskDelay(pdMS_TO_TICKS(1000));
         esp_restart();
                 

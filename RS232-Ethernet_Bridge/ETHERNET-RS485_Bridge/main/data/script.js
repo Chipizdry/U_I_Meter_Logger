@@ -643,6 +643,14 @@ async function uploadFirmware() {
                 return;
             }
             status.innerText = "Upload failed!";
+
+           showPopup({
+           type: "error",
+            title: "Ошибка",
+            message: json.message || "Ошибка загрузки прошивки",
+            timeout: 3000
+           });
+
             throw new Error(`Chunk ${chunkNumber} failed.`);
         }
 /////////////////////////////////////////////////////////////////////////////
@@ -650,13 +658,8 @@ async function uploadFirmware() {
             if (offset + ab.byteLength >= totalSize) {
                 const json = await response.json();
 
-                if (!json.ota_session) {
-                    throw new Error("OTA session not received");
-                }
-
-                sessionStorage.setItem("ota_session", json.ota_session);
-                console.log("OTA session received:", json.ota_session);
-
+               
+            showPopup({  type: "success", title: "Обновлена прошивка", message: json.message || "Прошивка загружена, перезагрузка...", timeout: 3000 });
                 status.innerText = "✅ Firmware uploaded, rebooting...";
                 // ждём, пока ESP32 появится в сети
                 try {

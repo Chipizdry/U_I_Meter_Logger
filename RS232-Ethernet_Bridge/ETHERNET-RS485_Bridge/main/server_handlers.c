@@ -11,7 +11,7 @@
 #include "esp_log.h"
 #include "esp_http_server.h"
 static const char *TAG = "server_handlers";
-
+static bool is_static_resource(const char *uri);
 
 
 
@@ -21,6 +21,7 @@ esp_err_t file_get_handler(httpd_req_t *req)
     esp_wifi_get_mode(&mode);
 
     // === CAPTIVE PORTAL ONLY FOR AP ===
+    /*
     if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA) {
 
         // Не трогаем API, WS и статику
@@ -39,6 +40,27 @@ esp_err_t file_get_handler(httpd_req_t *req)
             return ESP_OK;
         }
     }
+        */
+
+    if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA) {
+
+    // Разрешаем только статику и корень
+    if (!check_token(req) &&
+        !is_static_resource(req->uri) &&
+        strcmp(req->uri, "/") != 0) {
+
+        ESP_LOGW("CAPTIVE", "Redirecting captive request: %s", req->uri);
+
+        httpd_resp_set_status(req, "302 Found");
+        httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
+        httpd_resp_set_hdr(req, "Cache-Control", "no-cache, no-store, must-revalidate");
+        httpd_resp_set_hdr(req, "Pragma", "no-cache");
+        httpd_resp_set_hdr(req, "Expires", "0");
+
+        httpd_resp_send(req, NULL, 0);
+        return ESP_OK;
+    }
+}
 
     // ===== Обычная раздача файлов =====
       // Обрабатывать только GET и HEAD
