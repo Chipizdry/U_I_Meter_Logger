@@ -12,6 +12,8 @@
 #include "esp_sntp.h"
 #include "esp_https_ota.h"
 #include "driver/uart.h"
+#include "cJSON.h"
+
 
 
 #include "nvs_settings.h"
@@ -19,6 +21,7 @@
 #include "ws_server.h"
 #include "gpio_manager.h"
 #include "web_server.h"
+#include "ota_pull.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
 
@@ -820,7 +823,7 @@ static bool handle_settings_command(const char *json)
         }
 
       
-         // ==================================================
+// ==================================================
 // ALL SETTINGS
 // ==================================================
 else if (strcmp(category, "all") == 0)
@@ -1030,41 +1033,49 @@ else if (strcmp(category, "all") == 0)
 }
 
 
+
+
 static bool handle_ota_update(const char *json, const char *session_id)
 {
-    if (!strstr(json, "update_firmware")) return false;
+    if (!strstr(json, "update_firmware"))
+        return false;
 
-    char url[256] = {0};
+    cJSON *root = cJSON_Parse(json);
+    if (!root) {
+        ESP_LOGE(TAG, "Invalid JSON");
+        return true;
+    }
 
-  
-    snprintf(url, sizeof(url), "%s%s", sys.ws_server, session_id);
+    cJSON *url_item = cJSON_GetObjectItem(root, "firmware_url");
+    if (!cJSON_IsString(url_item) || !url_item->valuestring) {
+        ESP_LOGE(TAG, "firmware_url not found");
+        cJSON_Delete(root);
+        return true;
+    }
 
-    ESP_LOGW(TAG, "🚀 OTA from: %s", url);
+    const char *firmware_url = url_item->valuestring;
 
+    ESP_LOGW(TAG, "🚀 OTA pull from: %s", firmware_url);
+
+    // Отключаем автоподключение WS на время OTA
     websocket_disable_reconnect();
 
-    esp_http_client_config_t http_config = {
-        .url = url,
-        .cert_pem = (const char *)ca_cert_pem_start,
-        .timeout_ms = 60000,
-    };
-
-    esp_https_ota_config_t ota_config = {
-        .http_config = &http_config,
-    };
-
-    esp_err_t ret = esp_https_ota(&ota_config);
+    // 🔥 ВАЖНО: используем вашу pull-логику
+    esp_err_t ret = ota_pull_start(firmware_url);
 
     if (ret == ESP_OK) {
-        ESP_LOGW(TAG, "OTA OK — reboot");
-        esp_restart();
+        ESP_LOGW(TAG, "OTA pull completed");
+        // reboot уже внутри ota_pull_start()
     } else {
-        ESP_LOGE(TAG, "OTA failed");
+        ESP_LOGE(TAG, "OTA pull failed");
         websocket_enable_reconnect();
     }
 
+    cJSON_Delete(root);
     return true;
 }
+
+
 
 
 

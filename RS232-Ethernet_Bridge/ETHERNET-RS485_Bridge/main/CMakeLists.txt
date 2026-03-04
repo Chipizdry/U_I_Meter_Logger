@@ -15,6 +15,7 @@ idf_component_register(
         "ota_update.c"
         "ws_server.c"
         "web_auth.c"
+        "ota_pull.c"
         "dns_server.c"
         "server_handlers.c"
         

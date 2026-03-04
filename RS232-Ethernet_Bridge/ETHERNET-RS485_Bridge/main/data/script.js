@@ -657,22 +657,12 @@ async function uploadFirmware() {
     // ⬇️ если это последний chunk — ждём ответ с OTA-session
             if (offset + ab.byteLength >= totalSize) {
                 const json = await response.json();
-
-               
+             
             showPopup({  type: "success", title: "Обновлена прошивка", message: json.message || "Прошивка загружена, перезагрузка...", timeout: 3000 });
                 status.innerText = "✅ Firmware uploaded, rebooting...";
-                // ждём, пока ESP32 появится в сети
-                try {
-                    await waitDeviceOnline();
-                    await uploadLittleFS();
-                } catch(e) {
-                    // alert(e.message);
-                    console.log(e.message);
-                }
-                return;
+        
+            return;
             }
-
-
 
 ///////////////////////////////////////////////////////////////////////////////
         offset += ab.byteLength;
