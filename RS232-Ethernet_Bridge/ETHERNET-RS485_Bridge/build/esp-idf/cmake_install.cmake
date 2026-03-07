@@ -1,4 +1,4 @@
-# Install script for directory: D:/Espressif/frameworks/esp-idf-v5.4.0
+# Install script for directory: C:/Espressif/frameworks/esp-idf-v5.5.3
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -34,7 +34,7 @@ endif()
 
 # Set path to fallback-tool for dependency-resolution.
 if(NOT DEFINED CMAKE_OBJDUMP)
-  set(CMAKE_OBJDUMP "C:/Users/chipi/.espressif/tools/xtensa-esp-elf/esp-14.2.0_20241119/xtensa-esp-elf/bin/xtensa-esp32-elf-objdump.exe")
+  set(CMAKE_OBJDUMP "C:/Espressif/tools/xtensa-esp-elf/esp-14.2.0_20251107/xtensa-esp-elf/bin/xtensa-esp32-elf-objdump.exe")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -194,6 +194,16 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_spi/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_psram/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_uart/cmake_install.cmake")
 endif()
 
@@ -214,97 +224,12 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_pcnt/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_spi/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_mcpwm/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_ana_cmpr/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_i2s/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/sdmmc/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdmmc/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdspi/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdio/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_dac/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_rmt/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_tsens/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdm/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_i2c/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_ledc/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_parlio/cmake_install.cmake")
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_phy/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_usb_serial_jtag/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/driver/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_phy/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -349,6 +274,11 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_gdbstub/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/bt/cmake_install.cmake")
 endif()
 
@@ -365,6 +295,96 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/console/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_pcnt/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_mcpwm/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_ana_cmpr/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_i2s/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/sdmmc/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdmmc/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdspi/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdio/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_dac/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_bitscrambler/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_rmt/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_tsens/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_sdm/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_i2c/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_ledc/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_parlio/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_driver_twai/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/driver/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -414,7 +434,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_gdbstub/cmake_install.cmake")
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_hal_ieee802154/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -449,17 +469,7 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_psram/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_lcd/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_littlefs/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -475,11 +485,6 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_local_ctrl/cmake_install.cmake")
-endif()
-
-if(NOT CMAKE_INSTALL_LOCAL_ONLY)
-  # Include the install script for the subdirectory.
-  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_websocket_client/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
@@ -555,6 +560,16 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for the subdirectory.
   include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/wifi_provisioning/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_littlefs/cmake_install.cmake")
+endif()
+
+if(NOT CMAKE_INSTALL_LOCAL_ONLY)
+  # Include the install script for the subdirectory.
+  include("D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_websocket_client/cmake_install.cmake")
 endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)

@@ -629,7 +629,7 @@ esp_err_t web_server_start(void)
             .uri = "/ws",
             .method = HTTP_GET,
             .handler = ws_handler,
-            .is_websocket = true
+            .user_ctx = NULL
         });
     
         httpd_register_uri_handler(server, &(httpd_uri_t){

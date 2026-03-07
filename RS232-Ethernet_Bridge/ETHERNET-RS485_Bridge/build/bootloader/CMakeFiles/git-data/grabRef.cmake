@@ -18,7 +18,7 @@ set(HEAD_HASH)
 file(READ "D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/bootloader/CMakeFiles/git-data/HEAD" HEAD_CONTENTS LIMIT 1024)
 
 string(STRIP "${HEAD_CONTENTS}" HEAD_CONTENTS)
-set(GIT_DIR "D:/Espressif/frameworks/esp-idf-v5.4.0/.git")
+set(GIT_DIR "D:/GitHub/U_I_Meter_Logger/.git")
 # handle git-worktree
 if(EXISTS "${GIT_DIR}/commondir")
 	file(READ "${GIT_DIR}/commondir" GIT_DIR_NEW LIMIT 1024)

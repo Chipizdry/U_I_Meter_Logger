@@ -1,26 +1,31 @@
+
+
+
 {
-  "C_Cpp.intelliSenseEngine": "default",
-  "idf.espIdfPathWin": "d:\\Espressif\\frameworks\\esp-idf-v5.4.0",
-  "idf.pythonInstallPath": "C:\\Users\\chipi\\.espressif\\tools\\idf-python\\3.11.2\\python.exe",
-  "idf.openOcdConfigs": [
-    "interface/ftdi/esp32_devkitj_v1.cfg",
-    "target/esp32.cfg"
-  ],
-  "idf.portWin": "COM3",
-  "idf.toolsPathWin": "C:\\Users\\chipi\\.espressif",
-  "idf.customExtraVars": {
-    "OPENOCD_SCRIPTS": "C:\\Users\\chipi\\.espressif\\tools\\openocd-esp32\\v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
-    "IDF_CCACHE_ENABLE": "1",
-    "ESP_ROM_ELF_DIR": "C:\\Users\\chipi\\.espressif\\tools\\esp-rom-elfs\\20240305/",
-    "IDF_TARGET": "esp32"
-  },
-  "idf.flashType": "UART",
-  "idf.monitorPort": "COM3",
-  "files.associations": {
-    "websocket_client.h": "c",
-    "esp_http_server.h": "c",
-    "uart.h": "c",
-    "uart_types.h": "c"
-  },
-  "idf.currentSetup": "d:\\Espressif\\frameworks\\esp-idf-v5.4.0"
+    "idf.hasWalkthroughBeenShown": true,
+    "idf.showOnboardingOnInit": false,
+    "idf.espIdfPath": "C:\\Espressif\\frameworks\\esp-idf-v5.5.3",
+    "idf.pythonBinPath": "C:\\Espressif\\python_env\\idf5.5_py3.11_env\\Scripts\\python.exe",
+    "idf.customExtraPaths": [
+        "C:\\Espressif\\frameworks\\esp-idf-v5.5.3\\tools",
+        "C:\\Espressif\\python_env\\idf5.5_py3.11_env\\Scripts",
+        "C:\\Espressif\\tools\\xtensa-esp-elf\\esp-14.2.0_20251107\\xtensa-esp-elf\\bin",
+    ],
+    "idf.terminal.integratedEnv": {
+        "IDF_PATH": "C:\\Espressif\\frameworks\\esp-idf-v5.5.3",
+        "IDF_PYTHON_ENV_PATH": "C:\\Espressif\\python_env\\idf5.5_py3.11_env",
+        "PATH": "C:\\Espressif\\tools\\xtensa-esp-elf\\esp-14.2.0_20251107\\xtensa-esp-elf\\bin;C:\\Espressif\\frameworks\\esp-idf-v5.5.3\\tools;C:\\Espressif\\python_env\\idf5.5_py3.11_env\\Scripts;${env:PATH}"
+    },
+    "idf.enableIdfComponentManager": true,
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "idf.currentSetup": "C:/Espressif/frameworks/esp-idf-v5.5.3/",
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
+    "C_Cpp.intelliSenseEngine": "disabled",
+    "clangd.arguments": [
+        "--compile-commands-dir=build",
+        "--background-index",
+        "--clang-tidy",
+        "--completion-style=detailed"
+    ]
 }
+
