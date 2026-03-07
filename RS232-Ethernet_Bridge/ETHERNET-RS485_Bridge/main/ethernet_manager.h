@@ -1,5 +1,3 @@
-
-
 #ifndef ETHERNET_MANAGER_H_
 #define ETHERNET_MANAGER_H_
 

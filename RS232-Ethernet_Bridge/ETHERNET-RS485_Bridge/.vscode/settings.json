@@ -23,9 +23,11 @@
     "C_Cpp.intelliSenseEngine": "disabled",
     "clangd.arguments": [
         "--compile-commands-dir=build",
+        "--query-driver=C:/Espressif/tools/**/xtensa-esp32-elf-gcc.exe",
         "--background-index",
-        "--clang-tidy",
-        "--completion-style=detailed"
+        "--completion-style=detailed",
+        "--header-insertion=never",
+        "--clang-tidy=false"
     ]
 }
 
