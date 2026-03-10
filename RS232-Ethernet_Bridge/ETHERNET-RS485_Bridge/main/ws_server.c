@@ -1,4 +1,5 @@
 
+
 #include "ws_server.h"
 #include "esp_http_server.h"
 #include "esp_log.h"
@@ -12,6 +13,8 @@
 #include "rs485_master.h"
 #include "nvs_settings.h"
 #include "network_state.h"
+
+#define WS_LOG(fmt, ...) ESP_LOGI(TAG, "[WS] " fmt, ##__VA_ARGS__)
 
 // --- Внешние переменные ---
 extern char auth_token[64];
@@ -28,10 +31,10 @@ static const char *TAG = "ws_server";
 bool test_account_active = false;
 bool diagnostics_active = false;
 
-#define MAX_CLIENTS 8
+#define MAX_CLIENTS 4
 
 typedef struct {
-    httpd_req_t *req;
+    int fd;
     bool authorized;
 } ws_client_t;
 
@@ -39,65 +42,76 @@ static ws_client_t ws_clients[MAX_CLIENTS] = {{0}};
 void cancel_test_account(void);
 
 /* ---------------- CLIENT MANAGEMENT ---------------- */
-static void add_client(httpd_req_t *req) {
+static ws_client_t* find_client(int fd) {
     for (int i = 0; i < MAX_CLIENTS; i++)
-        if (ws_clients[i].req == req) return;
-    for (int i = 0; i < MAX_CLIENTS; i++)
-        if (!ws_clients[i].req) {
-            ws_clients[i].req = req;
-            ws_clients[i].authorized = false;
-            network_notify_ws();
-            return;
-        }
-}
-
-static void remove_client(httpd_req_t *req) {
-    for (int i = 0; i < MAX_CLIENTS; i++)
-        if (ws_clients[i].req == req) {
-            ws_clients[i].req = NULL;
-            ws_clients[i].authorized = false;
-            return;
-        }
-}
-
-static ws_client_t* get_client(httpd_req_t *req) {
-    for (int i = 0; i < MAX_CLIENTS; i++)
-        if (ws_clients[i].req == req) return &ws_clients[i];
+        if (ws_clients[i].fd == fd)
+            return &ws_clients[i];
     return NULL;
 }
 
+static void add_client(int fd) {
+    ws_client_t *existing = find_client(fd);
+    if (existing) {
+        WS_LOG("FD=%d already exists → reusing slot", fd);
+        return; // старый слот используем, не удаляем
+    }
+
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i].fd == 0) {
+            ws_clients[i].fd = fd;
+            ws_clients[i].authorized = false;
+            WS_LOG("New client slot assigned: FD=%d", fd);
+            return;
+        }
+    }
+
+    WS_LOG("No free client slots for FD=%d", fd);
+}
+
+static void remove_client(int fd) {
+    ws_client_t *client = find_client(fd);
+    if (client) {
+        WS_LOG("Removing client FD=%d", fd);
+        client->fd = 0;
+        client->authorized = false;
+    }
+}
+
 /* ---------------- WS SEND / BROADCAST ---------------- */
-void ws_send_fd(httpd_req_t *req, const char *msg) {
-    if (!req || !msg) return;
+void ws_send_fd(int fd, const char *msg) {
+    if (!server || fd <= 0) return;
 
-    int fd = httpd_req_to_sockfd(req);
-    if (fd < 0) return;
+    ws_client_t *client = find_client(fd);
+    if (!client) {
+        WS_LOG("WS send aborted: FD=%d not valid", fd);
+        return;
+    }
 
-    httpd_ws_frame_t ws_frame;
-    ws_frame.type = HTTPD_WS_TYPE_TEXT;
-    ws_frame.payload = (uint8_t*)msg;
-    ws_frame.len = strlen(msg);
-    ws_frame.final = true;
+    httpd_ws_frame_t frame = {
+        .type = HTTPD_WS_TYPE_TEXT,
+        .payload = (uint8_t*)msg,
+        .len = strlen(msg),
+        .final = true
+    };
 
-    esp_err_t ret = httpd_ws_send_frame_async(server, fd, &ws_frame);
+    esp_err_t ret = httpd_ws_send_frame_async(server, fd, &frame);
     if (ret != ESP_OK) {
-        ESP_LOGE(TAG, "WS send failed: %d", ret);
+        WS_LOG("WS send failed: %s, FD=%d, msg=%s", esp_err_to_name(ret), fd, msg);
+    } else {
+        WS_LOG("WS sent successfully, FD=%d, msg=%s", fd, msg);
     }
 }
 
 void ws_broadcast(const char* text) {
-    if (!server || !text) return;
     for (int i = 0; i < MAX_CLIENTS; i++)
-        if (ws_clients[i].req)
-            ws_send_fd(ws_clients[i].req, text);
+        if (ws_clients[i].fd)
+            ws_send_fd(ws_clients[i].fd, text);
 }
 
 /* ---------------- CUSTOM ACTION HANDLER ---------------- */
-void handle_ws_custom_message(httpd_req_t *req, cJSON *msg) {
-    if (!msg) return;
-
-    ws_client_t *client_obj = get_client(req);
-    if (!client_obj) return;
+void handle_ws_custom_message(int fd, cJSON *msg) {
+    ws_client_t *client_obj = find_client(fd);
+    if (!client_obj || !msg) return;
 
     cJSON *action = cJSON_GetObjectItem(msg, "action");
     if (!action || !cJSON_IsString(action)) return;
@@ -110,7 +124,7 @@ void handle_ws_custom_message(httpd_req_t *req, cJSON *msg) {
         cJSON *node_name = cJSON_GetObjectItem(msg, "node_name");
 
         if (!login || !password || !cJSON_IsString(login) || !cJSON_IsString(password)) {
-            ws_send_fd(req, "{\"error\":\"invalid test_account payload\"}");
+            ws_send_fd(fd, "{\"error\":\"invalid test_account payload\"}");
             return;
         }
 
@@ -130,91 +144,99 @@ void handle_ws_custom_message(httpd_req_t *req, cJSON *msg) {
         last_ws_event_tick = 0;
 
         websocket_client_start(user_cfg.serial, ws_email, ws_password, ws_node_name);
-        ws_send_fd(req, "{\"cloud_status\":\"test_account ok\"}");
+        ws_send_fd(fd, "{\"cloud_status\":\"test_account ok\"}");
         return;
     }
 
     if (strcmp(act, "cancel_test_account") == 0) {
         cancel_test_account();
-        ws_send_fd(req, "{\"cloud_status\":\"test_account cancelled\"}");
+        ws_send_fd(fd, "{\"cloud_status\":\"test_account cancelled\"}");
         return;
     }
 
     if (strcmp(act, "wifi_scan") == 0) {
         wifi_scan_networks();
-        ws_send_fd(req, "{\"type\":\"wifi_scan\",\"status\":\"started\"}");
+        ws_send_fd(fd, "{\"type\":\"wifi_scan\",\"status\":\"started\"}");
         return;
     }
 
     if (strcmp(act, "diagnostics_on") == 0) {
         diagnostics_active = true;
-        ws_send_fd(req, "{\"diagnostics\":\"on\"}");
+        ws_send_fd(fd, "{\"diagnostics\":\"on\"}");
         return;
     }
 
     if (strcmp(act, "diagnostics_off") == 0) {
         diagnostics_active = false;
-        ws_send_fd(req, "{\"diagnostics\":\"off\"}");
+        ws_send_fd(fd, "{\"diagnostics\":\"off\"}");
         return;
     }
 
-    ws_send_fd(req, "{\"error\":\"unknown action\"}");
+    ws_send_fd(fd, "{\"error\":\"unknown action\"}");
 }
 
 /* ---------------- MAIN WS HANDLER ---------------- */
 esp_err_t ws_handler(httpd_req_t *req) {
+    int fd = httpd_req_to_sockfd(req);
+
+    WS_LOG("WS handler invoked. FD=%d, method=%s", fd,
+           req->method == HTTP_GET ? "GET" : "OTHER");
+
     if (req->method == HTTP_GET) {
-        add_client(req);
+        add_client(fd);
+        WS_LOG("Client added, FD=%d", fd);
         return ESP_OK;
     }
 
     char buf[1024];
-    httpd_ws_frame_t ws_pkt;
+    httpd_ws_frame_t ws_pkt = {0};
     ws_pkt.type = HTTPD_WS_TYPE_TEXT;
+
+    esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, 0);
+    if (ret != ESP_OK) return ret;
+
+    if (ws_pkt.len == 0) return ESP_OK;
+    if (ws_pkt.len > sizeof(buf) - 1) return ESP_FAIL;
+
     ws_pkt.payload = (uint8_t*)buf;
-    ws_pkt.len = sizeof(buf);
+    ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
+    if (ret != ESP_OK) return ret;
 
-   esp_err_t ret = httpd_ws_recv_frame(req, &ws_pkt, sizeof(buf));
-    if (ret <= 0) {
-        remove_client(req);
-        return ESP_FAIL;
-    }
+    buf[ws_pkt.len] = '\0';
+    WS_LOG("Received WS payload: %s", buf);
 
-    buf[ws_pkt.len] = 0;
+    ws_client_t *client_obj = find_client(fd);
+    if (!client_obj) add_client(fd);
 
-    // ping/pong
-    if (strcmp(buf, "ping") == 0) {
-        ws_send_fd(req, "pong");
-        return ESP_OK;
-    }
+    // Ping/Pong
+    if (strcmp(buf, "ping") == 0) { ws_send_fd(fd, "pong"); return ESP_OK; }
     if (strcmp(buf, "pong") == 0) return ESP_OK;
 
+    // JSON parse
     cJSON *msg = cJSON_Parse(buf);
     if (!msg) return ESP_OK;
 
-    // Авторизация
     cJSON *type = cJSON_GetObjectItem(msg, "type");
-    if (type && strcmp(type->valuestring, "auth") == 0) {
+    if (type && cJSON_IsString(type) && strcmp(type->valuestring, "auth") == 0) {
         cJSON *token = cJSON_GetObjectItem(msg, "token");
         if (token && strcmp(token->valuestring, auth_token) == 0) {
-            ws_client_t* client_obj = get_client(req);
-            if (client_obj) client_obj->authorized = true;
+            client_obj->authorized = true;
+            ws_send_fd(fd, "{\"auth_status\":\"ok\"}");
             network_notify_ws();
         } else {
-            remove_client(req);
-            ws_send_fd(req, "");
+            ws_send_fd(fd, "{\"auth_status\":\"fail\"}");
+            remove_client(fd);
         }
         cJSON_Delete(msg);
         return ESP_OK;
     }
 
-    ws_client_t* client_obj = get_client(req);
-    if (!client_obj || !client_obj->authorized) {
+    if (!client_obj->authorized) {
         cJSON_Delete(msg);
         return ESP_OK;
     }
 
-    handle_ws_custom_message(req, msg);
+    handle_ws_custom_message(fd, msg);
     cJSON_Delete(msg);
     return ESP_OK;
 }

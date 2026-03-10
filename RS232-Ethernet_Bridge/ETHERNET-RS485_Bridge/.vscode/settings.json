@@ -28,6 +28,9 @@
         "--completion-style=detailed",
         "--header-insertion=never",
         "--clang-tidy=false"
-    ]
+    ],
+    "idf.flashType": "UART",
+    "idf.portWin": "COM3",
+    "idf.monitorPort": "COM3"
 }
 

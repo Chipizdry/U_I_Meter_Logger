@@ -386,7 +386,7 @@ function updateWiFiVisibility() {
            loginStatus.classList.remove("hidden");
           // fetchSettings();
             setTimeout(async () => {
-                 fetchSettings();
+                fetchSettings();
                 showMainScreen();
                 // Загружаем настройки сразу после входа
                 const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";

@@ -11,52 +11,53 @@ const HEARTBEAT_TIMEOUT  = 30000; // 30 сек без pong → разрыв
 const RECONNECT_DELAY    = 5000;  // 5 сек
 
 function initWebSocket() {
-    if (isLoggingOut) {
-        console.log("Skip WS init: logging out");
+    if (ws) {
+        console.warn(`[${new Date().toISOString()}] WS already exists → skipping init`);
         return;
     }
 
     const token = sessionStorage.getItem("auth_token");
     if (!token) {
-        console.log("No auth token");
+        console.warn(`[${new Date().toISOString()}] No auth token → cannot init WS`);
         return;
     }
 
-    if (ws) {
-        console.warn("WS exists → skipping init");
-        return;
-    }
-
-    console.log("🚀 Creating WS...");
+    console.log(`[${new Date().toISOString()}] 🚀 Creating WS...`);
 
     ws = new WebSocket(`ws://${location.host}/ws`);
 
     ws.onopen = () => {
-        console.log("WS connected");
+        console.log(`[${new Date().toISOString()}] WS connected, sending auth`);
         ws.send(JSON.stringify({ type: "auth", token }));
         lastPongTime = Date.now();
         startHeartbeat();
     };
 
-    ws.onmessage = onWsMessage;
+    ws.onmessage = (event) => {
+        console.log(`[${new Date().toISOString()}] WS message received:`, event.data);
+        onWsMessage(event);
+    };
 
-    ws.onclose = () => {
-        console.log("WS closed");
-
+    ws.onclose = (ev) => {
+        console.log(`[${new Date().toISOString()}] WS closed, code=${ev.code}, reason=${ev.reason}, readyState=${ws.readyState}`);
         stopHeartbeat();
         ws = null;
-
-        if (isLoggingOut) {
-            console.log("Logout → no reconnect");
-            return;
-        }
-
-        scheduleReconnect();
+        if (!isLoggingOut) scheduleReconnect();
     };
 
-    ws.onerror = err => {
-        console.error("WS error", err);
+    ws.onerror = (err) => {
+        console.error(`[${new Date().toISOString()}] WS error, readyState=${ws.readyState}`, err);
     };
+}
+
+function sendWsCommand(type, payload = {}) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const msg = { type, payload };
+        console.log(`[${new Date().toISOString()}] WS send:`, msg);
+        ws.send(JSON.stringify(msg));
+    } else {
+        console.warn(`[${new Date().toISOString()}] WS not connected → cannot send`, type, payload);
+    }
 }
 
 

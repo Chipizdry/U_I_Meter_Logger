@@ -30,6 +30,16 @@
 
 
 static const char *TAG = "web_server";
+
+static httpd_uri_t ws_uri = {
+    .uri        = "/ws",
+    .method     = HTTP_GET,
+    .handler    = ws_handler,
+    .user_ctx   = NULL,
+    .is_websocket = true
+};
+
+
 extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 static void url_decode(char *dst, const char *src);
@@ -625,13 +635,15 @@ esp_err_t web_server_start(void)
             .handler = save_settings_post_handler
         });
 
+        httpd_register_uri_handler(server, &ws_uri);
+      /*
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/ws",
             .method = HTTP_GET,
             .handler = ws_handler,
             .user_ctx = NULL
-        });
-    
+        });   */
+
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/generate_204",
             .method = HTTP_GET,
