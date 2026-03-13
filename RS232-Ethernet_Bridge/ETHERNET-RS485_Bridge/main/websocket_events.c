@@ -33,6 +33,8 @@ extern void websocket_disable_reconnect(void);
 extern void websocket_enable_reconnect(void);
 extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
 
+extern void ota_task(void *pvParameter);
+
 extern void ws_broadcast(const char *text);
 
 static bool handle_hex_data(const char *json);
@@ -709,7 +711,6 @@ else if (strcmp(category, "all") == 0)
 
 
 
-
 static bool handle_ota_update(const char *json, const char *session_id)
 {
     if (!strstr(json, "update_firmware"))
@@ -736,20 +737,22 @@ static bool handle_ota_update(const char *json, const char *session_id)
     websocket_disable_reconnect();
 
     // 🔥 ВАЖНО: используем вашу pull-логику
-    esp_err_t ret = ota_pull_start(firmware_url);
+  //  esp_err_t ret = ota_pull_start(firmware_url);
+    char *url_copy = strdup(firmware_url);
+    xTaskCreatePinnedToCore(
+    ota_task,
+    "ota_task",
+    8192,
+    url_copy,
+    5,
+    NULL,
+    1
+);
 
-    if (ret == ESP_OK) {
-        ESP_LOGW(TAG, "OTA pull completed");
-        // reboot уже внутри ota_pull_start()
-    } else {
-        ESP_LOGE(TAG, "OTA pull failed");
-        websocket_enable_reconnect();
-    }
-
+   
     cJSON_Delete(root);
     return true;
 }
-
 
 
 

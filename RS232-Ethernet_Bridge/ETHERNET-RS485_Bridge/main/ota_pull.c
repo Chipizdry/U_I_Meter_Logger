@@ -1,6 +1,8 @@
 
 
 
+
+
 #include "esp_log.h"
 #include "esp_http_client.h"
 #include "esp_ota_ops.h"
@@ -13,6 +15,9 @@
 #define OTA_PULL_BUF_SIZE 4096
 
 static const char *TAG = "OTA_PULL";
+
+extern const uint8_t ca_cert_pem_start[] asm("_binary_ca_cert_pem_start");
+extern const uint8_t ca_cert_pem_end[]   asm("_binary_ca_cert_pem_end");
 
 typedef enum {
     PULL_PHASE_HEADER = 0,
@@ -204,6 +209,8 @@ esp_err_t ota_pull_start(const char *url)
         .url = url,
         .timeout_ms = 10000,
         .buffer_size = OTA_PULL_BUF_SIZE,
+        .transport_type = HTTP_TRANSPORT_OVER_SSL,
+        .cert_pem = (const char *)ca_cert_pem_start
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
@@ -215,14 +222,35 @@ esp_err_t ota_pull_start(const char *url)
         esp_http_client_cleanup(client);
         return ESP_FAIL;
     }
+    int total_size = esp_http_client_fetch_headers(client);
+
+    ESP_LOGW(TAG, "HTTP content length: %d", total_size);
+        if (total_size <= 0) {
+            ESP_LOGE(TAG, "Invalid content length");
+        }
 
     uint8_t buffer[OTA_PULL_BUF_SIZE];
     int read_len;
 
-    while ((read_len = esp_http_client_read(client,
-                                            (char*)buffer,
-                                            OTA_PULL_BUF_SIZE)) > 0)
+    while (1)
     {
+        read_len = esp_http_client_read(client,
+                                        (char*)buffer,
+                                        OTA_PULL_BUF_SIZE);
+
+        if (read_len < 0) {
+            ESP_LOGE(TAG, "HTTP read error");
+            break;
+        }
+
+        if (read_len == 0) {
+            if (esp_http_client_is_complete_data_received(client)) {
+                ESP_LOGW(TAG, "HTTP transfer complete");
+                break;
+            }
+            continue;
+        }
+
         if (process_stream(buffer, read_len) != ESP_OK) {
             ESP_LOGE(TAG, "Stream processing failed");
             ota_pull_cleanup();
@@ -255,6 +283,16 @@ esp_err_t ota_pull_start(const char *url)
     esp_restart();
 
     return ESP_OK;
+}
+
+void ota_task(void *param)
+{
+    char *url = (char*)param;
+
+    ota_pull_start(url);
+
+    free(url);
+    vTaskDelete(NULL);
 }
 
 
