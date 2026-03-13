@@ -386,8 +386,10 @@ function updateWiFiVisibility() {
            loginStatus.classList.remove("hidden");
           // fetchSettings();
             setTimeout(async () => {
-                fetchSettings();
-                showMainScreen();
+               const settings = await fetchSettings();
+               if (settings) {
+                    showMainScreen();
+                }
                 // Загружаем настройки сразу после входа
                 const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
                 sideMenu.classList.remove("open");
@@ -456,8 +458,6 @@ function updateWiFiVisibility() {
                 updateAllIPFieldsState();
             }
             
-
-         //  updateIPFieldsState();
                // === Автоматически применяем настройки на активную вкладку ===
           const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
           loadTabSettings(activeTab);

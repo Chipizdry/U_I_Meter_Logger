@@ -982,52 +982,64 @@ else if (strcmp(category, "all") == 0)
     }
 
     // ==========================================================
-    // 3) SET SETTINGS
-    // ==========================================================
+// 3) SET SETTINGS
+// ==========================================================
     if (strcmp(command_type, "set_settings") == 0)
-    {
-        ESP_LOGI(TAG, "✍️ SET SETTINGS received");
-
-        // тут нужно парсить category
-        char category[32] = {0};
-
-        char *cat_ptr = strstr(json, "\"category\"");
-        if (!cat_ptr)
         {
-            websocket_send_text("{\"status\":\"error\",\"message\":\"Missing category\"}");
-            return true;
-        }
+            ESP_LOGI(TAG, "✍️ SET SETTINGS received");
 
-        char *s = strchr(cat_ptr, ':');
-        if (s && (s = strchr(s, '"')))
-        {
-            s++;
-            char *e = strchr(s, '"');
-            if (e)
+            char category[32] = {0};
+
+            char *settings_ptr = strstr(json, "\"settings\"");
+            if (!settings_ptr)
             {
-                int l = e - s;
-                if (l < sizeof(category))
-                {
-                    memcpy(category, s, l);
-                    category[l] = 0;
-                }
+                websocket_send_text("{\"status\":\"error\",\"message\":\"Missing settings\"}");
+                return true;
             }
-        }
 
-        ESP_LOGI(TAG, "Category to apply: %s", category);
+            if (strstr(settings_ptr, "\"account\""))
+                strcpy(category, "account");
 
-        // ⚠️ Здесь можно вызвать уже готовые apply функции:
-        // apply_wifi_settings(...)
-        // apply_uart_settings(...)
-        // save_network_settings(...)
-        // и т.д.
+            else if (strstr(settings_ptr, "\"wifi\""))
+                strcpy(category, "wifi");
 
-        websocket_send_text(
-            "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}"
-        );
+            else if (strstr(settings_ptr, "\"network\""))
+                strcpy(category, "network");
 
-        return true;
-    }
+            else if (strstr(settings_ptr, "\"uart\""))
+                strcpy(category, "uart");
+
+            else if (strstr(settings_ptr, "\"user\""))
+                strcpy(category, "user");
+
+            else if (strstr(settings_ptr, "\"system\""))
+                strcpy(category, "system");
+
+            else if (strstr(settings_ptr, "\"all\""))
+                strcpy(category, "all");
+
+            else
+            {
+                websocket_send_text("{\"status\":\"error\",\"message\":\"Unknown settings category\"}");
+                return true;
+            }
+
+            ESP_LOGI(TAG, "Category to apply: %s", category);
+
+            // ⚡ Здесь вызываем обработчики
+            /*
+            if (strcmp(category,"wifi")==0) apply_wifi_settings(...);
+            if (strcmp(category,"uart")==0) apply_uart_settings(...);
+            if (strcmp(category,"network")==0) apply_network_settings(...);
+            if (strcmp(category,"account")==0) apply_account_settings(...);
+            */
+
+            websocket_send_text(
+                "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}"
+            );
+
+            return true;
+       }
 
     return true;
 }
