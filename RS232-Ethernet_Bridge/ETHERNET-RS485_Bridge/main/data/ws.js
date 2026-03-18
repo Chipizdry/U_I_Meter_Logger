@@ -6,7 +6,7 @@ let reconnectTimer = null;
 let heartbeatTimer = null;
 let lastPongTime = 0;
 let isLoggingOut = false;
-const HEARTBEAT_INTERVAL = 10000; // 15 сек
+const HEARTBEAT_INTERVAL = 10000; // 10 сек
 const HEARTBEAT_TIMEOUT  = 30000; // 30 сек без pong → разрыв
 const RECONNECT_DELAY    = 5000;  // 5 сек
 
@@ -225,7 +225,6 @@ function updateStatus(text) {
     if (el) el.innerText = text;
 }
 
-//window.addEventListener("load", initWebSocket);
 
 function diagnosticsOn() {
     if (diagnosticsActive || !ws || ws.readyState !== WebSocket.OPEN) return;

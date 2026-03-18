@@ -1,4 +1,61 @@
 
+ 
+    // === Авторизация ===
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = new URLSearchParams(new FormData(e.target));
+         console.log(`Submitting login for user: ${data.get('login')}`);
+        const res = await fetch('/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: data.toString()
+        });
+        console.log("Login response status:", res.status);
+        if (res.ok) {
+            const json = await res.json();
+            sessionStorage.setItem('auth_token', json.token);
+            buildNumber = json.build_number;
+            buildDate = json.build_date;
+    
+            console.log(`Версия сборки: #${buildNumber} (${buildDate})`);
+
+            const buildInfoText = document.getElementById("buildInfoText");
+            if (buildInfoText) {
+                buildInfoText.textContent = `Build #${buildNumber} • ${buildDate}`;
+            }
+            isLoggingOut = false;
+            initWebSocket();
+           // Показ успешного сообщения
+           loginStatus.textContent = "Вход выполнен";
+           loginStatus.style.color = "#4CAF50"; // зелёный
+           loginStatus.classList.remove("hidden");
+          
+            setTimeout(async () => {
+               const settings = await fetchSettings();
+               if (settings) {
+                    showMainScreen();
+                }
+                // Загружаем настройки сразу после входа
+                const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+                sideMenu.classList.remove("open");
+                await loadTabSettings(activeTab);
+            }, 1000);
+
+        } else {
+            const text = await res.text();
+               // Показ  сообщения
+           loginStatus.textContent = "Ошибка входа";
+           loginStatus.style.color = "red"; // красный
+           loginStatus.classList.remove("hidden");
+           setTimeout(async () => {
+            loginStatus.classList.add("hidden");
+           }, 1000);
+        
+        }
+    });
+
+
 
 
    // === Выход из аккаунта ===
@@ -167,6 +224,55 @@ async function rebootDevice() {
         });
     }
 }
+
+
+
+
+async function loadTabSettings(tab) {
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) return;
+
+    try {
+        const endpoints = {
+            "LAN": "/get_settings/network",
+            "wifi": "/get_settings/wifi",
+            "uart": "/get_settings/uart",
+            "user": "/get_settings/user",
+            "system": "/get_settings/system",
+            "account": "/get_settings/user"
+        };
+
+        const url = endpoints[tab];
+        if (!url) return;
+
+        const res = await fetch(url, {
+            method: "GET",
+            headers: {
+                "Authorization": `Bearer ${token}`
+            }
+        });
+
+        if (res.status === 401) {
+            sessionStorage.removeItem("auth_token");
+            showTokenExpiredModal();
+            return;
+        }
+
+        if (!res.ok) {
+            console.warn(`Ошибка загрузки ${tab}:`, await res.text());
+            return;
+        }
+
+        const data = await res.json();
+        console.log(`Настройки для ${tab}:`, data);
+
+        applySettingsToForm(tab, data);
+
+    } catch (err) {
+        console.error("Ошибка загрузки вкладки:", err);
+    }
+}
+
 
 async function saveUARTSettings() {
     const token = sessionStorage.getItem("auth_token");

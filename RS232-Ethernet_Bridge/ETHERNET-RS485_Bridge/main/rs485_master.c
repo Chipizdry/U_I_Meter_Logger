@@ -517,8 +517,8 @@ static void rs485_request_task(void *arg)
     const int uart_num = RS485_UART_NUM;
 
     while (s_running) {
-        char ws_msg[256];          // <── создаётся один раз на итерацию, можно переиспользовать
-        char hex_resp[192];        // <── тоже тут
+        char ws_msg[512];          // <── создаётся один раз на итерацию, можно переиспользовать
+        char hex_resp[256];        // <── тоже тут
 
         if (xQueueReceive(s_req_queue, &req, portMAX_DELAY) == pdTRUE) {
 
@@ -527,7 +527,7 @@ static void rs485_request_task(void *arg)
             uint32_t char_time_us = char_time_us_from_baud(s_baud);
             send_request_async(uart_num, req.data, req.len, char_time_us);
 
-            uint8_t resp[192] = {0};
+            uint8_t resp[256] = {0};
             int rx_len = uart_read_bytes(uart_num, resp, sizeof(resp), pdMS_TO_TICKS(1000));
 
             if (rx_len > 0) {
