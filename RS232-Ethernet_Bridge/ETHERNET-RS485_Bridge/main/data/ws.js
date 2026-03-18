@@ -11,7 +11,8 @@ const HEARTBEAT_TIMEOUT  = 30000; // 30 сек без pong → разрыв
 const RECONNECT_DELAY    = 5000;  // 5 сек
 
 function initWebSocket() {
-    if (ws) {
+     isLoggingOut = false;
+    if (ws && ws.readyState === WebSocket.OPEN) {
         console.warn(`[${new Date().toISOString()}] WS already exists → skipping init`);
         return;
     }

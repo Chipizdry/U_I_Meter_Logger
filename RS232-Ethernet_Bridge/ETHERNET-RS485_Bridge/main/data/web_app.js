@@ -38,8 +38,8 @@
                 }
                 // Загружаем настройки сразу после входа
                 const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+                 applySettingsToForm(activeTab, settings);
                 sideMenu.classList.remove("open");
-                await loadTabSettings(activeTab);
             }, 1000);
 
         } else {
@@ -303,7 +303,6 @@ async function saveUARTSettings() {
             body: JSON.stringify(payload)
         });
 
-        // 🔐 Сессия истекла
         if (res.status === 401) {
             sessionStorage.removeItem("auth_token");
             showTokenExpiredModal();

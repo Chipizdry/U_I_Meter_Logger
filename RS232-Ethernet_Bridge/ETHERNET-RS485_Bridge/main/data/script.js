@@ -28,15 +28,15 @@ document.addEventListener("DOMContentLoaded",  async() => {
     });
     
     if (token) {
-
+        initWebSocket();   
           // ЖДЁМ настройки
         const settings = await fetchSettings();
         if (!settings) return;
-        showMainScreen();     
+        showMainScreen();  
+       
         if (activeTab) {
         applySettingsToForm(activeTab, settings);
         }
-      await  loadTabSettings(activeTab);
     } else {
         showLogin();
     }
@@ -323,7 +323,6 @@ function updateWiFiVisibility() {
             });
 
             if (res.status === 401) {
-               // alert("Сессия истекла, пожалуйста, авторизуйтесь снова 💩");
                 sessionStorage.removeItem("auth_token");
                 showTokenExpiredModal();
                 showLogin();
@@ -343,23 +342,15 @@ function updateWiFiVisibility() {
             // === Заполняем форму LAN ===
             
             if (data.network) {
-                const net = data.network;
-               
+                const net = data.network;      
                 document.getElementById("dhcp").checked = !!net.dhcp_enabled;
                 document.getElementById("wifi_dhcp").checked = !!net.wifi_dhcp_enabled;
-
-
-                
-
-                // Обновляем состояние полей IP в зависимости от DHCP
                 updateAllIPFieldsState();
             }
             
-               // === Автоматически применяем настройки на активную вкладку ===
-          const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
-          loadTabSettings(activeTab);
+            const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+            applySettingsToForm(activeTab, data);
         return data; 
-
 
         } catch (err) {
             alert("Ошибка соединения при получении настроек: " + err);
