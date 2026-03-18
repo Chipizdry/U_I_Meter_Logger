@@ -1,16 +1,12 @@
 
 
-document.addEventListener("DOMContentLoaded",  async() => {
-   
-   
+document.addEventListener("DOMContentLoaded",  async() => { 
     const eye = document.getElementById("eyeIcon");
     const token = sessionStorage.getItem('auth_token');
     const dhcpCheckbox = document.getElementById("dhcp");
     const wifiDhcpCheckbox = document.getElementById("wifi_dhcp");
-
     updateEyeIcon(eye, false); 
     initAllEyeIcons();
-
 
         [...ethIpFields, ...wifiIpFields].forEach(id => {
         const field = document.getElementById(id);
