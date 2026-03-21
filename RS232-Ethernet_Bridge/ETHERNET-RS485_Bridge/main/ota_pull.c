@@ -12,6 +12,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "websocket_client.h"
+
 #define OTA_PULL_BUF_SIZE 4096
 
 static const char *TAG = "OTA_PULL";
@@ -26,6 +28,8 @@ typedef enum {
     PULL_PHASE_FW,
     PULL_PHASE_DONE
 } pull_phase_t;
+
+static void ota_send_progress(const char *phase_name, uint32_t done, uint32_t total);
 
 static pull_phase_t phase = PULL_PHASE_HEADER;
 
@@ -125,8 +129,8 @@ static esp_err_t process_stream(uint8_t *data, int len)
                 ptr += to_write;
                 remaining -= to_write;
 
-                ESP_LOGI(TAG, "DATA %lu / %lu",
-                         data_written, data_total_len);
+                ESP_LOGI(TAG, "DATA %lu / %lu", data_written, data_total_len);
+                ota_send_progress("Загрузка системных файлов", data_written, data_total_len);
             }
 
             if (data_written == data_total_len) {
@@ -155,6 +159,7 @@ static esp_err_t process_stream(uint8_t *data, int len)
                 ota_partition = esp_ota_get_next_update_partition(NULL);
                 if (!ota_partition) {
                     ESP_LOGE(TAG, "No OTA partition");
+                    websocket_send_text("{\"ota_phase\":\"Ошибка обновления\",\"progress\":0}" );
                     return ESP_FAIL;
                 }
 
@@ -184,8 +189,8 @@ static esp_err_t process_stream(uint8_t *data, int len)
                 ptr += to_write;
                 remaining -= to_write;
 
-                ESP_LOGI(TAG, "FW %lu / %lu",
-                         fw_written, fw_total_len);
+                ESP_LOGI(TAG, "FW %lu / %lu", fw_written, fw_total_len);
+                ota_send_progress("Загрузка прошивки", fw_written, fw_total_len);
             }
 
             if (fw_written == fw_total_len) {
@@ -202,7 +207,7 @@ static esp_err_t process_stream(uint8_t *data, int len)
 esp_err_t ota_pull_start(const char *url)
 {
     ESP_LOGW(TAG, "Starting OTA pull from: %s", url);
-
+    websocket_send_text("{\"ota_phase\":\"Подготовка к обновлению\",\"progress\":0}" );
     ota_pull_cleanup();
 
     esp_http_client_config_t config = {
@@ -240,6 +245,7 @@ esp_err_t ota_pull_start(const char *url)
 
         if (read_len < 0) {
             ESP_LOGE(TAG, "HTTP read error");
+             websocket_send_text("{\"ota_phase\":\"Ошибка загрузки\",\"progress\":0}" );
             break;
         }
 
@@ -253,6 +259,7 @@ esp_err_t ota_pull_start(const char *url)
 
         if (process_stream(buffer, read_len) != ESP_OK) {
             ESP_LOGE(TAG, "Stream processing failed");
+            websocket_send_text("{\"ota_phase\":\"Ошибка обработки данных\",\"progress\":0}" );
             ota_pull_cleanup();
             esp_http_client_close(client);
             esp_http_client_cleanup(client);
@@ -268,6 +275,7 @@ esp_err_t ota_pull_start(const char *url)
 
     if (phase != PULL_PHASE_DONE) {
         ESP_LOGE(TAG, "Incomplete firmware");
+        websocket_send_text("{\"ota_phase\":\"Неполная загрузка\",\"progress\":0}" );
         ota_pull_cleanup();
         return ESP_FAIL;
     }
@@ -276,9 +284,9 @@ esp_err_t ota_pull_start(const char *url)
 
     ESP_ERROR_CHECK(esp_ota_end(ota_handle));
     ESP_ERROR_CHECK(esp_ota_set_boot_partition(ota_partition));
-
+    websocket_send_text("{\"ota_phase\":\"Завершение обновления\",\"progress\":100}" );
     ESP_LOGW(TAG, "OTA SUCCESS — rebooting");
-
+    
     vTaskDelay(pdMS_TO_TICKS(1000));
     esp_restart();
 
@@ -296,3 +304,15 @@ void ota_task(void *param)
 }
 
 
+static void ota_send_progress(const char *phase_name, uint32_t done, uint32_t total)
+{
+    if (!ws_connected || total == 0) return;
+
+    char msg[128];
+    int percent = (int)((done * 100) / total);
+    if (percent > 100) percent = 100;
+
+    snprintf(msg, sizeof(msg), "{\"ota_phase\":\"%s\",\"progress\":%d}", phase_name, percent);
+
+    websocket_send_text(msg);
+}

@@ -67,6 +67,23 @@ bool websocket_process_message(const char *json)
 
 static bool handle_hex_data(const char *json)
 {
+    char command_type[32] = {0};
+
+    char *cmd_ptr = strstr(json, "\"command_type\"");
+if (cmd_ptr) {
+    char *start = strchr(cmd_ptr, ':');
+    if (start && (start = strchr(start, '"'))) {
+        start++;
+        char *end = strchr(start, '"');
+        if (end && end > start) {
+            int len = end - start;
+            if (len < sizeof(command_type)) {
+                memcpy(command_type, start, len);
+                command_type[len] = 0;
+            }
+        }
+    }
+}
     char *hex_ptr = strstr(json, "\"hex_data\"");
     if (!hex_ptr) {
         return false;
@@ -111,8 +128,7 @@ static bool handle_hex_data(const char *json)
 
     if (diagnostics_active && delta_ms > 0) {
         char msg[64];
-        snprintf(msg, sizeof(msg),
-                 "{\"diag\":\"Modbus update : %lu\"}", delta_ms);
+        snprintf(msg, sizeof(msg),"{\"diag\":\"Modbus update : %lu\"}", delta_ms);
         ws_broadcast(msg);
     }
 
@@ -125,10 +141,23 @@ static bool handle_hex_data(const char *json)
 
     ESP_LOGI(TAG, "📤 RS485 send %d bytes", byte_len);
     ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
-    rs485_master_send(bytes, byte_len);
 
-    return true;
-}
+    rs485_req_t req = {0};
+    memcpy(req.data, bytes, byte_len);
+    req.len = byte_len;
+
+    if (strlen(command_type) > 0) {
+    strncpy(req.cmd, command_type, sizeof(req.cmd) - 1);
+    req.cmd[sizeof(req.cmd) - 1] = '\0';
+    } else {
+        strcpy(req.cmd, "UNKNOWN");
+    }
+
+    rs485_master_send_req(&req);
+    //  rs485_master_send(bytes, byte_len);
+
+        return true;
+    }
 
 
 

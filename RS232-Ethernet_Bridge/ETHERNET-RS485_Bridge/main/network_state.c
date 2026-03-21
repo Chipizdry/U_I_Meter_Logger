@@ -7,6 +7,8 @@
 #include "freertos/semphr.h"
 #include "esp_log.h"
 
+#include "websocket_client.h"
+
 static const char *TAG = "NET_STATE";
 
 static net_state_t g_wifi_state = NET_STATE_WIFI_DOWN;
@@ -52,6 +54,7 @@ void network_notify_ws(void)
 
     char *json = cJSON_PrintUnformatted(root);
     ws_broadcast(json);
+    websocket_send_text(json);
 
     free(json);
     cJSON_Delete(root);
