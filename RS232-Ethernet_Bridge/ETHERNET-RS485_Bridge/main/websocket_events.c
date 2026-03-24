@@ -14,6 +14,7 @@
 #include "gpio_manager.h"
 #include "ota_pull.h"
 #include "nvs_settings.h"
+#include "network_state.h"
 
 static const char *TAG = "ws_events";
 
@@ -110,7 +111,7 @@ if (cmd_ptr) {
     }
 
     memcpy(hex_str, start, len);
-    ESP_LOGI(TAG, "✅ HEX extracted: %s", hex_str);
+   // ESP_LOGI(TAG, "✅ HEX extracted: %s", hex_str);
 
     // убираем пробелы
     char clean_hex[128] = {0};
@@ -139,8 +140,8 @@ if (cmd_ptr) {
         return true;
     }
 
-    ESP_LOGI(TAG, "📤 RS485 send %d bytes", byte_len);
-    ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
+   // ESP_LOGI(TAG, "📤 RS485 send %d bytes", byte_len);
+   // ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
 
     rs485_req_t req = {0};
     memcpy(req.data, bytes, byte_len);
@@ -290,9 +291,7 @@ static bool handle_pi30_data(const char *json)
 
 static bool handle_settings_command(const char *json)
 {
-
-
-      // Если DHCP включен, берем текущие настройки с Ethernet
+    // Если DHCP включен, берем текущие настройки с Ethernet
   
         if (net_cfg.dhcp_enabled) {
         fill_netif_ip_info("ETH_DEF", net_cfg.ip, net_cfg.mask,net_cfg.gateway,net_cfg.dns, sizeof(net_cfg.ip) );
@@ -425,6 +424,7 @@ static bool handle_settings_command(const char *json)
                      net_cfg.wifi_mask,
                      net_cfg.wifi_gateway,
                      net_cfg.wifi_dns);
+                      network_notify_ws();
         }
 
         // ==================================================
@@ -581,6 +581,7 @@ else if (strcmp(category, "all") == 0)
              net_cfg.wifi_gateway,
              net_cfg.wifi_dns);
     websocket_send_text(ответ);
+    network_notify_ws();
 
     // WIFI
     snprintf(ответ, sizeof(ответ),
@@ -656,7 +657,7 @@ else if (strcmp(category, "all") == 0)
              sys.build_date,
              sys.ws_server);
     websocket_send_text(ответ);
-
+   
     return true;
 }
 

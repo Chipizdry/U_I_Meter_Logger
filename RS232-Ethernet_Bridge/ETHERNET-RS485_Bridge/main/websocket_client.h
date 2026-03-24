@@ -10,6 +10,7 @@ extern bool ws_connected;          // видимость флага
 extern char ws_status_msg[128];    // видимость строки состояния
 
 void initialize_sntp(void);
+
 //static void websocket_send_task(void *pvParameters);
 
 void websocket_reconnect_task(void *pvParameters);

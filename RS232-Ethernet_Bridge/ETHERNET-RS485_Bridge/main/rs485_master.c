@@ -166,7 +166,7 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
   
 
     //ESP_LOGI(TAG, "TX started (%d bytes), DE→1 for ~%" PRIu64 " us", req_len, total_time_us);
-    ESP_LOG_BUFFER_HEX(TAG, req, req_len);
+   // ESP_LOG_BUFFER_HEX(TAG, req, req_len);
 
     xSemaphoreGive(s_uart_mutex);
     return ESP_OK;
@@ -532,7 +532,7 @@ static void rs485_request_task(void *arg)
 
             if (rx_len > 0) {
 
-                ESP_LOGI(TAG, "Received %d bytes from RS485", rx_len);
+              //  ESP_LOGI(TAG, "Received %d bytes from RS485", rx_len);
                // ESP_LOG_BUFFER_HEX(TAG, resp, rx_len);
 
                 bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));

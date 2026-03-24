@@ -287,23 +287,30 @@ void websocket_client_stop(void)
 }
 
 
-
 void initialize_sntp(void)
 {
+    ESP_LOGI("SNTP", "Init SNTP");
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_init();
 
-    time_t now = 0;
+    // Ждём синхронизации, но максимум 10 секунд
+    time_t now;
     struct tm timeinfo = { 0 };
+    const int max_wait_sec = 10;
 
-    while (timeinfo.tm_year < (2020 - 1900)) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    for (int i = 0; i < max_wait_sec; i++) {
         time(&now);
         localtime_r(&now, &timeinfo);
+        if (timeinfo.tm_year >= (2020 - 1900)) {
+            ESP_LOGI("TIME", "✅ SNTP synced: %s", asctime(&timeinfo));
+            return;
+        }
+        ESP_LOGI("SNTP", "Waiting for time... (%d/%d)", i + 1, max_wait_sec);
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 
-    ESP_LOGI("TIME", "✅ SNTP time synced: %s", asctime(&timeinfo));
+    ESP_LOGW("TIME", "❌ SNTP sync timeout, continuing with default time");
 }
 
 
