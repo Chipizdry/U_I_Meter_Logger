@@ -538,9 +538,12 @@ static void rs485_request_task(void *arg)
                 bytes_to_hex(resp, rx_len, hex_resp, sizeof(hex_resp));
 
                 // --- переиспользуем ws_msg здесь ---
-               // snprintf(ws_msg, sizeof(ws_msg),"{\"hex_response\": \"%s\"}", hex_resp);`
-             snprintf(ws_msg, sizeof(ws_msg), "{\"cmd\":\"%s\",\"hex_response\":\"%s\"}",req.cmd[0] ? req.cmd : "UNKNOWN", hex_resp);
-                websocket_send_text(ws_msg);
+            snprintf(ws_msg, sizeof(ws_msg),
+                    "{\"cmd\":\"%s\",\"hex_response\":\"%s\",\"command_name\":\"%s\"}",
+                    req.cmd[0] ? req.cmd : "UNKNOWN",
+                    hex_resp,
+                    req.command_name[0] ? req.command_name : "UNKNOWN");
+            websocket_send_text(ws_msg);
              //   ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
 
             } else {

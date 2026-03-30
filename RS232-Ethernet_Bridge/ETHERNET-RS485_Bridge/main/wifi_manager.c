@@ -157,6 +157,7 @@ void wifi_manager_init_once(void)
         sta_cfg.sta.sort_method = WIFI_CONNECT_AP_BY_SIGNAL;
         sta_cfg.sta.pmf_cfg.capable = true;
         sta_cfg.sta.pmf_cfg.required = false;
+        sta_cfg.sta.failure_retry_cnt = 10;
 
         ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
         ESP_LOGI(TAG, "STA config applied: SSID=%s", cfg->sta_ssid);

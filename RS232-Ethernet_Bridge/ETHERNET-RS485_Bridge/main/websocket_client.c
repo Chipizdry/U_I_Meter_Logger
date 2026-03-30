@@ -47,7 +47,7 @@ extern const uint8_t ca_cert_pem_end[]   asm("_binary_ca_cert_pem_end");
 
 int hex_to_bytes(const char *in, uint8_t *out, int max_len);
 void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
-
+void get_time_iso(char *buf, size_t len);
 
 static const char *TAG = "websocket_client";
  esp_websocket_client_handle_t client = NULL;
@@ -202,6 +202,19 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
                 // ─────── Обработка собранного текста ───────
                 ESP_LOGI(TAG, "📝 WS Text: %s", ws_rx_buf);
+
+                 if (strcmp(ws_rx_buf, "ping") == 0) {
+                    ESP_LOGI(TAG, "Ping received → sending Pong");
+
+                    if (client && esp_websocket_client_is_connected(client)) {
+                        esp_websocket_client_send_text(client, "pong", 4, 1000 / portTICK_PERIOD_MS);
+                    }
+
+                    // очищаем буфер и ВЫХОДИМ (важно!)
+                    ws_rx_len = 0;
+                    ws_rx_buf[0] = 0;
+                    return;
+                }
                 websocket_process_message(ws_rx_buf);
                 // Очистка буфера
                 ws_rx_len = 0;
@@ -294,10 +307,10 @@ void initialize_sntp(void)
     esp_sntp_setservername(0, "pool.ntp.org");
     esp_sntp_init();
 
-    // Ждём синхронизации, но максимум 10 секунд
+    // Ждём синхронизации, но максимум 30 секунд
     time_t now;
     struct tm timeinfo = { 0 };
-    const int max_wait_sec = 10;
+    const int max_wait_sec = 30;
 
     for (int i = 0; i < max_wait_sec; i++) {
         time(&now);
@@ -389,3 +402,15 @@ void websocket_restart(const char *email, const char *password, const char *node
      ws_reconnect_in_progress = false;
 }
 
+
+
+void get_time_iso(char *buf, size_t len)
+{
+    time_t now;
+    struct tm timeinfo;
+
+    time(&now);
+    localtime_r(&now, &timeinfo);
+
+    strftime(buf, len, "%Y-%m-%dT%H:%M:%S", &timeinfo);
+}

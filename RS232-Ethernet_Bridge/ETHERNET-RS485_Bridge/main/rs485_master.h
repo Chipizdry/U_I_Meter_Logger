@@ -31,9 +31,10 @@ extern "C" {
 
 
 typedef struct {
-    uint8_t data[32];
-    size_t len;
-    char cmd[8];
+    uint8_t data[256];
+    int len;
+    char cmd[16];           
+    char command_name[16];  
 } rs485_req_t;
 
 esp_err_t rs485_master_send_req(const rs485_req_t *req);

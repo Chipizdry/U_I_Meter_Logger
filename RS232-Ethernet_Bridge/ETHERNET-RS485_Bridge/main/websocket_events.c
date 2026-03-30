@@ -1,6 +1,7 @@
 
 
 #include "websocket_events.h"
+#include "websocket_client.h"
 
 #include "esp_log.h"
 #include "cJSON.h"
@@ -35,7 +36,6 @@ extern void websocket_enable_reconnect(void);
 extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
 
 extern void ota_task(void *pvParameter);
-
 extern void ws_broadcast(const char *text);
 
 static bool handle_hex_data(const char *json);
@@ -52,7 +52,6 @@ static inline uint32_t ticks_to_ms(uint32_t ticks)
 bool websocket_process_message(const char *json)
 {
     if (!json) return false;
-
     handle_msg_data(json);
     handle_hex_data(json);
     handle_pi30_data(json);
@@ -63,32 +62,42 @@ bool websocket_process_message(const char *json)
 }
 
 
+char *extract_json_value(const char *json, const char *key, char *out, int out_len) {
+    char pattern[64];
+    snprintf(pattern, sizeof(pattern), "\"%s\"", key);
+    char *ptr = strstr(json, pattern);
+    if (!ptr) return NULL;
 
+    // ищем ':' после ключа
+    char *colon = strchr(ptr, ':');
+    if (!colon) return NULL;
+
+    // ищем первую кавычку после ':'
+    char *start = strchr(colon, '"');
+    if (!start) return NULL;
+    start++; // начало значения
+
+    char *end = strchr(start, '"');
+    if (!end || end <= start) return NULL;
+
+    int len = end - start;
+    if (len >= out_len) len = out_len - 1;
+
+    memcpy(out, start, len);
+    out[len] = 0;
+    return out;
+}
 
 
 static bool handle_hex_data(const char *json)
 {
     char command_type[32] = {0};
-
-    char *cmd_ptr = strstr(json, "\"command_type\"");
-if (cmd_ptr) {
-    char *start = strchr(cmd_ptr, ':');
-    if (start && (start = strchr(start, '"'))) {
-        start++;
-        char *end = strchr(start, '"');
-        if (end && end > start) {
-            int len = end - start;
-            if (len < sizeof(command_type)) {
-                memcpy(command_type, start, len);
-                command_type[len] = 0;
-            }
-        }
-    }
-}
+    char command_name[32] = {0};
+    extract_json_value(json, "command_type", command_type, sizeof(command_type));
+    extract_json_value(json, "command_name", command_name, sizeof(command_name));
+   
     char *hex_ptr = strstr(json, "\"hex_data\"");
-    if (!hex_ptr) {
-        return false;
-    }
+    if (!hex_ptr) return false;
 
     char *start = strchr(hex_ptr, ':');
     if (!start || !(start = strchr(start, '"'))) {
@@ -142,23 +151,14 @@ if (cmd_ptr) {
 
    // ESP_LOGI(TAG, "📤 RS485 send %d bytes", byte_len);
    // ESP_LOG_BUFFER_HEX(TAG, bytes, byte_len);
-
     rs485_req_t req = {0};
     memcpy(req.data, bytes, byte_len);
     req.len = byte_len;
-
-    if (strlen(command_type) > 0) {
-    strncpy(req.cmd, command_type, sizeof(req.cmd) - 1);
-    req.cmd[sizeof(req.cmd) - 1] = '\0';
-    } else {
-        strcpy(req.cmd, "UNKNOWN");
-    }
-
+    strncpy(req.cmd, command_type[0] ? command_type : "UNKNOWN", sizeof(req.cmd) - 1);
+    strncpy(req.command_name, command_name[0] ? command_name : "UNKNOWN", sizeof(req.command_name) - 1);
     rs485_master_send_req(&req);
-    //  rs485_master_send(bytes, byte_len);
-
-        return true;
-    }
+    return true;
+ }
 
 
 
@@ -275,6 +275,16 @@ static bool handle_pi30_data(const char *json)
                             strcmp(cloud_status_msg, "connected") == 0) {
                                  gpio_set_net_led(true);
                             ws_connected = true;
+
+                             char time_str[64];
+                            get_time_iso(time_str, sizeof(time_str));
+
+                            char msg[128];
+                            snprintf(msg, sizeof(msg),
+                                "{\"command_type\":\"device_online\",\"time\":\"%s\"}",
+                                time_str);
+
+                            websocket_send_text(msg);
                         } else {
                             ws_connected = false;
                         }
@@ -728,11 +738,46 @@ else if (strcmp(category, "all") == 0)
             if (strcmp(category,"network")==0) apply_network_settings(...);
             if (strcmp(category,"account")==0) apply_account_settings(...);
             */
+            // ==========================================================
+            // SYSTEM COMMAND PARSE
+            // ==========================================================
+            if (strcmp(category, "system") == 0)
+            {
+                char value[32] = {0};
+                char *sys_ptr = strstr(settings_ptr, "\"system\"");
+                if (sys_ptr)
+                {
+                    char *s = strchr(sys_ptr, ':');
+                    if (s && (s = strchr(s, '"')))
+                    {
+                        s++;
+                        char *e = strchr(s, '"');
+                        if (e)
+                        {
+                            int l = e - s;
+                            if (l < sizeof(value))
+                            {
+                                memcpy(value, s, l);
+                                value[l] = 0;
+                            }
+                        }
+                    }
+                }
 
-            websocket_send_text(
-                "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}"
-            );
+                ESP_LOGI(TAG, "🛠 System command: %s", value);
 
+                // ==================================================
+                // REBOOT
+                // ==================================================
+                if (strcmp(value, "reboot") == 0)
+                {
+                    ESP_LOGW(TAG, "🔄 Reboot command received");
+                    websocket_send_text( "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\",\"action\":\"reboot\"}");
+                    vTaskDelay(pdMS_TO_TICKS(500)); // дать уйти ack
+                    esp_restart();
+                }
+            }
+          //  websocket_send_text("{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}" );
             return true;
        }
 
