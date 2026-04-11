@@ -636,13 +636,6 @@ esp_err_t web_server_start(void)
         });
 
         httpd_register_uri_handler(server, &ws_uri);
-      /*
-        httpd_register_uri_handler(server, &(httpd_uri_t){
-            .uri = "/ws",
-            .method = HTTP_GET,
-            .handler = ws_handler,
-            .user_ctx = NULL
-        });   */
 
         httpd_register_uri_handler(server, &(httpd_uri_t){
             .uri = "/generate_204",

@@ -156,7 +156,6 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
 
     if (strcmp(act, "wifi_scan") == 0) {
         wifi_scan_networks();
-        ws_send_fd(fd, "{\"type\":\"wifi_scan\",\"status\":\"started\"}");
         return;
     }
 

@@ -21,26 +21,6 @@ esp_err_t file_get_handler(httpd_req_t *req)
     esp_wifi_get_mode(&mode);
 
     // === CAPTIVE PORTAL ONLY FOR AP ===
-    /*
-    if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA) {
-
-        // Не трогаем API, WS и статику
-        if (!check_token(req) &&
-            strcmp(req->uri, "/") != 0 &&
-            !strstr(req->uri, ".js") &&
-            !strstr(req->uri, ".css") &&
-            !strstr(req->uri, ".png") &&
-            !strstr(req->uri, ".jpg")) {
-
-            ESP_LOGW("CAPTIVE", "Redirecting captive request: %s", req->uri);
-
-            httpd_resp_set_status(req, "302 Found");
-            httpd_resp_set_hdr(req, "Location", "http://192.168.4.1/");
-            httpd_resp_send(req, NULL, 0);
-            return ESP_OK;
-        }
-    }
-        */
 
     if (mode == WIFI_MODE_AP || mode == WIFI_MODE_APSTA) {
 
