@@ -6,9 +6,17 @@
 #include "lwip/pbuf.h"
 #include "lwip/dns.h"
 #include "esp_log.h"
+#include "esp_netif.h"  
+#include "lwip/netif.h" 
+#include "lwip/inet.h"
+
 
 static struct udp_pcb *dns_pcb;
 static ip_addr_t ap_ip;
+
+
+
+
 
 static void dns_recv_cb(
     void *arg,
@@ -19,6 +27,18 @@ static void dns_recv_cb(
 {
     if (!p) return;
 
+
+
+   // Просто игнорируем localhost
+    if (addr->u_addr.ip4.addr == PP_HTONL(INADDR_LOOPBACK)) {
+        pbuf_free(p);
+        return;
+    }
+
+
+//////////////////////////////
+
+    ESP_LOGI("DNS", "Query received from %s:%d, len=%d", ipaddr_ntoa(addr), port, p->tot_len);
     uint16_t req_len = p->tot_len;
     if (req_len < 12) {
         pbuf_free(p);

@@ -6,9 +6,15 @@ let reconnectTimer = null;
 let heartbeatTimer = null;
 let lastPongTime = 0;
 let isLoggingOut = false;
-const HEARTBEAT_INTERVAL = 10000; // 10 сек
-const HEARTBEAT_TIMEOUT  = 30000; // 30 сек без pong → разрыв
-const RECONNECT_DELAY    = 5000;  // 5 сек
+
+const RECONNECT_DELAY    = 4000;  // 4 сек
+
+
+const HEARTBEAT_INTERVAL = 10000;    // 15 сек
+const HEARTBEAT_TIMEOUT  = 20000;    // 20 сек без pong → разрыв
+const BASE_RECONNECT_DELAY = 500;    // 0.5 сек начальная задержка
+const MAX_RECONNECT_DELAY = 5000;    // максимум 5 сек
+const MAX_RECONNECT_ATTEMPTS = 20;
 
 function initWebSocket() {
      isLoggingOut = false;
@@ -195,6 +201,13 @@ function handleWsMessage(msg) {
 
         scanDiv.appendChild(ul);
     }
+
+    if (msg.type === 'reload') {
+            console.log('Received reload command, refreshing page...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
     // === 🔍 Диагностика ===
     if (msg.diag) {
         addDiagRow(msg.diag);   
@@ -288,4 +301,31 @@ function onWsMessage(event) {
 }
 
 
+
+function forceReconnect() {
+    console.log(`[${new Date().toISOString()}] 🔌 Force reconnecting...`);
+    isLoggingOut = false;
+    reconnectAttempts = 0;
+    
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    
+    if (ws) {
+        try {
+            ws.onclose = null;
+            ws.close();
+        } catch(e) {}
+        ws = null;
+    }
+    
+    initWebSocket();
+}
+
+// Слушаем восстановление сети
+window.addEventListener('online', () => {
+    console.log(`[${new Date().toISOString()}] 🌐 Network online, forcing reconnect`);
+    forceReconnect();
+});
 

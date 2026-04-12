@@ -40,7 +40,8 @@ typedef struct {
 
 static ws_client_t ws_clients[MAX_CLIENTS] = {{0}};
 void cancel_test_account(void);
-
+void ws_cleanup_all_clients(void);
+void ws_notify_reconnect(void);
 /* ---------------- CLIENT MANAGEMENT ---------------- */
 static ws_client_t* find_client(int fd) {
     for (int i = 0; i < MAX_CLIENTS; i++)
@@ -77,13 +78,37 @@ static void remove_client(int fd) {
     }
 }
 
+
+void ws_cleanup_all_clients(void) {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (ws_clients[i].fd != 0) {
+            // Проверяем статус сокета
+            if (server && httpd_ws_get_fd_info(server, ws_clients[i].fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
+                ESP_LOGW(TAG, "Cleaning up stale client FD=%d", ws_clients[i].fd);
+                ws_clients[i].fd = 0;
+                ws_clients[i].authorized = false;
+            }
+        }
+    }
+}
+
+
 /* ---------------- WS SEND / BROADCAST ---------------- */
+
+
 void ws_send_fd(int fd, const char *msg) {
     if (!server || fd <= 0) return;
 
     ws_client_t *client = find_client(fd);
     if (!client) {
         WS_LOG("WS send aborted: FD=%d not valid", fd);
+        return;
+    }
+
+    // 🔴 Проверка состояния сокета
+    if (httpd_ws_get_fd_info(server, fd) != HTTPD_WS_CLIENT_WEBSOCKET) {
+        WS_LOG("FD=%d is not active WS → removing", fd);
+        remove_client(fd);
         return;
     }
 
@@ -95,12 +120,19 @@ void ws_send_fd(int fd, const char *msg) {
     };
 
     esp_err_t ret = httpd_ws_send_frame_async(server, fd, &frame);
+
     if (ret != ESP_OK) {
-        WS_LOG("WS send failed: %s, FD=%d, msg=%s", esp_err_to_name(ret), fd, msg);
+        WS_LOG("WS send failed → removing client FD=%d (%s)",
+               fd, esp_err_to_name(ret));
+
+        // 🔥 ВАЖНО: удаляем клиента
+        remove_client(fd);
     } else {
-        WS_LOG("WS sent successfully, FD=%d, msg=%s", fd, msg);
+        WS_LOG("WS sent OK, FD=%d", fd);
     }
 }
+
+
 
 void ws_broadcast(const char* text) {
     for (int i = 0; i < MAX_CLIENTS; i++)
@@ -222,6 +254,9 @@ esp_err_t ws_handler(httpd_req_t *req) {
             client_obj->authorized = true;
             ws_send_fd(fd, "{\"auth_status\":\"ok\"}");
             network_notify_ws();
+            vTaskDelay(50);
+            extern void send_pending_scan_results(void);
+            send_pending_scan_results();
         } else {
             ws_send_fd(fd, "{\"auth_status\":\"fail\"}");
             remove_client(fd);
@@ -257,4 +292,13 @@ void cancel_test_account(void) {
     websocket_client_start(user_cfg.serial, ws_email, ws_password, ws_node_name);
     websocket_enable_reconnect();
 }
+
+
+void ws_notify_reconnect(void) {
+    // Отправляем всем клиентам команду на перезагрузку страницы
+    const char *reload_msg = "{\"type\":\"reload\",\"reason\":\"connection_lost\"}";
+    ws_broadcast(reload_msg);
+    ESP_LOGI(TAG, "Sent reload notification to all clients");
+}
+
 

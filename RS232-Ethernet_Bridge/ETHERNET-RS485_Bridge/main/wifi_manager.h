@@ -13,3 +13,4 @@ esp_err_t wifi_scan_networks(void);
  void wifi_manager_task(void *arg);
  esp_err_t wifi_manager_request_apply(void);
  void start_wifi_manager_task(void);
+ void send_pending_scan_results(void);

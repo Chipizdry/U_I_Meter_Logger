@@ -1,5 +1,6 @@
 
 
+
 #include "wifi_manager.h"
 #include "esp_wifi.h"
 #include "ws_server.h"
@@ -31,10 +32,15 @@ static esp_netif_t *ap_netif  = NULL;
 static bool wifi_initialized = false;
 
 static volatile bool wifi_scan_in_progress = false;
+static volatile bool wifi_scan_completed = false;
+
+// Сохранённые результаты сканирования
+static char *pending_scan_results = NULL;
+static SemaphoreHandle_t pending_results_mutex = NULL;
 
 static EventGroupHandle_t wifi_evt_group;
 #define WIFI_EVT_APPLY   BIT0
-
+void send_pending_scan_results(void);
 static void wifi_apply_ip_settings(const network_settings_t *cfg);
 extern void ws_broadcast(const char *text);
 extern void ws_send(int client_fd, const char *text);
@@ -51,7 +57,9 @@ typedef struct {
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 static void process_scan_results_task(void *pvParameters);
 static void delayed_reconnect_task(void *pvParameters);
-
+static void save_scan_results_for_later(const char *json_results);
+static void reconnect_after_scan_task(void *pvParameters);
+esp_err_t wifi_connect_to(const char* ssid, const char* password);
 static const char* wifi_reason_to_str(uint8_t reason)
 {
     switch (reason) {
@@ -192,7 +200,39 @@ esp_err_t wifi_manager_init(const wifi_settings_t *cfg)
     return ESP_OK;
 }
 
-// --- ОТДЕЛЬНАЯ ЗАДАЧА для обработки результатов сканирования (БЕЗ WS в обработчике!) ---
+// --- Сохранение результатов для отложенной отправки ---
+static void save_scan_results_for_later(const char *json_results) {
+    if (pending_results_mutex) {
+        xSemaphoreTake(pending_results_mutex, portMAX_DELAY);
+        
+        if (pending_scan_results) {
+            free(pending_scan_results);
+            pending_scan_results = NULL;
+        }
+        
+        pending_scan_results = strdup(json_results);
+        ESP_LOGI(TAG, "Scan results saved for later delivery");
+        
+        xSemaphoreGive(pending_results_mutex);
+    }
+}
+
+void send_pending_scan_results(void) {
+    if (pending_results_mutex && pending_scan_results) {
+        xSemaphoreTake(pending_results_mutex, portMAX_DELAY);
+        
+        if (pending_scan_results) {
+            ESP_LOGI(TAG, "Sending pending scan results after reconnection");
+            ws_broadcast(pending_scan_results);
+          //  free(pending_scan_results);
+          //  pending_scan_results = NULL;
+        }
+        
+        xSemaphoreGive(pending_results_mutex);
+    }
+}
+
+// --- ОТДЕЛЬНАЯ ЗАДАЧА для обработки результатов сканирования ---
 static void process_scan_results_task(void *pvParameters)
 {
     scan_results_t *results = (scan_results_t *)pvParameters;
@@ -255,36 +295,41 @@ static void process_scan_results_task(void *pvParameters)
         cJSON_AddItemToObject(json_root, "aps", json_aps);
     }
 
-    // Отправляем через WebSocket (уже вне системного обработчика!)
     if (json_root) {
         char *json_str = cJSON_PrintUnformatted(json_root);
         if (json_str) {
-            ESP_LOGI(TAG, "Sending scan results via WebSocket (%d APs)", send_count);
-            ws_broadcast(json_str);
+            ESP_LOGI(TAG, "Preparing scan results (%d APs)", send_count);
+            
+            // Сохраняем результаты (будут отправлены после восстановления соединения)
+            save_scan_results_for_later(json_str);
+            
             cJSON_free(json_str);
         }
         cJSON_Delete(json_root);
     }
 
+    wifi_scan_completed = true;
     free(results);
     ESP_LOGI(TAG, "Scan results processing finished");
     vTaskDelete(NULL);
 }
 
-// --- ОТДЕЛЬНАЯ ЗАДАЧА для отложенного реконнекта ---
-static void delayed_reconnect_task(void *pvParameters)
+// --- ОТДЕЛЬНАЯ ЗАДАЧА для восстановления WiFi ---
+static void reconnect_to_saved_wifi_task(void *pvParameters)
 {
     vTaskDelay(pdMS_TO_TICKS(3000));
     
-    if (!wifi_scan_in_progress) {
-        ESP_LOGI(TAG, "Delayed reconnect");
-        esp_wifi_connect();
+    ESP_LOGI(TAG, "Reconnecting to saved WiFi");
+    
+    wifi_settings_t cfg;
+    if (nvs_load_wifi_settings(&cfg) == ESP_OK && strlen(cfg.sta_ssid) > 0) {
+        wifi_connect_to(cfg.sta_ssid, cfg.sta_password);
     }
     
     vTaskDelete(NULL);
 }
 
-// --- Обработчик событий Wi-Fi (НИКАКОЙ WebSocket здесь!) ---
+// --- Обработчик событий Wi-Fi ---
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     if (event_base == WIFI_EVENT) {
@@ -301,11 +346,13 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                 
             case WIFI_EVENT_STA_DISCONNECTED: {
                 wifi_event_sta_disconnected_t *disconn = event_data;
-                ESP_LOGW(TAG, "STA disconnected, reason=%d", disconn->reason);
+                ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)", 
+                         disconn->reason, wifi_reason_to_str(disconn->reason));
                 network_set_wifi_state(NET_STATE_WIFI_DOWN);
                 
+                // Если это не сканирование - переподключаемся
                 if (!wifi_scan_in_progress) {
-                    xTaskCreate(delayed_reconnect_task, "reconnect_task", 
+                    xTaskCreate(reconnect_to_saved_wifi_task, "reconnect_wifi", 
                                RECONNECT_TASK_STACK_SIZE, NULL, 3, NULL);
                 }
                 break;
@@ -319,12 +366,40 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
             case WIFI_EVENT_AP_STOP:
                 ESP_LOGI(TAG, "AP stopped");
                 dns_stop();
+                ws_cleanup_all_clients();
                 break;
-                
+            
+            /*    
             case WIFI_EVENT_AP_STACONNECTED:
             case WIFI_EVENT_AP_STADISCONNECTED:
-                // Просто логируем, без WebSocket
+             ws_cleanup_all_clients();
                 break;
+            */
+
+            case WIFI_EVENT_AP_STACONNECTED: {
+                wifi_event_ap_staconnected_t *conn = event_data;
+                
+                // Ручное форматирование MAC адреса
+                ESP_LOGI(TAG, "Station connected, MAC=%02x:%02x:%02x:%02x:%02x:%02x, AID=%d",
+                        conn->mac[0], conn->mac[1], conn->mac[2],
+                        conn->mac[3], conn->mac[4], conn->mac[5], conn->aid);
+                break;
+            }
+                
+            case WIFI_EVENT_AP_STADISCONNECTED: {
+                wifi_event_ap_stadisconnected_t *disconn = event_data;
+                
+                ESP_LOGI(TAG, "Station disconnected, MAC=%02x:%02x:%02x:%02x:%02x:%02x, reason=%d",
+                        disconn->mac[0], disconn->mac[1], disconn->mac[2],
+                        disconn->mac[3], disconn->mac[4], disconn->mac[5], disconn->reason);
+
+                ws_notify_reconnect();
+                dns_stop();
+                vTaskDelay(pdMS_TO_TICKS(100));
+                dns_start();
+                ws_cleanup_all_clients();
+                break;
+            }
 
             case WIFI_EVENT_SCAN_DONE: {
                 ESP_LOGI(TAG, "SCAN_DONE event received");
@@ -355,7 +430,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                     break;
                 }
                 
-                // Запускаем отдельную задачу для обработки
+                // Запускаем обработку результатов
                 if (xTaskCreate(process_scan_results_task, "scan_proc", 
                                SCAN_RESULT_TASK_STACK_SIZE, results, 2, NULL) != pdTRUE) {
                     ESP_LOGE(TAG, "Failed to create scan task");
@@ -371,6 +446,12 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         ip_event_got_ip_t *event = (ip_event_got_ip_t*)event_data;
         network_set_wifi_state(NET_STATE_WIFI_UP);
         ESP_LOGI(TAG, "STA got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+        
+        // Отправляем сохранённые результаты сканирования
+        if (wifi_scan_completed) {
+            send_pending_scan_results();
+            wifi_scan_completed = false;
+        }
     }
 }
 
@@ -385,17 +466,47 @@ esp_err_t wifi_scan_networks(void)
     }
 
     wifi_scan_in_progress = true;
-    ws_broadcast( "{\"type\":\"wifi_scan\",\"status\":\"started\"}");
-    vTaskDelay(pdMS_TO_TICKS(100));
-    esp_wifi_disconnect();
+    wifi_scan_completed = false;
+    
+    // Очищаем старые результаты
+    if (pending_results_mutex) {
+        xSemaphoreTake(pending_results_mutex, portMAX_DELAY);
+        if (pending_scan_results) {
+            free(pending_scan_results);
+            pending_scan_results = NULL;
+        }
+        xSemaphoreGive(pending_results_mutex);
+    }
+    
+    // Отправляем статус старта
+    ws_broadcast("{\"type\":\"wifi_scan\",\"status\":\"started\"}");
     vTaskDelay(pdMS_TO_TICKS(50));
+    
+
+     // Проверяем режим WiFi
+    wifi_mode_t mode;
+    esp_wifi_get_mode(&mode);
+    ESP_LOGI(TAG, "Current WiFi mode: %d", mode);
+
+    if (mode != WIFI_MODE_AP) {
+        esp_wifi_disconnect();
+        vTaskDelay(pdMS_TO_TICKS(100));
+    }
+
+    if (mode == WIFI_MODE_AP) {
+    ESP_LOGI(TAG, "Switching AP -> APSTA for scan");
+    
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_APSTA));
+    vTaskDelay(pdMS_TO_TICKS(200)); // важно!
+}
     
     wifi_scan_config_t scan_cfg = {
         .ssid = NULL,
         .bssid = NULL,
         .channel = 0,
         .show_hidden = true,
-        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
+       // .scan_type = WIFI_SCAN_TYPE_ACTIVE,
+        .scan_type = WIFI_SCAN_TYPE_PASSIVE,
         .scan_time = {
             .active = {
                 .min = 100,
@@ -411,9 +522,44 @@ esp_err_t wifi_scan_networks(void)
         return err;
     }
 
+    // ЗАПУСКАЕМ ЗАДАЧУ ВОССТАНОВЛЕНИЯ ПОСЛЕ СКАНИРОВАНИЯ
+    xTaskCreate(reconnect_after_scan_task, "reconnect_after_scan", 
+               RECONNECT_TASK_STACK_SIZE, NULL, 3, NULL);
+
     ESP_LOGI(TAG, "Scan started");
     return ESP_OK;
 }
+
+
+// --- НОВАЯ ЗАДАЧА для восстановления после сканирования ---
+static void reconnect_after_scan_task(void *pvParameters)
+{
+    // Ждём завершения сканирования (максимум 10 секунд)
+    int wait_count = 0;
+    while (wifi_scan_in_progress && wait_count < 100) {
+        vTaskDelay(pdMS_TO_TICKS(100));
+        wait_count++;
+    }
+    
+    // Дополнительная задержка перед reconnect
+    vTaskDelay(pdMS_TO_TICKS(2000));
+    
+    ESP_LOGI(TAG, "Restoring WiFi connection after scan");
+    
+    // Загружаем сохранённые настройки WiFi
+    wifi_settings_t cfg;
+    if (nvs_load_wifi_settings(&cfg) == ESP_OK && strlen(cfg.sta_ssid) > 0) {
+        ESP_LOGI(TAG, "Reconnecting to saved WiFi: %s", cfg.sta_ssid);
+        wifi_connect_to(cfg.sta_ssid, cfg.sta_password);
+    } else {
+        ESP_LOGW(TAG, "No saved WiFi credentials, AP mode already active");
+        // AP режим уже работает, ничего не делаем
+    }
+    
+    vTaskDelete(NULL);
+}
+
+
 
 // --- Получение списка AP ---
 const wifi_ap_record_t* wifi_get_ap_list(uint16_t *count)
@@ -429,13 +575,15 @@ const wifi_ap_record_t* wifi_get_ap_list(uint16_t *count)
     return ap_list;
 }
 
-// --- Подключение ---
+// --- Подключение к WiFi ---
 esp_err_t wifi_connect_to(const char* ssid, const char* password)
 {
     if (!ssid || strlen(ssid) == 0) {
         ESP_LOGE(TAG, "Invalid SSID");
         return ESP_ERR_INVALID_ARG;
     }
+    
+    ESP_LOGI(TAG, "Connecting to: %s", ssid);
     
     wifi_config_t sta_cfg = {0};
     strncpy((char *)sta_cfg.sta.ssid, ssid, sizeof(sta_cfg.sta.ssid) - 1);
@@ -457,7 +605,6 @@ esp_err_t wifi_connect_to(const char* ssid, const char* password)
     ESP_ERROR_CHECK(esp_wifi_set_config(WIFI_IF_STA, &sta_cfg));
     ESP_ERROR_CHECK(esp_wifi_connect());
 
-    ESP_LOGI(TAG, "Connecting to: %s", ssid);
     return ESP_OK;
 }
 
@@ -499,6 +646,11 @@ void start_wifi_manager_task(void)
         ap_list_mutex = xSemaphoreCreateMutex();
         assert(ap_list_mutex);
     }
+    
+    if (!pending_results_mutex) {
+        pending_results_mutex = xSemaphoreCreateMutex();
+        assert(pending_results_mutex);
+    }
 
     xTaskCreatePinnedToCore(wifi_manager_task, "wifi_manager_task", 4096, 
                            NULL, 3, NULL, tskNO_AFFINITY);
@@ -539,5 +691,4 @@ static void wifi_apply_ip_settings(const network_settings_t *cfg)
         esp_netif_set_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns);
     }
 }
-
 
