@@ -4,6 +4,7 @@
 #include "wifi_manager.h"
 #include "esp_wifi.h"
 #include "ws_server.h"
+#include "web_server.h"
 #include "dns_server.h"
 #include "network_state.h"
 #include "esp_event.h"
@@ -398,6 +399,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                 vTaskDelay(pdMS_TO_TICKS(100));
                 dns_start();
                 ws_cleanup_all_clients();
+                web_server_restart();
                 break;
             }
 

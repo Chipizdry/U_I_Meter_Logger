@@ -373,6 +373,24 @@
 <script src="/general_fun.js"></script>
 <script src="/ws.js"></script>
 <script src="/crypto-js.min.js"></script>
-
+<script>
+// Принудительная очистка кеша для мобильных устройств
+if (/iPhone|iPad|Android/i.test(navigator.userAgent)) {
+    // Добавляем случайный параметр ко всем ссылкам
+    const links = document.querySelectorAll('a');
+    links.forEach(link => {
+        const url = new URL(link.href, window.location.href);
+        url.searchParams.set('_t', Date.now());
+        link.href = url.toString();
+    });
+    
+    // Принудительная перезагрузка через 1 секунду если страница загрузилась из кеша
+    if (performance.navigation.type === 2) { // TYPE_BACK_FORWARD
+        setTimeout(() => {
+            window.location.href = window.location.href + '?_t=' + Date.now();
+        }, 1000);
+    }
+}
+</script>
 </body>
 </html>

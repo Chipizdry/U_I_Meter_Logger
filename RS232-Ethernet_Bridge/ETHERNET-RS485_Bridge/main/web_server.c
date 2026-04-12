@@ -44,7 +44,7 @@ extern char cloud_status_msg[32] ;   // статус по умолчанию
 httpd_handle_t server = NULL;
 static void url_decode(char *dst, const char *src);
 void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
-
+void web_server_restart(void);
 /// GET /get_settings
 
 static esp_err_t get_settings_handler(httpd_req_t *req)
@@ -679,7 +679,12 @@ esp_err_t web_server_stop(void)
     return ESP_OK;
 }
 
-
+void web_server_restart(void) {
+    ESP_LOGI(TAG, "Restarting web server...");
+    web_server_stop();
+    vTaskDelay(pdMS_TO_TICKS(500));
+    web_server_start();
+}
 
 
 // URL-decode: decodes %XX and + → space

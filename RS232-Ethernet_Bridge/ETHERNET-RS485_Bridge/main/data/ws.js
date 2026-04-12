@@ -1,17 +1,15 @@
 
 
-
 let ws = null;
 let reconnectTimer = null;
 let heartbeatTimer = null;
 let lastPongTime = 0;
 let isLoggingOut = false;
+let reconnectAttempts = 0;  // ДОБАВЛЕНО: счетчик попыток переподключения
 
-const RECONNECT_DELAY    = 4000;  // 4 сек
-
-
-const HEARTBEAT_INTERVAL = 10000;    // 15 сек
-const HEARTBEAT_TIMEOUT  = 20000;    // 20 сек без pong → разрыв
+const RECONNECT_DELAY    = 4000;  // 4 сек (оставлено для обратной совместимости)
+const HEARTBEAT_INTERVAL = 10000;
+const HEARTBEAT_TIMEOUT  = 20000;
 const BASE_RECONNECT_DELAY = 500;    // 0.5 сек начальная задержка
 const MAX_RECONNECT_DELAY = 5000;    // максимум 5 сек
 const MAX_RECONNECT_ATTEMPTS = 20;
@@ -35,6 +33,7 @@ function initWebSocket() {
 
     ws.onopen = () => {
         console.log(`[${new Date().toISOString()}] WS connected, sending auth`);
+        reconnectAttempts = 0; // ДОБАВЛЕНО: сброс счетчика при успешном подключении
         ws.send(JSON.stringify({ type: "auth", token }));
         lastPongTime = Date.now();
         startHeartbeat();
@@ -49,7 +48,7 @@ function initWebSocket() {
         console.log(`[${new Date().toISOString()}] WS closed, code=${ev.code}, reason=${ev.reason}, readyState=${ws.readyState}`);
         stopHeartbeat();
         ws = null;
-        if (!isLoggingOut) scheduleReconnect();
+        if (!isLoggingOut && ev.code !== 1000) scheduleReconnect(); // ИСПРАВЛЕНО: не переподключаемся при normal closure
     };
 
     ws.onerror = (err) => {
@@ -92,25 +91,25 @@ function stopHeartbeat() {
     }
 }
 
-
+// ИСПРАВЛЕНО: функция scheduleReconnect с экспоненциальной задержкой
 function scheduleReconnect() {
     if (reconnectTimer || isLoggingOut) return;
-
+    
+    // Экспоненциальная задержка, но не больше MAX_RECONNECT_DELAY
+    let delay = BASE_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts);
+    if (delay > MAX_RECONNECT_DELAY) delay = MAX_RECONNECT_DELAY;
+    
+    reconnectAttempts++;
+    
+    console.log(`[${new Date().toISOString()}] 🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+    
     reconnectTimer = setTimeout(() => {
         reconnectTimer = null;
         initWebSocket();
-    }, RECONNECT_DELAY);
+    }, delay);
 }
 
-
-
-function sendWsCommand(type, payload = {}) {
-    if (ws && ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type, payload }));
-    } else {
-        console.warn("WS not connected");
-    }
-}
+// УДАЛЕНА дублирующая функция sendWsCommand (была объявлена дважды)
 
 function handleWsMessage(msg) {
     const cloudEl = document.getElementById("ws-status");
@@ -223,10 +222,7 @@ function handleWsMessage(msg) {
         return;
     }
 
-    ws.send(JSON.stringify({
-        action: "wifi_scan"
-    }));
-
+    ws.send(JSON.stringify({ action: "wifi_scan"}));
     console.log("WS → {action: wifi_scan}");
 }
 
@@ -262,6 +258,7 @@ function diagnosticsOff() {
 function shutdownWebSocket(reason = "manual") {
     console.log("🔌 WS shutdown:", reason);
     isLoggingOut = true;
+    reconnectAttempts = 0; // ДОБАВЛЕНО: сброс счетчика
     stopHeartbeat();
     if (reconnectTimer) {
         clearTimeout(reconnectTimer);
@@ -286,7 +283,7 @@ function onWsMessage(event) {
     // heartbeat
     if (data === "ping" || data === "pong") {
         console.log("WS heartbeat:", data);
-        if (data === "ping") ws.send("pong");
+        if (data === "ping" && ws && ws.readyState === WebSocket.OPEN) ws.send("pong");
         if (data === "pong") lastPongTime = Date.now();
         return;
     }
@@ -315,6 +312,7 @@ function forceReconnect() {
     if (ws) {
         try {
             ws.onclose = null;
+            ws.onerror = null;
             ws.close();
         } catch(e) {}
         ws = null;
