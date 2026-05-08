@@ -298,7 +298,7 @@ static bool handle_mtcp_data(const char *json)
     ESP_LOGI(TAG, "📡 MTCP request -> %s:%d unit=%d func=%d start=%d qty=%d val=%d",
              ip_str, port_v, unit, func_v, start, qty, val);
 
-    uint8_t resp[256];
+    static uint8_t resp[256];
     int resp_len = 0;
 
     esp_err_t err = modbus_tcp_request(
@@ -314,10 +314,43 @@ static bool handle_mtcp_data(const char *json)
     );
 
     if (err == ESP_OK) {
-        char hex[512];
-        bytes_to_hex(resp, resp_len, hex, sizeof(hex));
-        ESP_LOGI(TAG, "📥 MTCP response: %s", hex);
+
+    // ---- чистый modbus пакет без MBAP ----
+    static char hex[512];
+
+    if (resp_len > 6) {
+        bytes_to_hex(resp + 6, resp_len - 6, hex, sizeof(hex));
+    } else {
+        strcpy(hex, "");
     }
+
+    ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
+
+    // command_name
+    cJSON *cmd_name = cJSON_GetObjectItem(root, "command_name");
+
+    const char *name =
+        (cJSON_IsString(cmd_name)) ?
+        cmd_name->valuestring :
+        "unknown";
+
+    // ---- WS JSON ----
+    static char ws_msg[512];
+
+    snprintf(ws_msg, sizeof(ws_msg),
+        "{"
+        "\"command_type\":\"modbus_tcp_response\","
+        "\"command_name\":\"%s\","
+        "\"hex_data\":\"%s\""
+        "}",
+        name,
+        hex
+    );
+
+    websocket_send_text(ws_msg);
+
+    ESP_LOGI(TAG, "📤 WS sent: %s", ws_msg);
+}
 
     cJSON_Delete(root);
     return true;

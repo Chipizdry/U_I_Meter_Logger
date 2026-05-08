@@ -12,12 +12,77 @@
 #include "freertos/task.h"
 #include "esp_log.h"
 
+#define MAX_MODBUS_CONNS 3
+
 static const char *TAG = "MODBUS_TCP";
 
 static modbus_tcp_config_t g_cfg;
 static modbus_tcp_callback_t g_callback = NULL;
 
 static uint16_t transaction_id = 0;
+
+typedef struct {
+    char ip[16];
+    uint16_t port;
+    int sock;
+    uint32_t last_used;
+} modbus_conn_t;
+
+static modbus_conn_t conns[MAX_MODBUS_CONNS];
+
+static modbus_conn_t* create_conn(const char *ip, uint16_t port)
+{
+    for (int i = 0; i < MAX_MODBUS_CONNS; i++) {
+        if (conns[i].sock <= 0) {
+
+            struct sockaddr_in dest;
+            dest.sin_family = AF_INET;
+            dest.sin_port = htons(port);
+            dest.sin_addr.s_addr = inet_addr(ip);
+
+            int sock = socket(AF_INET, SOCK_STREAM, 0);
+            if (sock < 0) return NULL;
+
+            if (connect(sock, (struct sockaddr*)&dest, sizeof(dest)) != 0) {
+                close(sock);
+                return NULL;
+            }
+
+            strncpy(conns[i].ip, ip, sizeof(conns[i].ip));
+            conns[i].port = port;
+            conns[i].sock = sock;
+            conns[i].last_used = xTaskGetTickCount();
+
+            ESP_LOGI(TAG, "🔌 New Modbus conn %s:%d", ip, port);
+            return &conns[i];
+        }
+    }
+
+    return NULL;
+}
+
+
+static modbus_conn_t* get_conn(const char *ip, uint16_t port)
+{
+    for (int i = 0; i < MAX_MODBUS_CONNS; i++) {
+        if (conns[i].sock > 0 &&
+            strcmp(conns[i].ip, ip) == 0 &&
+            conns[i].port == port) {
+            conns[i].last_used = xTaskGetTickCount();
+            return &conns[i];
+        }
+    }
+    return NULL;
+}
+
+static modbus_conn_t* modbus_get_connection(const char *ip, uint16_t port)
+{
+    modbus_conn_t *c = get_conn(ip, port);
+    if (c) return c;
+
+    return create_conn(ip, port);
+}
+
 
 
 static int build_request(uint8_t *buf, uint8_t unit_id, uint8_t func, uint16_t start, uint16_t quantity, uint16_t value)  
@@ -60,44 +125,35 @@ static int build_request(uint8_t *buf, uint8_t unit_id, uint8_t func, uint16_t s
 
 esp_err_t modbus_tcp_request( const char *ip,uint16_t port, uint8_t unit_id, uint8_t func, uint16_t start_addr, uint16_t quantity, uint16_t value, uint8_t *resp,int *resp_len)
 {
-    int sock;
-    struct sockaddr_in dest;
-
-    dest.sin_family = AF_INET;
-    dest.sin_port = htons(port);
-    dest.sin_addr.s_addr = inet_addr(ip);
-
-    sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock < 0) return ESP_FAIL;
-
-    if (connect(sock, (struct sockaddr *)&dest, sizeof(dest)) != 0) {
-        close(sock);
+    modbus_conn_t *conn = modbus_get_connection(ip, port);
+    if (!conn || conn->sock < 0) {
         return ESP_FAIL;
     }
 
     uint8_t req[32];
     int req_len = build_request(req, unit_id, func, start_addr, quantity, value);
 
-    if (req_len < 0) {
-        close(sock);
-        return ESP_ERR_INVALID_ARG;
-    }
+    if (send(conn->sock, req, req_len, 0) < 0) {
+        ESP_LOGW(TAG, "send failed → drop conn");
 
-    if (send(sock, req, req_len, 0) < 0) {
-        close(sock);
+        close(conn->sock);
+        conn->sock = -1;
+
         return ESP_FAIL;
     }
 
-    int len = recv(sock, resp, 256, 0);
+    int len = recv(conn->sock, resp, 256, 0);
 
     if (len <= 0) {
-        close(sock);
+        ESP_LOGW(TAG, "recv failed → drop conn");
+
+        close(conn->sock);
+        conn->sock = -1;
+
         return ESP_FAIL;
     }
 
     *resp_len = len;
-
-    close(sock);
     return ESP_OK;
 }
 

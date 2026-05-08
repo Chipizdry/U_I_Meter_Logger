@@ -45,7 +45,6 @@ system_settings_t sys;
 uart_settings_t uart_cfg;
 
 
-static void modbus_start_task(void *arg);
 
 void app_main(void)
 {
@@ -122,8 +121,6 @@ void app_main(void)
     }
 
   
-    
-   
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
     start_wifi_manager_task();
     initialize_sntp();
