@@ -137,7 +137,6 @@ function handleWsMessage(msg) {
     }
 
    if (msg.type === "network" && msg.network) {
-
         function updateNetStatus(elementId, label, state) {
         const el = document.getElementById(elementId);
         if (!el) return;
@@ -148,7 +147,23 @@ function handleWsMessage(msg) {
         el.classList.add("net-status", status);
 
         // текст
-        el.textContent = `${label}: ${status.toUpperCase()}`;
+       // el.textContent = `${label}: ${status.toUpperCase()}`;
+       if (label === "Wi-Fi") {
+            const rssi = msg.network?.wifi_sta?.rssi;
+
+            let rssiText = "";
+            let rssiColor = "";
+
+            if (typeof rssi === "number") {
+                rssiText = ` RSSI ${rssi} dBm`;
+                if (rssi > -60) rssiColor = "green";
+                else if (rssi > -70) rssiColor = "orange";
+                else rssiColor = "red";
+            }
+            el.innerHTML = `${label}: ${status.toUpperCase()} <span style="color:${rssiColor}">${rssiText}</span>`;
+        } else {
+            el.textContent = `${label}: ${status.toUpperCase()}`;
+        }
     }
 
     updateNetStatus(
@@ -253,8 +268,6 @@ function diagnosticsOff() {
 }
 
 
-
-
 function shutdownWebSocket(reason = "manual") {
     console.log("🔌 WS shutdown:", reason);
     isLoggingOut = true;
@@ -273,8 +286,6 @@ function shutdownWebSocket(reason = "manual") {
         ws = null;
     }
 }
-
-
 
 
 function onWsMessage(event) {

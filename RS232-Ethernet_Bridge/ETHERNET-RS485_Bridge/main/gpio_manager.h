@@ -17,6 +17,7 @@ extern "C" {
 #define GPIO_NET_LED        14   // Светодиод сети 
 #define GPIO_ERROR_LED      15   // Светодиод ошибок 
 #define GPIO_MODE_CHANGE    2    // Переключение режима RS485-RS232 
+#define GPIO_LINK_INDICATOR 4    // Индикатор связи 
 #define RS485_DE_PIN        33   // RS485 DE pin
 #define ETH_RST_PIN         16   //Phy reset
 
@@ -33,6 +34,7 @@ void gpio_blink_status_led(int times, int delay_ms);
 void gpio_indicate_error(void);
 void gpio_led_selftest(void);
 void reset_to_factory_defaults(void);
+void gpio_link_led(bool state);
 
 #ifdef __cplusplus
 }

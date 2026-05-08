@@ -84,6 +84,7 @@ input[type="number"]{
     border-radius: 12px;
     width: 100%;
     box-sizing: border-box;
+    color: #7f69bd;
 }
 
 input:focus, textarea:focus, select:focus {
@@ -1186,7 +1187,7 @@ select:focus {
 
 .net-status {
     margin-bottom: 12px;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 6px;

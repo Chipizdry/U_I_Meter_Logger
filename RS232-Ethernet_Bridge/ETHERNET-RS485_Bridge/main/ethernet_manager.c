@@ -7,6 +7,7 @@
 #include "esp_event.h"
 #include "esp_eth.h"
 #include "esp_mac.h"
+#include "esp_netif.h"
 #include "driver/gpio.h"
 #include "lwip/inet.h"
 #include "lwip/sockets.h"
@@ -14,17 +15,144 @@
 #include "lwip/ip.h"
 #include "lwip/raw.h"
 #include "lwip/netif.h"
+#include "lwip/stats.h"
 #include "nvs_settings.h"
 #include "network_state.h"
 #include "gpio_manager.h"
+#include "esp_eth_mac.h"
+#include "esp_netif_net_stack.h"
+
+#include "esp_timer.h"
+#include <math.h>
 
 static const char *TAG = "ethernet_manager";
+
+
+int g_eth_speed_mbps = 0;
+float g_eth_rx_kbps = 0;
+float g_eth_tx_kbps = 0;
+static uint64_t g_tx_bytes = 0;
+static uint64_t g_rx_bytes = 0;
+
+static uint64_t last_rx = 0;
+static uint64_t last_tx = 0;
+static int64_t last_time = 0;
+
+#define ETH_SMOOTH_ALPHA 0.2f  
+#define ETH_NOISE_KBPS   1.0f  
+
+
 
 static esp_eth_handle_t s_eth_handle = NULL;
 static esp_netif_t *s_eth_netif = NULL;
 static bool s_connected = false;
 static void phy_hard_reset(void);
+static void update_eth_traffic(void);
+static void ethernet_traffic_task(void *pvParameters);
+static esp_err_t eth_input_hook(esp_eth_handle_t hdl, uint8_t *buffer, uint32_t length, void *priv);
+static err_t (*s_orig_linkoutput)(struct netif *netif, struct pbuf *p) = NULL;
+void ethernet_start_traffic_monitoring(void);
 
+static esp_err_t eth_input_hook(
+    esp_eth_handle_t hdl,
+    uint8_t *buffer,
+    uint32_t length,
+    void *priv)
+{
+    if (length > 0 && length < 1600) {
+        g_rx_bytes += length;
+    }
+
+    return esp_netif_receive((esp_netif_t *)priv, buffer, length, NULL);
+}
+
+static err_t eth_tx_hook(struct netif *netif, struct pbuf *p) 
+{
+    err_t ret = ERR_OK;
+    if (p != NULL) {
+        uint32_t total_len = 0;
+        for (struct pbuf *q = p; q != NULL; q = q->next) {
+            total_len += q->len;
+        }
+        if (total_len > 0) {
+            g_tx_bytes += total_len;
+        }
+    }
+    // Используем s_orig_linkoutput (уже объявлена)
+    if (s_orig_linkoutput != NULL) {
+        ret = s_orig_linkoutput(netif, p);
+    }
+    return ret;
+}
+
+static void update_eth_link_speed(void)
+{
+    if (!s_eth_handle) return;
+
+    eth_speed_t speed;
+    if (esp_eth_ioctl(s_eth_handle, ETH_CMD_G_SPEED, &speed) == ESP_OK) {
+        switch (speed) {
+            case ETH_SPEED_10M:
+                g_eth_speed_mbps = 10;
+                break;
+            case ETH_SPEED_100M:
+                g_eth_speed_mbps = 100;
+                break;
+            default:
+                g_eth_speed_mbps = 0;
+                break;
+        }
+    }
+}
+
+
+static void ethernet_traffic_task(void *pvParameters)
+{
+    while (1) {
+        update_eth_traffic();  // Обновляем статистику трафика
+        vTaskDelay(pdMS_TO_TICKS(2000));  // Проверяем каждые 2000 мс
+    }
+}
+
+
+static void update_eth_traffic(void)
+{
+    int64_t now = esp_timer_get_time() / 1000;
+
+    if (last_time == 0) {
+        last_rx = g_rx_bytes;
+        last_tx = g_tx_bytes;
+        last_time = now;
+        return;
+    }
+
+    int64_t dt = now - last_time;
+    if (dt < 1000) return;
+
+    uint64_t rx_diff = g_rx_bytes - last_rx;
+    uint64_t tx_diff = g_tx_bytes - last_tx;
+
+    float sec = dt / 1000.0f;
+
+    float rx_kbps = (rx_diff * 8.0f) / sec / 1000.0f;
+    float tx_kbps = (tx_diff * 8.0f) / sec / 1000.0f;
+
+    // 🔥 фильтр шума
+    if (rx_kbps < ETH_NOISE_KBPS) rx_kbps = 0;
+    if (tx_kbps < ETH_NOISE_KBPS) tx_kbps = 0;
+
+    // 🔥 сглаживание (EMA)
+    g_eth_rx_kbps = g_eth_rx_kbps * (1.0f - ETH_SMOOTH_ALPHA) + rx_kbps * ETH_SMOOTH_ALPHA;
+    g_eth_tx_kbps = g_eth_tx_kbps * (1.0f - ETH_SMOOTH_ALPHA) + tx_kbps * ETH_SMOOTH_ALPHA;
+
+    last_rx = g_rx_bytes;
+    last_tx = g_tx_bytes;
+    last_time = now;
+
+    ESP_LOGI(TAG, "ETH: RX=%.2f kbps TX=%.2f kbps", g_eth_rx_kbps, g_eth_tx_kbps);
+
+    network_notify_ws();
+}
 // ======================= Event Handlers =======================
 
 static void eth_event_handler(void *arg, esp_event_base_t event_base,
@@ -34,6 +162,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
         case ETHERNET_EVENT_CONNECTED:
             ESP_LOGI(TAG, "Ethernet Link Up");
             s_connected = true;
+            update_eth_link_speed();
             break;
         case ETHERNET_EVENT_DISCONNECTED:
             ESP_LOGI(TAG, "Ethernet Link Down");
@@ -57,6 +186,7 @@ static void eth_event_handler(void *arg, esp_event_base_t event_base,
 static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
+    update_eth_link_speed();
     network_set_ethernet_state(NET_STATE_ETHERNET_UP);
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
 }
@@ -118,7 +248,7 @@ esp_err_t ethernet_init(void)
     esp_eth_phy_t *phy = esp_eth_phy_new_lan87xx(&phy_config);
 
     esp_eth_config_t eth_config = ETH_DEFAULT_CONFIG(mac, phy);
-   // ESP_ERROR_CHECK(esp_eth_driver_install(&eth_config, &s_eth_handle));
+   
 
     esp_err_t err = esp_eth_driver_install(&eth_config, &s_eth_handle);
     if (err != ESP_OK) {
@@ -127,10 +257,14 @@ esp_err_t ethernet_init(void)
     }
     esp_netif_attach(s_eth_netif, esp_eth_new_netif_glue(s_eth_handle));
 
+
+
     ESP_ERROR_CHECK(esp_event_handler_register(ETH_EVENT, ESP_EVENT_ANY_ID, &eth_event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_ETH_GOT_IP, &got_ip_event_handler, NULL));
     ESP_ERROR_CHECK(esp_eth_start(s_eth_handle));
 
+    ethernet_start_traffic_monitoring();
+    ESP_ERROR_CHECK(esp_eth_update_input_path(s_eth_handle, eth_input_hook, s_eth_netif));
  //   ESP_LOGI(TAG, "Ethernet started successfully");
     return ESP_OK;
 }
@@ -170,3 +304,13 @@ esp_netif_ip_info_t ethernet_get_ip_info(void)
 }
 
 
+void ethernet_start_traffic_monitoring(void)
+{
+    xTaskCreate(
+        ethernet_traffic_task,
+        "eth_traffic",
+        4096,      // Размер стека
+        NULL,
+        5,  NULL);
+    ESP_LOGI(TAG, "Ethernet traffic monitoring started");
+}

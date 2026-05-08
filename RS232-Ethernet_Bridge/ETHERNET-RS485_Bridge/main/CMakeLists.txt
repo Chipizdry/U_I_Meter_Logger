@@ -19,6 +19,7 @@ idf_component_register(
         "ota_pull.c"
         "dns_server.c"
         "server_handlers.c"
+        "modbus_tcp_client.c"
         
 
     INCLUDE_DIRS "."

@@ -16,6 +16,7 @@
 #include "ota_pull.h"
 #include "nvs_settings.h"
 #include "network_state.h"
+#include "modbus_tcp_client.h"
 
 static const char *TAG = "ws_events";
 
@@ -40,6 +41,7 @@ extern void ws_broadcast(const char *text);
 
 static bool handle_hex_data(const char *json);
 static bool handle_pi30_data(const char *json);
+static bool handle_mtcp_data(const char *json);
 static bool handle_msg_data(const char *json);
 static bool handle_settings_command(const char *json);
 static bool handle_ota_update(const char *json, const char *session_id);
@@ -50,11 +52,13 @@ static inline uint32_t ticks_to_ms(uint32_t ticks)
 }
 
 bool websocket_process_message(const char *json)
-{
+{  
+    gpio_link_led(1);
     if (!json) return false;
     handle_msg_data(json);
     handle_hex_data(json);
     handle_pi30_data(json);
+    handle_mtcp_data(json);
     handle_settings_command(json);
     handle_ota_update(json, ws_session_id);
 
@@ -157,6 +161,7 @@ static bool handle_hex_data(const char *json)
     strncpy(req.cmd, command_type[0] ? command_type : "UNKNOWN", sizeof(req.cmd) - 1);
     strncpy(req.command_name, command_name[0] ? command_name : "UNKNOWN", sizeof(req.command_name) - 1);
     rs485_master_send_req(&req);
+     gpio_link_led(0);
     return true;
  }
 
@@ -244,10 +249,79 @@ static bool handle_pi30_data(const char *json)
             strcpy(req.cmd, "UNKNOWN");
         }
         rs485_master_send_req(&req);
+         gpio_link_led(0);
     return true;
 }
 
+static bool handle_mtcp_data(const char *json)
+{
+    cJSON *root = cJSON_Parse(json);
+    if (!root) {
+        ESP_LOGE(TAG, "MTCP JSON parse error");
+        return false;
+    }
 
+    cJSON *type = cJSON_GetObjectItem(root, "command_type");
+    if (!cJSON_IsString(type) || strcmp(type->valuestring, "modbus_tcp") != 0) {
+        cJSON_Delete(root);
+        return false;
+    }
+
+    cJSON *ip         = cJSON_GetObjectItem(root, "ip");
+    cJSON *port       = cJSON_GetObjectItem(root, "port");
+    cJSON *unit_id    = cJSON_GetObjectItem(root, "unit_id");
+    cJSON *func       = cJSON_GetObjectItem(root, "func");
+    cJSON *start_addr = cJSON_GetObjectItem(root, "start_addr");
+    cJSON *quantity   = cJSON_GetObjectItem(root, "quantity");
+    cJSON *value      = cJSON_GetObjectItem(root, "value");
+
+    if (!cJSON_IsString(ip) ||
+        !cJSON_IsNumber(port) ||
+        !cJSON_IsNumber(unit_id) ||
+        !cJSON_IsNumber(func) ||
+        !cJSON_IsNumber(start_addr))
+    {
+        ESP_LOGE(TAG, "MTCP missing fields");
+        cJSON_Delete(root);
+        return true;
+    }
+
+    const char *ip_str = ip->valuestring;
+
+    uint16_t port_v       = port->valueint;
+    uint8_t  unit         = unit_id->valueint;
+    uint8_t  func_v       = func->valueint;
+    uint16_t start        = start_addr->valueint;
+    uint16_t qty          = quantity ? quantity->valueint : 0;
+    uint16_t val          = value ? value->valueint : 0;
+
+    ESP_LOGI(TAG, "📡 MTCP request -> %s:%d unit=%d func=%d start=%d qty=%d val=%d",
+             ip_str, port_v, unit, func_v, start, qty, val);
+
+    uint8_t resp[256];
+    int resp_len = 0;
+
+    esp_err_t err = modbus_tcp_request(
+        ip_str,
+        port_v,
+        unit,
+        func_v,
+        start,
+        qty,
+        val,
+        resp,
+        &resp_len
+    );
+
+    if (err == ESP_OK) {
+        char hex[512];
+        bytes_to_hex(resp, resp_len, hex, sizeof(hex));
+        ESP_LOGI(TAG, "📥 MTCP response: %s", hex);
+    }
+
+    cJSON_Delete(root);
+    return true;
+}
 
 
  static bool handle_msg_data(const char *json) {
@@ -293,6 +367,7 @@ static bool handle_pi30_data(const char *json)
             }
         }
     }
+ gpio_link_led(0);
  return true;
 
 }   
@@ -780,7 +855,7 @@ else if (strcmp(category, "all") == 0)
           //  websocket_send_text("{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}" );
             return true;
        }
-
+    gpio_link_led(0);
     return true;
 }
 
@@ -826,6 +901,7 @@ static bool handle_ota_update(const char *json, const char *session_id)
 
    
     cJSON_Delete(root);
+    gpio_link_led(0);
     return true;
 }
 

@@ -369,14 +369,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                 dns_stop();
                 ws_cleanup_all_clients();
                 break;
-            
-            /*    
-            case WIFI_EVENT_AP_STACONNECTED:
-            case WIFI_EVENT_AP_STADISCONNECTED:
-             ws_cleanup_all_clients();
-                break;
-            */
-
+         
             case WIFI_EVENT_AP_STACONNECTED: {
                 wifi_event_ap_staconnected_t *conn = event_data;
                 
@@ -448,7 +441,10 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
         ip_event_got_ip_t *event = (ip_event_got_ip_t*)event_data;
         network_set_wifi_state(NET_STATE_WIFI_UP);
         ESP_LOGI(TAG, "STA got IP: " IPSTR, IP2STR(&event->ip_info.ip));
-        
+          wifi_ap_record_t ap_info;
+        if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+            network_update_wifi_rssi(ap_info.rssi);
+        }
         // Отправляем сохранённые результаты сканирования
         if (wifi_scan_completed) {
             send_pending_scan_results();
@@ -624,6 +620,14 @@ void wifi_manager_task(void *arg)
     for (;;) {
         xEventGroupWaitBits(wifi_evt_group, WIFI_EVT_APPLY, pdTRUE, pdFALSE, portMAX_DELAY);
         ESP_LOGI(TAG, "Apply requested");
+
+         if (network_get_wifi_state() == NET_STATE_WIFI_UP) {
+            wifi_ap_record_t ap_info;
+            if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
+                network_update_wifi_rssi(ap_info.rssi);
+            }
+        }
+        
         if (nvs_load_wifi_settings(&cfg) == ESP_OK) {
             wifi_manager_init(&cfg);
         }

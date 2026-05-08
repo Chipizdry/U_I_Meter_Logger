@@ -28,6 +28,7 @@
 #include "ota_update.h"
 #include "dns_server.h"
 #include "network_state.h"
+#include "modbus_tcp_client.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -42,6 +43,9 @@ network_settings_t net_cfg;
 wifi_settings_t wifi_cfg;
 system_settings_t sys;
 uart_settings_t uart_cfg;
+
+
+static void modbus_start_task(void *arg);
 
 void app_main(void)
 {
@@ -123,6 +127,5 @@ void app_main(void)
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
     start_wifi_manager_task();
     initialize_sntp();
+
 }
-
-
