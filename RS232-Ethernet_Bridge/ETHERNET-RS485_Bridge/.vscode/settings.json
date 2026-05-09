@@ -31,6 +31,7 @@
     ],
     "idf.flashType": "UART",
     "idf.portWin": "COM4",
-    "idf.monitorPort": "COM4"
+    "idf.monitorPort": "COM4",
+    "editor.semanticHighlighting.enabled": false
 }
 

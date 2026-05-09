@@ -9,6 +9,7 @@
 #include "freertos/task.h"
 #include "driver/uart.h"
 #include "esp_netif.h"
+#include <inttypes.h>
 
 #include "rs485_master.h"
 #include "ws_server.h"
@@ -142,7 +143,7 @@ static bool handle_hex_data(const char *json)
 
     if (diagnostics_active && delta_ms > 0) {
         char msg[64];
-        snprintf(msg, sizeof(msg),"{\"diag\":\"Modbus update : %lu\"}", delta_ms);
+        snprintf(msg, sizeof(msg),"{\"diag\":\"Modbus update : %" PRIu32 "\"}", delta_ms);
         ws_broadcast(msg);
     }
 
@@ -212,7 +213,7 @@ static bool handle_pi30_data(const char *json)
     if (diagnostics_active && delta_ms > 0) {
         char msg[64];
         snprintf(msg, sizeof(msg),
-                 "{\"diag\":\"PI30 update : %lu\"}", delta_ms);
+                 "{\"diag\":\"PI30 update : %" PRIu32 "\"}", delta_ms);
         ws_broadcast(msg);
     }
 
@@ -316,7 +317,7 @@ static bool handle_mtcp_data(const char *json)
     if (err == ESP_OK) {
 
     // ---- чистый modbus пакет без MBAP ----
-    static char hex[512];
+    static char hex[520];
 
     if (resp_len > 6) {
         bytes_to_hex(resp + 6, resp_len - 6, hex, sizeof(hex));
@@ -324,7 +325,7 @@ static bool handle_mtcp_data(const char *json)
         strcpy(hex, "");
     }
 
-    ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
+   // ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
 
     // command_name
     cJSON *cmd_name = cJSON_GetObjectItem(root, "command_name");
@@ -335,9 +336,9 @@ static bool handle_mtcp_data(const char *json)
         "unknown";
 
     // ---- WS JSON ----
-    static char ws_msg[512];
+    static char ws_msg[1024];
 
-    snprintf(ws_msg, sizeof(ws_msg),
+     snprintf(ws_msg, sizeof(ws_msg),
         "{"
         "\"command_type\":\"modbus_tcp_response\","
         "\"command_name\":\"%s\","

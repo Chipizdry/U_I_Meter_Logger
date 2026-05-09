@@ -16,6 +16,7 @@
 #include "lwip/raw.h"
 #include "lwip/netif.h"
 #include "lwip/stats.h"
+#include "lwip/snmp.h"
 #include "nvs_settings.h"
 #include "network_state.h"
 #include "gpio_manager.h"
@@ -26,7 +27,7 @@
 #include <math.h>
 
 static const char *TAG = "ethernet_manager";
-
+extern esp_netif_t *eth_netif;
 
 int g_eth_speed_mbps = 0;
 float g_eth_rx_kbps = 0;
@@ -66,23 +67,14 @@ static esp_err_t eth_input_hook(
     return esp_netif_receive((esp_netif_t *)priv, buffer, length, NULL);
 }
 
-static err_t eth_tx_hook(struct netif *netif, struct pbuf *p) 
+void print_traffic(void)
 {
-    err_t ret = ERR_OK;
-    if (p != NULL) {
-        uint32_t total_len = 0;
-        for (struct pbuf *q = p; q != NULL; q = q->next) {
-            total_len += q->len;
-        }
-        if (total_len > 0) {
-            g_tx_bytes += total_len;
-        }
-    }
-    // Используем s_orig_linkoutput (уже объявлена)
-    if (s_orig_linkoutput != NULL) {
-        ret = s_orig_linkoutput(netif, p);
-    }
-    return ret;
+    struct netif *n = esp_netif_get_netif_impl(eth_netif);
+
+    if (!n) return;
+
+    printf("RX bytes: %lu\n", netif_get_mib2_counters(n)->ifinoctets);
+    printf("TX bytes: %lu\n", netif_get_mib2_counters(n)->ifoutoctets);
 }
 
 static void update_eth_link_speed(void)
