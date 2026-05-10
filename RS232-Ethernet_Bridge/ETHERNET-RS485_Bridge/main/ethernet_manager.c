@@ -434,7 +434,7 @@ esp_err_t ethernet_init(void)
 
     ESP_ERROR_CHECK( esp_eth_start(s_eth_handle));
  
-    ethernet_start_traffic_monitoring();
+   // ethernet_start_traffic_monitoring();
     ESP_LOGI(TAG, "Ethernet started successfully");
 
     return ESP_OK;
@@ -501,15 +501,7 @@ esp_netif_ip_info_t ethernet_get_ip_info(void)
 
 void ethernet_start_traffic_monitoring(void)
 {
-    xTaskCreate(
-        ethernet_traffic_task,
-        "eth_traffic",
-        4096,
-        NULL,
-        5,
-        NULL);
-
-    ESP_LOGI(TAG,
-             "Ethernet traffic monitoring started");
+    xTaskCreate(ethernet_traffic_task,"eth_traffic", 4096,NULL,5, NULL);
+    ESP_LOGI(TAG, "Ethernet traffic monitoring started");
 }
 

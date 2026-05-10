@@ -136,6 +136,8 @@ static esp_err_t nvs_save_blob(const char *key, const void *data, size_t size) {
     return err;
 }
 
+
+/*
 static esp_err_t nvs_load_blob(const char *key, void *data, size_t size) {
     nvs_handle_t handle;
     size_t len = size;
@@ -145,6 +147,61 @@ static esp_err_t nvs_load_blob(const char *key, void *data, size_t size) {
     err = nvs_get_blob(handle, key, data, &len);
     nvs_close(handle);
     return err;
+}  */
+static esp_err_t nvs_load_blob(const char *key, void *data, size_t size)
+{
+    nvs_handle_t handle;
+    esp_err_t err = nvs_open(NAMESPACE,NVS_READONLY,&handle);
+
+    if (err != ESP_OK)return err;
+
+    // Узнаём размер blob
+    size_t stored_size = 0;
+
+    err = nvs_get_blob(handle,key,NULL,&stored_size);
+
+    if (err != ESP_OK)
+    {
+        nvs_close(handle);
+        return err;
+    }
+
+    // Защита
+    if (stored_size == 0 || stored_size > 4096)
+    {
+        nvs_close(handle);
+        return ESP_ERR_INVALID_SIZE;
+    }
+
+    // Выделяем память
+    uint8_t *temp = malloc(stored_size);
+
+    if (temp == NULL)
+    {
+        nvs_close(handle);
+        return ESP_ERR_NO_MEM;
+    }
+
+    // Обнуляем буфер
+    memset(temp, 0, stored_size);
+
+    // Читаем blob
+    size_t read_size = stored_size;
+    err = nvs_get_blob(handle,key,temp,&read_size);
+    nvs_close(handle);
+
+    if (err != ESP_OK)
+    {
+        free(temp);
+        return err;
+    }
+
+    // Копируем только существующие данные
+    memcpy(data,temp,(stored_size < size) ? stored_size : size);
+
+    // Освобождаем память
+    free(temp);
+    return ESP_OK;
 }
 
 static esp_err_t nvs_clear_key(const char *key) {
@@ -168,12 +225,6 @@ esp_err_t nvs_load_user_settings(user_settings_t *settings) {
     esp_err_t err = nvs_load_blob("user", settings, sizeof(user_settings_t));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGW(TAG, "No user settings found, loading defaults");
-        set_default_user_settings(settings);
-        nvs_save_user_settings(settings);
-        return ESP_OK;
-    }
-    if (settings->version != USER_SETTINGS_VERSION) {
-        ESP_LOGW(TAG, "User settings version mismatch, resetting to defaults");
         set_default_user_settings(settings);
         nvs_save_user_settings(settings);
         return ESP_OK;
@@ -202,12 +253,6 @@ esp_err_t nvs_load_network_settings(network_settings_t *settings) {
         nvs_save_network_settings(settings);
         return ESP_OK;
     }
-    if (settings->version != NETWORK_SETTINGS_VERSION) {
-        ESP_LOGW(TAG, "Network settings version mismatch, resetting to defaults");
-        set_default_network_settings(settings);
-        nvs_save_network_settings(settings);
-        return ESP_OK;
-    }
     return err;
 }
 
@@ -225,12 +270,6 @@ esp_err_t nvs_load_system_settings(system_settings_t *settings) {
     esp_err_t err = nvs_load_blob("system", settings, sizeof(system_settings_t));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
         ESP_LOGW(TAG, "No system settings found, loading defaults");
-        set_default_system_settings(settings);
-        nvs_save_system_settings(settings);
-        return ESP_OK;
-    }
-    if (settings->version != SYSTEM_SETTINGS_VERSION) {
-        ESP_LOGW(TAG, "System settings version mismatch, resetting to defaults");
         set_default_system_settings(settings);
         nvs_save_system_settings(settings);
         return ESP_OK;
@@ -352,7 +391,6 @@ void nvs_factory_reset(void)
     ESP_ERROR_CHECK(nvs_save_wifi_settings(&wifi));
     ESP_ERROR_CHECK(nvs_save_system_settings(&sys));
     ESP_ERROR_CHECK(nvs_save_uart_settings(&uart));
-
     ESP_LOGW(TAG, "Factory defaults applied successfully");
 }
 

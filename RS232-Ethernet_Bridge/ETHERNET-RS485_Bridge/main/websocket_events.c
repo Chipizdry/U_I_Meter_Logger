@@ -36,7 +36,6 @@ extern int hex_to_bytes(const char *in, uint8_t *out, int max_len);
 extern bool websocket_send_text(const char *msg);
 extern void websocket_disable_reconnect(void);
 extern void websocket_enable_reconnect(void);
-//extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
 
 extern void ota_task(void *pvParameter);
 extern void ws_broadcast(const char *text);

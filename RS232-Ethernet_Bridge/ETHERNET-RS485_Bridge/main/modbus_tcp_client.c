@@ -79,11 +79,9 @@ static modbus_conn_t* modbus_get_connection(const char *ip, uint16_t port)
 {
     modbus_conn_t *c = get_conn(ip, port);
     if (c) return c;
-
+    ESP_LOGI(TAG, "No existing conn for %s:%d, creating new", ip, port);
     return create_conn(ip, port);
 }
-
-
 
 static int build_request(uint8_t *buf, uint8_t unit_id, uint8_t func, uint16_t start, uint16_t quantity, uint16_t value)  
 {
