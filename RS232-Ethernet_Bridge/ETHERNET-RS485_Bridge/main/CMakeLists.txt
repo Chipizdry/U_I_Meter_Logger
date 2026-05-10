@@ -7,6 +7,7 @@ idf_component_register(
         "rs485_master.c"
         "ethernet_manager.c"
         "web_server.c"
+        "ws_device_settings.c"
         "websocket_client.c"
         "websocket_events.c"
         "network_state.c"

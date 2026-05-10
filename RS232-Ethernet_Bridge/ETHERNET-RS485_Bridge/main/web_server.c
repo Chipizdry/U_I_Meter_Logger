@@ -27,7 +27,7 @@
 #include "gpio_manager.h"
 #include "network_state.h"
 #include "driver/uart.h"
-
+#include <ctype.h>
 
 static const char *TAG = "web_server";
 
@@ -699,8 +699,10 @@ static void url_decode(char *dst, const char *src)
             a = src[1];
             b = src[2];
 
-            a = (a <= '9' ? a - '0' : toupper(a) - 'A' + 10);
-            b = (b <= '9' ? b - '0' : toupper(b) - 'A' + 10);
+          //  a = (a <= '9' ? a - '0' : toupper(a) - 'A' + 10);
+          //  b = (b <= '9' ? b - '0' : toupper(b) - 'A' + 10);
+            a = (a <= '9' ? a - '0' : toupper((unsigned char)a) - 'A' + 10);
+            b = (b <= '9' ? b - '0' : toupper((unsigned char)b) - 'A' + 10);
 
             *dst++ = (char)(a * 16 + b);
             src += 3;

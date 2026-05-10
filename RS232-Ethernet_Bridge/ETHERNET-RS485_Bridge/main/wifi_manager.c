@@ -658,9 +658,7 @@ void start_wifi_manager_task(void)
         assert(pending_results_mutex);
     }
 
-    xTaskCreatePinnedToCore(wifi_manager_task, "wifi_manager_task", 4096, 
-                           NULL, 3, NULL, tskNO_AFFINITY);
-    
+    xTaskCreatePinnedToCore(wifi_manager_task, "wifi_manager_task", 4096,NULL, 3, NULL, tskNO_AFFINITY);
     ESP_LOGI(TAG, "Wi-Fi manager started");
 }
 
