@@ -25,8 +25,172 @@ extern wifi_settings_t wifi_cfg;
 extern uart_settings_t uart_cfg;
 extern user_settings_t user_cfg;
 extern system_settings_t sys;
-
 extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
+
+static void send_account_settings(void);
+static void send_user_settings(void);
+static void send_network_settings(void);
+static void send_wifi_settings(void);
+static void send_uart_settings(void);
+static void send_system_settings(void);
+static void send_ack(const char *category);
+static void send_action_ack(const char *action);
+static void send_error(const char *msg);
+
+static void ws_send_json(cJSON *root)
+{
+    char *json = cJSON_PrintUnformatted(root);
+
+    if (json)
+    {
+        websocket_send_text(json);
+        free(json);
+    }
+    cJSON_Delete(root);
+}
+
+
+static int uart_data_bits_to_int(uart_word_length_t bits)
+{
+    switch (bits)
+    {
+        case UART_DATA_5_BITS: return 5;
+        case UART_DATA_6_BITS: return 6;
+        case UART_DATA_7_BITS: return 7;
+        case UART_DATA_8_BITS: return 8;
+        default: return 8;
+    }
+}
+
+static int uart_stop_bits_to_int(uart_stop_bits_t bits)
+{
+    switch (bits)
+    {
+        case UART_STOP_BITS_1:   return 1;
+        case UART_STOP_BITS_1_5: return 15;
+        case UART_STOP_BITS_2:   return 2;
+        default: return 1;
+    }
+}
+
+static void send_user_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category","user");
+    cJSON_AddStringToObject(data, "login", user_cfg.login);
+    cJSON_AddItemToObject(root,"data",data);
+    ws_send_json(root);
+}
+
+
+static void send_uart_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "uart");
+    cJSON_AddNumberToObject(data,"baud",uart_cfg.baud_rate);
+    cJSON_AddNumberToObject(data,"data_bits", uart_data_bits_to_int(uart_cfg.data_bits));
+    cJSON_AddNumberToObject(data, "stop_bits",uart_stop_bits_to_int(uart_cfg.stop_bits));
+    cJSON_AddNumberToObject(data,"parity",uart_cfg.parity);
+    cJSON_AddBoolToObject(data,"rs485_mode",uart_cfg.rs485_mode);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+static void send_account_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "account");
+    cJSON_AddStringToObject(data, "account_login",user_cfg.account_login);
+    cJSON_AddStringToObject( data, "node_name", user_cfg.node_name);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+
+static void send_network_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "network");
+    cJSON_AddBoolToObject(data, "dhcp_enabled", net_cfg.dhcp_enabled);
+    cJSON_AddStringToObject(data, "ip", net_cfg.ip);
+    cJSON_AddStringToObject(data, "mask", net_cfg.mask);
+    cJSON_AddStringToObject(data, "gateway", net_cfg.gateway);
+    cJSON_AddStringToObject(data, "dns", net_cfg.dns);
+    cJSON_AddNumberToObject(data, "port", net_cfg.port);
+    cJSON_AddBoolToObject(data, "wifi_dhcp_enabled", net_cfg.wifi_dhcp_enabled);
+    cJSON_AddStringToObject(data, "wifi_ip", net_cfg.wifi_ip);
+    cJSON_AddStringToObject(data, "wifi_mask", net_cfg.wifi_mask);
+    cJSON_AddStringToObject(data, "wifi_gateway", net_cfg.wifi_gateway);
+    cJSON_AddStringToObject(data, "wifi_dns", net_cfg.wifi_dns);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+    network_notify_ws();
+}
+
+
+static void send_wifi_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "wifi");
+    cJSON_AddNumberToObject(data, "mode", wifi_cfg.mode);
+    cJSON_AddStringToObject(data, "sta_ssid", wifi_cfg.sta_ssid);
+    cJSON_AddStringToObject(data, "ap_ssid", wifi_cfg.ap_ssid);
+    cJSON_AddNumberToObject(data, "ap_channel", wifi_cfg.ap_channel);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+static void send_system_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "system");
+    cJSON_AddNumberToObject(data, "refresh_interval", sys.refresh_interval);
+    cJSON_AddNumberToObject(data, "log_level", sys.log_level);
+    cJSON_AddBoolToObject(data, "debug_mode", sys.debug_mode);
+    cJSON_AddNumberToObject(data, "build_number", sys.build_number);
+    cJSON_AddStringToObject(data, "build_date", sys.build_date);
+    cJSON_AddStringToObject(data, "ws_server", sys.ws_server);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+static void send_ack(const char *category)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "set_settings_ack");
+    cJSON_AddStringToObject(root, "status", "ok");
+    cJSON_AddStringToObject(root, "category", category);
+    ws_send_json(root);
+}
+
+static void send_action_ack(const char *action)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "set_settings_ack");
+    cJSON_AddStringToObject(root, "status", "ok");
+    cJSON_AddStringToObject(root, "action", action);
+    ws_send_json(root);
+}
+
+static void send_error(const char *msg)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "error");
+    cJSON_AddStringToObject(root, "message", msg);
+    ws_send_json(root);
+}
 
  bool handle_settings_command(const char *json)
 {
@@ -36,32 +200,30 @@ extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,ch
         fill_netif_ip_info("ETH_DEF", net_cfg.ip, net_cfg.mask,net_cfg.gateway,net_cfg.dns, sizeof(net_cfg.ip) );
     }
 
-
         if (net_cfg.wifi_dhcp_enabled &&
         (wifi_cfg.mode == WIFI_MODE_STA || wifi_cfg.mode == WIFI_MODE_APSTA)) {
         fill_netif_ip_info("WIFI_STA_DEF", net_cfg.wifi_ip, net_cfg.wifi_mask, net_cfg.wifi_gateway, net_cfg.wifi_dns,sizeof(net_cfg.wifi_ip) );
     }
-    // ==========================================================
-    // 1) Ищем command_type
-    // ==========================================================
-    char *cmd_ptr = strstr(json, "\"command_type\"");
-    if (!cmd_ptr) return false;
 
-    char command_type[32] = {0};
 
-    char *start = strchr(cmd_ptr, ':');
-    if (!start || !(start = strchr(start, '"'))) return true;
-    start++;
+    cJSON *root = cJSON_Parse(json);
 
-    char *end = strchr(start, '"');
-    if (!end) return true;
+    if (!root)
+    {
+        send_error("Invalid JSON");
+        return false;
+    }
 
-    int len = end - start;
-    if (len >= sizeof(command_type)) return true;
+    cJSON *cmd = cJSON_GetObjectItem(root, "command_type");
 
-    memcpy(command_type, start, len);
-    command_type[len] = 0;
+    if (!cJSON_IsString(cmd))
+    {
+        cJSON_Delete(root);
+        send_error("Missing command_type");
+        return false;
+    }
 
+    const char *command_type = cmd->valuestring;
     //ESP_LOGI(TAG, "⚙️ WS Settings command: %s", command_type);
 
     // ==========================================================
@@ -69,349 +231,88 @@ extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,ch
     // ==========================================================
     if (strcmp(command_type, "get_settings") == 0)
     {
-        char category[32] = "all";
 
-        char *cat_ptr = strstr(json, "\"settings_requested\"");
-        if (cat_ptr)
-        {
-            char *s = strchr(cat_ptr, ':');
-            if (s && (s = strchr(s, '"')))
+       
+      const char *category = "all";
+
+            cJSON *cat = cJSON_GetObjectItem(root, "settings_requested");
+
+            if (cJSON_IsString(cat))
             {
-                s++;
-                char *e = strchr(s, '"');
-                if (e)
-                {
-                    int l = e - s;
-                    if (l < sizeof(category))
-                    {
-                        memcpy(category, s, l);
-                        category[l] = 0;
-                    }
-                }
+                category = cat->valuestring;
             }
-        }
 
         ESP_LOGI(TAG, "📥 Requested category: %s", category);
 
-        char ответ[768];
-
-        // ==================================================
-        // USER SETTINGS
-        // ==================================================
         if (strcmp(category, "user") == 0)
-        {
-            snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"user\","
-                     "\"data\":{"
-                     "\"login\":\"%s\""
-                     "}"
-                     "}",
-                     user_cfg.login);
-        }
-
-        // ==================================================
-        // ACCOUNT SETTINGS
-        // ==================================================
+            {
+                send_user_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
         else if (strcmp(category, "account") == 0)
-        {
-            snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"account\","
-                     "\"data\":{"
-                     "\"account_login\":\"%s\","
-                     "\"node_name\":\"%s\""
-                     "}"
-                     "}",
-                     user_cfg.account_login,
-                     user_cfg.node_name);
-        }
+            {
+                send_account_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
 
-        // ==================================================
-        // NETWORK SETTINGS
-        // ==================================================
         else if (strcmp(category, "network") == 0)
-        {
-            snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"network\","
-                     "\"data\":{"
-                     "\"dhcp_enabled\":%s,"
-                     "\"ip\":\"%s\","
-                     "\"mask\":\"%s\","
-                     "\"gateway\":\"%s\","
-                     "\"dns\":\"%s\","
-                     "\"port\":%d,"
-                     "\"wifi_dhcp_enabled\":%s,"
-                     "\"wifi_ip\":\"%s\","
-                     "\"wifi_mask\":\"%s\","
-                     "\"wifi_gateway\":\"%s\","
-                     "\"wifi_dns\":\"%s\""
-                     "}"
-                     "}",
-                     net_cfg.dhcp_enabled ? "true" : "false",
-                     net_cfg.ip,
-                     net_cfg.mask,
-                     net_cfg.gateway,
-                     net_cfg.dns,
-                     net_cfg.port,
-                     net_cfg.wifi_dhcp_enabled ? "true" : "false",
-                     net_cfg.wifi_ip,
-                     net_cfg.wifi_mask,
-                     net_cfg.wifi_gateway,
-                     net_cfg.wifi_dns);
-                      network_notify_ws();
-        }
-
-        // ==================================================
-        // WIFI SETTINGS
-        // ==================================================
+            {
+                send_network_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
+ 
         else if (strcmp(category, "wifi") == 0)
-        {
-            snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"wifi\","
-                     "\"data\":{"
-                     "\"mode\":%d,"
-                     "\"sta_ssid\":\"%s\","
-                     "\"ap_ssid\":\"%s\","
-                     "\"ap_channel\":%d"
-                     "}"
-                     "}",
-                     wifi_cfg.mode,
-                     wifi_cfg.sta_ssid,
-                     wifi_cfg.ap_ssid,
-                     wifi_cfg.ap_channel);
-        }
-
-        // ==================================================
-        // UART SETTINGS
-        // ==================================================
+            {
+                send_wifi_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
+                           
         else if (strcmp(category, "uart") == 0)
-        {
-
-
-            int real_data_bits = 8; // по умолчанию
-            switch (uart_cfg.data_bits) {
-                case UART_DATA_5_BITS: real_data_bits = 5; break;
-                case UART_DATA_6_BITS: real_data_bits = 6; break;
-                case UART_DATA_7_BITS: real_data_bits = 7; break;
-                case UART_DATA_8_BITS: real_data_bits = 8; break;
-            }
-            
-            int real_stop_bits = 1;
-            switch (uart_cfg.stop_bits) {
-                case UART_STOP_BITS_1:   real_stop_bits = 1; break;
-                case UART_STOP_BITS_1_5: real_stop_bits = 15; break; // 1.5 бит
-                case UART_STOP_BITS_2:   real_stop_bits = 2; break;
+            {
+                send_uart_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
             }
 
-            snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"uart\","
-                     "\"data\":{"
-                     "\"baud\":%d,"
-                     "\"data_bits\":%d,"
-                     "\"stop_bits\":%d,"
-                     "\"parity\":%d,"
-                     "\"rs485_mode\":%d"
-                     "}"
-                     "}",
-                     uart_cfg.baud_rate,
-                     real_data_bits,
-                     real_stop_bits,  
-                     uart_cfg.parity,
-                     uart_cfg.rs485_mode);
-        }
+       else if (strcmp(category, "system") == 0)
+            {
+                send_system_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
 
-        // ==================================================
-        // SYSTEM SETTINGS 
-        // ==================================================
-        else if (strcmp(category, "system") == 0)
-        {
-            snprintf(ответ, sizeof(ответ),
-                    "{"
-                    "\"command_type\":\"settings_response\","
-                    "\"category\":\"system\","
-                    "\"data\":{"
-                    "\"refresh_interval\":%d,"
-                    "\"log_level\":%d,"
-                    "\"debug_mode\":%s,"
-                    "\"build_number\":%d,"
-                    "\"build_date\":\"%s\","
-                    "\"ws_server\":\"%s\""
-                    "}"
-                    "}",
-                    sys.refresh_interval,
-                    sys.log_level,
-                    sys.debug_mode ? "true" : "false",
-                    sys.build_number,
-                    sys.build_date,
-                    sys.ws_server);
-        }
 
-      
-// ==================================================
-// ALL SETTINGS
-// ==================================================
-else if (strcmp(category, "all") == 0)
-{
-    ESP_LOGI(TAG, "📦 Sending ALL settings");
-
-    // USER
-    snprintf(ответ, sizeof(ответ),
-             "{"
-             "\"command_type\":\"settings_response\","
-             "\"category\":\"user\","
-             "\"data\":{"
-             "\"login\":\"%s\""
-             "}"
-             "}",
-             user_cfg.login);
-    websocket_send_text(ответ);
-
-    // ACCOUNT
-    snprintf(ответ, sizeof(ответ),
-             "{"
-             "\"command_type\":\"settings_response\","
-             "\"category\":\"account\","
-             "\"data\":{"
-             "\"account_login\":\"%s\","
-             "\"node_name\":\"%s\""
-             "}"
-             "}",
-             user_cfg.account_login,
-             user_cfg.node_name);
-    websocket_send_text(ответ);
-
-    // NETWORK
-    snprintf(ответ, sizeof(ответ),
-             "{"
-             "\"command_type\":\"settings_response\","
-             "\"category\":\"network\","
-             "\"data\":{"
-             "\"dhcp_enabled\":%s,"
-             "\"ip\":\"%s\","
-             "\"mask\":\"%s\","
-             "\"gateway\":\"%s\","
-             "\"dns\":\"%s\","
-             "\"port\":%d,"
-             "\"wifi_dhcp_enabled\":%s,"
-             "\"wifi_ip\":\"%s\","
-             "\"wifi_mask\":\"%s\","
-             "\"wifi_gateway\":\"%s\","
-             "\"wifi_dns\":\"%s\""
-             "}"
-             "}",
-             net_cfg.dhcp_enabled ? "true" : "false",
-             net_cfg.ip,
-             net_cfg.mask,
-             net_cfg.gateway,
-             net_cfg.dns,
-             net_cfg.port,
-             net_cfg.wifi_dhcp_enabled ? "true" : "false",
-             net_cfg.wifi_ip,
-             net_cfg.wifi_mask,
-             net_cfg.wifi_gateway,
-             net_cfg.wifi_dns);
-    websocket_send_text(ответ);
-    network_notify_ws();
-
-    // WIFI
-    snprintf(ответ, sizeof(ответ),
-             "{"
-             "\"command_type\":\"settings_response\","
-             "\"category\":\"wifi\","
-             "\"data\":{"
-             "\"mode\":%d,"
-             "\"sta_ssid\":\"%s\","
-             "\"ap_ssid\":\"%s\","
-             "\"ap_channel\":%d"
-             "}"
-             "}",
-             wifi_cfg.mode,
-             wifi_cfg.sta_ssid,
-             wifi_cfg.ap_ssid,
-             wifi_cfg.ap_channel);
-    websocket_send_text(ответ);
-
-    // UART
-    int real_data_bits = 8;
-    switch (uart_cfg.data_bits) {
-        case UART_DATA_5_BITS: real_data_bits = 5; break;
-        case UART_DATA_6_BITS: real_data_bits = 6; break;
-        case UART_DATA_7_BITS: real_data_bits = 7; break;
-        case UART_DATA_8_BITS: real_data_bits = 8; break;
-    }
-
-    int real_stop_bits = 1;
-    switch (uart_cfg.stop_bits) {
-        case UART_STOP_BITS_1:   real_stop_bits = 1; break;
-        case UART_STOP_BITS_1_5: real_stop_bits = 15; break;
-        case UART_STOP_BITS_2:   real_stop_bits = 2; break;
-    }
-
-    snprintf(ответ, sizeof(ответ),
-             "{"
-             "\"command_type\":\"settings_response\","
-             "\"category\":\"uart\","
-             "\"data\":{"
-             "\"baud\":%d,"
-             "\"data_bits\":%d,"
-             "\"stop_bits\":%d,"
-             "\"parity\":%d,"
-             "\"rs485_mode\":%d"
-             "}"
-             "}",
-             uart_cfg.baud_rate,
-             real_data_bits,
-             real_stop_bits,
-             uart_cfg.parity,
-             uart_cfg.rs485_mode);
-    websocket_send_text(ответ);
-
-    // SYSTEM
-    snprintf(ответ, sizeof(ответ),
-             "{"
-             "\"command_type\":\"settings_response\","
-             "\"category\":\"system\","
-             "\"data\":{"
-             "\"refresh_interval\":%d,"
-             "\"log_level\":%d,"
-             "\"debug_mode\":%s,"
-             "\"build_number\":%d,"
-             "\"build_date\":\"%s\","
-             "\"ws_server\":\"%s\""
-             "}"
-             "}",
-             sys.refresh_interval,
-             sys.log_level,
-             sys.debug_mode ? "true" : "false",
-             sys.build_number,
-             sys.build_date,
-             sys.ws_server);
-    websocket_send_text(ответ);
-   
-    return true;
-}
+        else if (strcmp(category, "all") == 0)
+            {
+                ESP_LOGI(TAG, "📦 Sending ALL settings");
+                send_user_settings();
+                send_account_settings();
+                send_network_settings();
+                send_wifi_settings();
+                send_uart_settings();
+                send_system_settings(); 
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
 
         else
-        {
-            snprintf(ответ, sizeof(ответ),
-                     "{"
-                     "\"command_type\":\"settings_response\","
-                     "\"category\":\"%s\","
-                     "\"error\":\"unknown_category\""
-                     "}",
-                     category);
-        }
-
-        websocket_send_text(ответ);
+            {
+                send_error("Unknown settings category");
+                cJSON_Delete(root);
+                return false;
+            }
+        cJSON_Delete(root);    
         return true;
     }
 
@@ -420,14 +321,58 @@ else if (strcmp(category, "all") == 0)
 // ==========================================================
     if (strcmp(command_type, "set_settings") == 0)
         {
-            ESP_LOGI(TAG, "✍️ SET SETTINGS received");
+        ESP_LOGI(TAG, "✍️ SET SETTINGS received");
+        const char *category = NULL;
+        cJSON *settings = cJSON_GetObjectItem(root, "settings");
 
+        if (!cJSON_IsObject(settings))
+        {
+            send_error("Missing settings");
+            cJSON_Delete(root);
+            return false;
+        }
+
+        if (cJSON_HasObjectItem(settings, "account"))
+        {
+            category = "account";
+        }
+        else if (cJSON_HasObjectItem(settings, "wifi"))
+        {
+            category = "wifi";
+        }
+        else if (cJSON_HasObjectItem(settings, "network"))
+        {
+            category = "network";
+        }
+        else if (cJSON_HasObjectItem(settings, "uart"))
+        {
+            category = "uart";
+        }
+        else if (cJSON_HasObjectItem(settings, "user"))
+        {
+            category = "user";
+        }
+        else if (cJSON_HasObjectItem(settings, "system"))
+        {
+            category = "system";
+        }
+
+        if (!category)
+        {
+            send_error("Unknown settings category");
+            cJSON_Delete(root);
+            return false;
+        }
+
+        ESP_LOGI(TAG, "Category to apply: %s", category);
+
+            /*
             char category[32] = {0};
 
             char *settings_ptr = strstr(json, "\"settings\"");
             if (!settings_ptr)
             {
-                websocket_send_text("{\"status\":\"error\",\"message\":\"Missing settings\"}");
+                send_error("Missing settings");
                 return true;
             }
 
@@ -454,12 +399,12 @@ else if (strcmp(category, "all") == 0)
 
             else
             {
-                websocket_send_text("{\"status\":\"error\",\"message\":\"Unknown settings category\"}");
-                return true;
+                send_error("Unknown settings category");
+                return false ;
             }
 
             ESP_LOGI(TAG, "Category to apply: %s", category);
-
+             */
             // ⚡ Здесь вызываем обработчики
             /*
             if (strcmp(category,"wifi")==0) apply_wifi_settings(...);
@@ -471,7 +416,6 @@ if (strcmp(category, "uart") == 0)
 {
     ESP_LOGI(TAG, "⚙️ Applying UART settings");
 
-    cJSON *root = cJSON_Parse(json);
 
     if (!root)
     {
@@ -527,11 +471,7 @@ if (strcmp(category, "uart") == 0)
         if (!uart_json)
         {
             cJSON_Delete(root);
-
-            websocket_send_text(
-                "{\"status\":\"error\",\"message\":\"Invalid uart JSON string\"}"
-            );
-
+            websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart JSON string\"}" );
             return true;
         }
 
@@ -540,11 +480,7 @@ if (strcmp(category, "uart") == 0)
     else
     {
         cJSON_Delete(root);
-
-        websocket_send_text(
-            "{\"status\":\"error\",\"message\":\"Invalid uart type\"}"
-        );
-
+        websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart type\"}");
         return true;
     }
 
@@ -650,7 +586,6 @@ if (strcmp(category, "uart") == 0)
 
     nvs_save_uart_settings(&uart_cfg);
 
-    // restart UART
     rs485_master_deinit();
 
     vTaskDelay(pdMS_TO_TICKS(100));
@@ -667,13 +602,7 @@ if (strcmp(category, "uart") == 0)
     }
 
     cJSON_Delete(root);
-
-    // ======================================================
-    // ACK
-    // ======================================================
-
-    websocket_send_text("{""\"command_type\":\"set_settings_ack\",""\"status\":\"ok\"," "\"category\":\"uart\"""}" );
-
+    send_ack("uart");
     return true;
 }
 
@@ -715,12 +644,15 @@ if (strcmp(category, "uart") == 0)
                 if (strcmp(value, "reboot") == 0)
                 {
                     ESP_LOGW(TAG, "🔄 Reboot command received");
-                    websocket_send_text( "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\",\"action\":\"reboot\"}");
+                  //  websocket_send_text( "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\",\"action\":\"reboot\"}");
+                    send_ack("System reboot");
                     vTaskDelay(pdMS_TO_TICKS(500)); // дать уйти ack
                     esp_restart();
                 }
             }
-          //  websocket_send_text("{\"command_type\":\"set_settings_ack\",\"status\":\"ok\"}" );
+          
+            send_action_ack("reboot");
+             gpio_link_led(0);
             return true;
        }
     gpio_link_led(0);
