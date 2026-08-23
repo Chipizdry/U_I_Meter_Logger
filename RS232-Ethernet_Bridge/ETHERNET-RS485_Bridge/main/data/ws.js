@@ -109,16 +109,26 @@ function scheduleReconnect() {
     }, delay);
 }
 
-// УДАЛЕНА дублирующая функция sendWsCommand (была объявлена дважды)
 
 function handleWsMessage(msg) {
     const cloudEl = document.getElementById("ws-status");
 
     // === Статусы соединения с облаком ===
+
+      if (msg.cloud_status) {
+        updateCloudStatus(msg.cloud_status);
+      }
+      /*
     if (msg.cloud_status) {
         if (msg.cloud_status === "connected") {
             cloudEl.textContent = "☁️ Подключено к облаку";
             cloudEl.style.color = "green";
+        }  else if (msg.cloud_status === "authenticated") {
+            cloudEl.textContent = "✅ Авторизовано";
+            cloudEl.style.color = "green";
+        } else if (msg.cloud_status === "Connecting...") {
+            cloudEl.textContent = "⏳ Подключение к облаку...";
+            cloudEl.style.color = "orange";
         } else if (msg.cloud_status === "disconnected") {
             cloudEl.textContent = "⚠️ Отключено от облака";
             cloudEl.style.color = "red";
@@ -130,7 +140,7 @@ function handleWsMessage(msg) {
             cloudEl.style.color = "blue";
         }
     }
-
+*/
     // === Другие типы сообщений ===
     if (msg.type === "update") {
         if (msg.payload?.status) updateStatus(msg.payload.status);

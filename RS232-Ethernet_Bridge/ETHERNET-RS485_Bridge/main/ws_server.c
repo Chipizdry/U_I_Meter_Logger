@@ -176,13 +176,13 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
         last_ws_event_tick = 0;
 
         websocket_client_start(user_cfg.serial, ws_email, ws_password, ws_node_name);
-        ws_send_fd(fd, "{\"cloud_status\":\"test_account ok\"}");
+        ws_send_fd(fd, "{\"cloud_status\":\"Проверка учетной записи\"}");
         return;
     }
 
     if (strcmp(act, "cancel_test_account") == 0) {
         cancel_test_account();
-        ws_send_fd(fd, "{\"cloud_status\":\"test_account cancelled\"}");
+        ws_send_fd(fd, "{\"cloud_status\":\"Проверка учетной записи отменена\"}");
         return;
     }
 

@@ -1214,3 +1214,19 @@ select:focus {
     background: #eee;
     color: #777;
 }
+
+.file-btn:disabled {
+    opacity: 0.5;
+    color: inherit !important;
+    cursor: default !important;
+}
+
+.ota-disabled {
+    cursor: default !important;
+}
+
+button:disabled,
+input:disabled,
+select:disabled {
+    cursor: default !important;
+}

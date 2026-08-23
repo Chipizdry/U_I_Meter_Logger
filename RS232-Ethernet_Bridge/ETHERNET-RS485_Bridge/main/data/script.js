@@ -120,7 +120,7 @@ function applySettingsToForm(tab, data) {
             document.querySelector("[name='user-login']").value = user.login || "";
             break;
         }
-
+/*
         case "account": {
             const account = data.user || {};
             const wsDiv = document.getElementById('ws-status');
@@ -132,6 +132,16 @@ function applySettingsToForm(tab, data) {
             break;
         }
 
+*/
+        case "account": {
+            const account = data.user || {};
+            document.querySelector("[name='account-login']").value = account.account_login || "";
+            document.querySelector("[name='node-name']").value = account.node_name || "";
+            // Обрабатываем статус так же,
+            // как статус WebSocket/облака
+            updateCloudStatus( account.status);
+            break;
+        }
         case "system": {
             const system = data.system || {};
             buildNumber = system.build_number;
@@ -185,7 +195,7 @@ btn.addEventListener("click", () => {
         testAccountActive = true;
         statusDiv.textContent = "✅ Тестовый режим включен";
         statusDiv.style.color = "green";
-        btn.textContent = "Выйти из тестового режима"; // ← теперь работает
+        btn.textContent = "Выйти из тестового режима"; 
 
     } else {
         // Выключаем тестовый режим
@@ -478,92 +488,323 @@ function updateAllIPFieldsState() {
      });
  }
  
+ /*
+function setFirmwareUploadState(uploading) {
+    const uploadButton = document.getElementById("uploadFirmwareBtn");
+    const fileInput = document.getElementById("firmwareFile");
+
+    if (uploadButton) {
+        uploadButton.disabled = uploading;
+
+        if (uploading) {
+            uploadButton.dataset.originalText = uploadButton.textContent;
+            uploadButton.textContent = "Загрузка...";
+            uploadButton.classList.add("uploading");
+        } else {
+            uploadButton.textContent =
+                uploadButton.dataset.originalText || "UPLOAD FIRMWARE";
+            uploadButton.classList.remove("uploading");
+        }
+    }
+
+    // Во время OTA также запрещаем выбирать другой файл
+    if (fileInput) {
+        fileInput.disabled = uploading;
+    }
+}
+    */
+
+function setFirmwareUploadState(uploading) {
+
+    const uploadButton = document.getElementById("uploadFirmwareBtn");
+    const fileInput = document.getElementById("firmwareFile");
+
+    // Кнопка "Выберите файл"
+    const fileSelectButton = document.querySelector(
+        ".file-input-box .file-btn"
+    );
+
+    // Кнопка "Перезагрузить устройство"
+    const rebootButton = document.querySelector(
+        "#system button[onclick='rebootDevice()']"
+    );
+
+    // Кнопка "Сбросить настройки"
+    const factoryResetButton = document.querySelector(
+        "#system button[onclick='FactoryDefaults()']"
+    );
+
+    // Все элементы, которые должны быть заблокированы во время OTA
+    const otaControls = [
+        uploadButton,
+        fileSelectButton,
+        fileInput,
+        rebootButton,
+        factoryResetButton
+    ];
+
+    otaControls.forEach(element => {
+        if (!element) return;
+
+        element.disabled = uploading;
+        element.classList.toggle("ota-disabled", uploading);
+    });
 
 
+    // =====================================================
+    // Кнопка загрузки прошивки
+    // =====================================================
+
+    if (uploadButton) {
+
+        if (uploading) {
+
+            uploadButton.dataset.originalText =
+                uploadButton.textContent;
+
+            uploadButton.textContent = "Загрузка...";
+            uploadButton.classList.add("uploading");
+
+        } else {
+
+            uploadButton.textContent =
+                uploadButton.dataset.originalText ||
+                "Обновить прошивку";
+
+            uploadButton.classList.remove("uploading");
+        }
+    }
+
+}
 
 async function uploadFirmware() {
     const fileInput = document.getElementById("firmwareFile");
     const status = document.getElementById("status");
 
+    // Защита от повторного запуска
+    const uploadButton = document.getElementById("uploadFirmwareBtn");
+
+    if (uploadButton && uploadButton.disabled) {
+        return;
+    }
+
     if (!fileInput.files.length) {
-        status.innerText = "Select firmware file!";
+        status.innerText = "Выберите файл прошивки!";
         return;
     }
 
     const file = fileInput.files[0];
     const totalSize = file.size;
+
     let offset = 0;
     let chunkNumber = 1;
-    status.innerText = "Uploading...";
 
-    async function sendNextChunk(retry = 0) {
-        const chunk = file.slice(offset, offset + CHUNK_SIZE);
-        const ab = await chunk.arrayBuffer();
-        const token = sessionStorage.getItem("auth_token");
-        if (!token) return;
+    // ==========================================
+    // БЛОКИРУЕМ UI НА ВЕСЬ ПЕРИОД OTA
+    // ==========================================
 
-        const md5sum = md5(ab);
-        console.log(`Chunk ${chunkNumber}: ${ab.byteLength} bytes, MD5=${md5sum}`);
+    setFirmwareUploadState(true);
 
-        const form = new FormData();
-        form.append("fileName", file.name);
-        form.append("totalSize", totalSize);
-        form.append("chunkNumber", chunkNumber);
-        form.append("md5", md5sum);
-        form.append("chunk", new Blob([ab]), "chunk.bin");
+    status.innerText = "Запуск загрузки прошивки...";
 
-        const response = await fetch("/ota", { method: "POST", headers: {
-                "Authorization": `Bearer ${token}`
-            }, body: form });
+    try {
 
-        if (!response.ok) {
-            if (response.status === 409 && retry < MAX_RETRIES) {
-                console.warn(`MD5 mismatch → retry chunk ${chunkNumber}`);
-                return sendNextChunk(retry + 1);
+        async function sendNextChunk(retry = 0) {
+
+            const chunk = file.slice(
+                offset,
+                offset + CHUNK_SIZE
+            );
+
+            const ab = await chunk.arrayBuffer();
+
+            const token = sessionStorage.getItem("auth_token");
+
+            if (!token) {
+                throw new Error("Authorization token not found");
             }
+
+            const md5sum = md5(ab);
+
+            console.log(
+                `Chunk ${chunkNumber}: ${ab.byteLength} bytes, MD5=${md5sum}`
+            );
+
+            const form = new FormData();
+
+            form.append("fileName", file.name);
+            form.append("totalSize", totalSize);
+            form.append("chunkNumber", chunkNumber);
+            form.append("md5", md5sum);
+            form.append("chunk",new Blob([ab]),"chunk.bin");
+
+            const response = await fetch("/ota", {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                },
+                body: form
+            });
+
+            // ==========================================
+            // TOKEN EXPIRED
+            // ==========================================
 
             if (response.status === 401) {
+
+                sessionStorage.removeItem("auth_token");
+
                 showTokenExpiredModal();
+
+                throw new Error("Authorization expired");
+            }
+
+            // ==========================================
+            // MD5 ERROR
+            // ==========================================
+
+            if (response.status === 409) {
+
+                if (retry < MAX_RETRIES) {
+
+                    console.warn(
+                        `MD5 mismatch → retry chunk ${chunkNumber}`
+                    );
+
+                    status.innerText =
+                        `Retry chunk ${chunkNumber}...`;
+
+                    return sendNextChunk(retry + 1);
+                }
+
+                let errorMessage =
+                    "MD5 verification failed";
+
+                try {
+                    const json = await response.json();
+
+                    if (json.message) {
+                        errorMessage = json.message;
+                    }
+
+                } catch (e) {
+                    // Ответ не JSON — оставляем стандартное сообщение
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            // ==========================================
+            // ДРУГАЯ HTTP ОШИБКА
+            // ==========================================
+
+            if (!response.ok) {
+
+                let errorMessage =
+                    `Upload failed (HTTP ${response.status})`;
+
+                try {
+
+                    const json = await response.json();
+
+                    if (json.message) {
+                        errorMessage = json.message;
+                    }
+
+                } catch (e) {
+                    // Ответ не JSON
+                }
+
+                throw new Error(errorMessage);
+            }
+
+            // ==========================================
+            // ПОСЛЕДНИЙ CHUNK
+            // ==========================================
+
+            if (offset + ab.byteLength >= totalSize) {
+
+                let json = {};
+
+                try {
+                    json = await response.json();
+                } catch (e) {
+                    console.warn(
+                        "Последний OTA ответ не является JSON"
+                    );
+                }
+
+                console.log("OTA завершён:", json);
+
+                status.innerText =
+                    "✅ Прошивка загружена,устройство перезагружается...";
+
+                showPopup({
+                    type: "success",
+                    title: "Обновлена прошивка",
+                    message:
+                        json.message ||
+                        "Прошивка успешно загружена. Устройство перезагружается...",
+                    timeout: 4000
+                });
+
+                // ВАЖНО:
+                // здесь НЕ разблокируем кнопку.
+                //
+                // OTA завершился успешно,
+                // устройство сейчас перезагрузится.
+                //
+                // finally() ниже выполнит разблокировку.
+
                 return;
             }
-            status.innerText = "Upload failed!";
 
-           showPopup({
-           type: "error",
-            title: "Ошибка",
-            message: json.message || "Ошибка загрузки прошивки",
-            timeout: 3000
-           });
+            // ==========================================
+            // ПЕРЕХОД К СЛЕДУЮЩЕМУ CHUNK
+            // ==========================================
 
-            throw new Error(`Chunk ${chunkNumber} failed.`);
+            offset += ab.byteLength;
+            chunkNumber++;
+
+            const percent =
+                Math.round((offset / totalSize) * 100);
+
+            status.innerText =
+                `Загрузка прошивки: ${percent}%`;
+
+            // ВАЖНО — await!
+            await sendNextChunk(0);
         }
-/////////////////////////////////////////////////////////////////////////////
-    // ⬇️ если это последний chunk — ждём ответ с OTA-session
-            if (offset + ab.byteLength >= totalSize) {
-                const json = await response.json();
-             
-            showPopup({  type: "success", title: "Обновлена прошивка", message: json.message || "Прошивка загружена, перезагрузка...", timeout: 3000 });
-                status.innerText = "✅ Firmware uploaded, rebooting...";
-        
-            return;
-            }
 
-///////////////////////////////////////////////////////////////////////////////
-        offset += ab.byteLength;
-        chunkNumber++;
-        status.innerText = `Uploaded ${offset} / ${totalSize}`;
+        // ==========================================
+        // ЗАПУСК OTA
+        // ==========================================
 
-        if (offset < totalSize) {
-            sendNextChunk(0);
-        } else {
-            status.innerText = "✅ Upload completed, ESP32 flashing...";
-        }
+        await sendNextChunk(0);
+
+    } catch (error) {
+
+        console.error("OTA error:", error);
+
+        status.innerText =
+            "❌ Загрузка прошивки не удалась";
+
+        showPopup({
+            type: "error",
+            title: "Ошибка OTA",
+            message: error.message || "Ошибка загрузки прошивки",
+            timeout: 5000
+        });
+
+    } finally {
+
+        // ==========================================
+        // ОБЯЗАТЕЛЬНО РАЗБЛОКИРУЕМ UI
+        // ==========================================
+
+        setFirmwareUploadState(false);
     }
-
-    sendNextChunk();
 }
-
-
 
 
 
@@ -654,3 +895,45 @@ function showPopup({
 }
 
 
+function updateCloudStatus(status) {
+
+    const cloudEl = document.getElementById("ws-status");
+    if (!cloudEl) return;
+
+    switch (status) {
+
+        case "connected":
+            cloudEl.textContent = "☁️ Подключено к облаку";
+            cloudEl.style.color = "green";
+            break;
+
+        case "authenticated":
+            cloudEl.textContent = "✅ Авторизовано";
+            cloudEl.style.color = "green";
+            break;
+
+        case "Connecting...":
+            cloudEl.textContent = "⏳ Подключение к облаку...";
+            cloudEl.style.color = "orange";
+            break;
+
+        case "disconnected":
+            cloudEl.textContent = "⚠️ Отключено от облака";
+            cloudEl.style.color = "red";
+            break;
+
+        case "error":
+            cloudEl.textContent = "❌ Ошибка облака";
+            cloudEl.style.color = "red";
+            break;
+        case "Auth error: Invalid credentials":
+            cloudEl.textContent = "❌ Ошибка: неверные данные";
+            cloudEl.style.color = "red";
+            break;    
+
+        default:
+            cloudEl.textContent = status || "❔ Неизвестный статус";
+            cloudEl.style.color = "blue";
+            break;
+    }
+}

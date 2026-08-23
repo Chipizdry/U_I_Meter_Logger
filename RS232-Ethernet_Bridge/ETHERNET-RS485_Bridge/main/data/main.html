@@ -16,11 +16,11 @@
         <form id="loginForm"  method="POST" >
             <h2>Авторизация</h2>
             <div id="loginStatus" class="login-status hidden message"></div>
-            <label>Login:</label>
+            <label>Имя пользователя:</label>
             <input name="login" type="text" required placeholder="Введите логин"  autocomplete="username"><br><br>
 
 
-            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
+            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
             <div class="password-container">
                 <input type="password" id="password" name="password" data-translate="password_placeholder"   required autocomplete="current-password">
                 <span id="eyeIcon" class="eye-icon" onclick="togglePassword('password', 'eyeIcon')"></span>
@@ -193,7 +193,7 @@
                         <h3>Обновление </h3>
 
                         <div class="file-input-box">
-                            <button type="button" class="file-btn" onclick="document.getElementById('firmwareFile').click()">
+                            <button type="button" id="fileSelectButton" class="file-btn" onclick="document.getElementById('firmwareFile').click()">
                                 Выберите файл
                             </button>
 
@@ -202,7 +202,7 @@
                             <span id="fileName" class="file-name">Файл не выбран</span>
                         </div>
 
-                        <button type="button" onclick="uploadFirmware()">Upload Firmware</button>
+                        <button type="button" id="uploadFirmwareBtn" onclick="uploadFirmware()">Обновить прошивку</button>
                         <p id="status"></p>
                     </form>
                     <button onclick="rebootDevice()">Перезагрузить устройство</button>
@@ -223,9 +223,9 @@
                     <h2>Учётная запись</h2>
                   <form id="accountForm">
                     <label>Название узла: <input type="text" name="node-name" ></label><br>
-                    <label>Login: <input type="text" name="account-login" required></label><br>
+                    <label>Имя пользователя: <input type="text" name="account-login" required></label><br>
                 
-                    <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Password:</label>
+                    <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
                     <div class="password-container">
                         <input type="password" id="account-password" name="account-password" data-translate="password_placeholder" autocomplete="password" >
                         <span class="eye-icon" id="eye-account-password" onclick="togglePassword('account-password','eye-account-password')"></span>
