@@ -13,6 +13,7 @@
 #include "rs485_master.h"
 #include "nvs_settings.h"
 #include "network_state.h"
+#include "gpio_manager.h"
 
 #define WS_LOG(fmt, ...) ESP_LOGI(TAG, "[WS] " fmt, ##__VA_ARGS__)
 
@@ -251,7 +252,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
             "Stopping existing cloud websocket before test"
         );
 
-        esp_websocket_client_stop(client);
+        websocket_client_stop();
 
         vTaskDelay(pdMS_TO_TICKS(200));
 
@@ -393,6 +394,7 @@ void cancel_test_account(void) {
     websocket_disable_reconnect();
     if (client) {
         esp_websocket_client_stop(client);
+        gpio_set_net_led(false);
         vTaskDelay(pdMS_TO_TICKS(100));
         esp_websocket_client_destroy(client);
         client = NULL;
