@@ -193,8 +193,8 @@ btn.addEventListener("click", () => {
         }));
 
         testAccountActive = true;
-        statusDiv.textContent = "✅ Тестовый режим включен";
-        statusDiv.style.color = "green";
+      //  statusDiv.textContent = "✅ Тестовый режим включен";
+      //  statusDiv.style.color = "green";
         btn.textContent = "Выйти из тестового режима"; 
 
     } else {
@@ -488,31 +488,6 @@ function updateAllIPFieldsState() {
      });
  }
  
- /*
-function setFirmwareUploadState(uploading) {
-    const uploadButton = document.getElementById("uploadFirmwareBtn");
-    const fileInput = document.getElementById("firmwareFile");
-
-    if (uploadButton) {
-        uploadButton.disabled = uploading;
-
-        if (uploading) {
-            uploadButton.dataset.originalText = uploadButton.textContent;
-            uploadButton.textContent = "Загрузка...";
-            uploadButton.classList.add("uploading");
-        } else {
-            uploadButton.textContent =
-                uploadButton.dataset.originalText || "UPLOAD FIRMWARE";
-            uploadButton.classList.remove("uploading");
-        }
-    }
-
-    // Во время OTA также запрещаем выбирать другой файл
-    if (fileInput) {
-        fileInput.disabled = uploading;
-    }
-}
-    */
 
 function setFirmwareUploadState(uploading) {
 

@@ -149,7 +149,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
     if (!action || !cJSON_IsString(action)) return;
 
     const char *act = action->valuestring;
-
+/*
     if (strcmp(act, "test_account") == 0) {
         cJSON *login = cJSON_GetObjectItem(msg, "account_login");
         cJSON *password = cJSON_GetObjectItem(msg, "account_password");
@@ -179,6 +179,115 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
         ws_send_fd(fd, "{\"cloud_status\":\"Проверка учетной записи\"}");
         return;
     }
+
+    */
+    if (strcmp(act, "test_account") == 0) {
+
+    cJSON *login = cJSON_GetObjectItem(msg, "account_login");
+    cJSON *password = cJSON_GetObjectItem(msg, "account_password");
+    cJSON *node_name = cJSON_GetObjectItem(msg, "node_name");
+
+    if (!login || !password ||
+        !cJSON_IsString(login) ||
+        !cJSON_IsString(password)) {
+
+        ws_send_fd(fd,
+                   "{\"error\":\"invalid test_account payload\"}");
+        return;
+    }
+
+    // ==========================================
+    // Останавливаем автоматический reconnect
+    // ==========================================
+
+    websocket_disable_reconnect();
+
+    // ==========================================
+    // Переходим в тестовый режим
+    // ==========================================
+
+    test_account_active = true;
+
+    // ==========================================
+    // Сохраняем тестовые credentials
+    // ==========================================
+
+    strncpy(
+        ws_email,
+        login->valuestring,
+        sizeof(ws_email) - 1
+    );
+    ws_email[sizeof(ws_email) - 1] = '\0';
+
+
+    strncpy(
+        ws_password,
+        password->valuestring,
+        sizeof(ws_password) - 1
+    );
+    ws_password[sizeof(ws_password) - 1] = '\0';
+
+
+    if (node_name && cJSON_IsString(node_name)) {
+
+        strncpy(
+            ws_node_name,
+            node_name->valuestring,
+            sizeof(ws_node_name) - 1
+        );
+
+        ws_node_name[sizeof(ws_node_name) - 1] = '\0';
+    }
+
+
+    // ==========================================
+    // Полностью останавливаем старый клиент
+    // ==========================================
+
+    if (client) {
+
+        ESP_LOGI(
+            TAG,
+            "Stopping existing cloud websocket before test"
+        );
+
+        esp_websocket_client_stop(client);
+
+        vTaskDelay(pdMS_TO_TICKS(200));
+
+        esp_websocket_client_destroy(client);
+
+        client = NULL;
+    }
+
+
+    ws_connected = false;
+    last_ws_event_tick = 0;
+
+
+    // ==========================================
+    // Запускаем тестовый клиент
+    // ==========================================
+
+    websocket_client_start(
+        user_cfg.serial,
+        ws_email,
+        ws_password,
+        ws_node_name
+    );
+
+
+    // ==========================================
+    // Сообщаем браузеру
+    // ==========================================
+
+    ws_send_fd(
+        fd,
+        "{\"cloud_status\":\"Проверка учетной записи\"}"
+    );
+
+    return;
+}
 
     if (strcmp(act, "cancel_test_account") == 0) {
         cancel_test_account();

@@ -15,7 +15,7 @@ const MAX_RECONNECT_DELAY = 5000;    // максимум 5 сек
 const MAX_RECONNECT_ATTEMPTS = 20;
 
 function initWebSocket() {
-     isLoggingOut = false;
+    isLoggingOut = false;
     if (ws && ws.readyState === WebSocket.OPEN) {
         console.warn(`[${new Date().toISOString()}] WS already exists → skipping init`);
         return;
@@ -91,7 +91,7 @@ function stopHeartbeat() {
     }
 }
 
-// ИСПРАВЛЕНО: функция scheduleReconnect с экспоненциальной задержкой
+// функция scheduleReconnect с экспоненциальной задержкой
 function scheduleReconnect() {
     if (reconnectTimer || isLoggingOut) return;
     
@@ -118,29 +118,7 @@ function handleWsMessage(msg) {
       if (msg.cloud_status) {
         updateCloudStatus(msg.cloud_status);
       }
-      /*
-    if (msg.cloud_status) {
-        if (msg.cloud_status === "connected") {
-            cloudEl.textContent = "☁️ Подключено к облаку";
-            cloudEl.style.color = "green";
-        }  else if (msg.cloud_status === "authenticated") {
-            cloudEl.textContent = "✅ Авторизовано";
-            cloudEl.style.color = "green";
-        } else if (msg.cloud_status === "Connecting...") {
-            cloudEl.textContent = "⏳ Подключение к облаку...";
-            cloudEl.style.color = "orange";
-        } else if (msg.cloud_status === "disconnected") {
-            cloudEl.textContent = "⚠️ Отключено от облака";
-            cloudEl.style.color = "red";
-        } else if (msg.cloud_status === "error") {
-            cloudEl.textContent = "❌ Ошибка облака";
-            cloudEl.style.color = "red";
-        } else {
-            cloudEl.textContent = msg.cloud_status;
-            cloudEl.style.color = "blue";
-        }
-    }
-*/
+   
     // === Другие типы сообщений ===
     if (msg.type === "update") {
         if (msg.payload?.status) updateStatus(msg.payload.status);
