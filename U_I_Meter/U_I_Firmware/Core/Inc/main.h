@@ -65,6 +65,7 @@ void Error_Handler(void);
 #define LED_2_GPIO_Port GPIOA
 #define UI_INT_Pin GPIO_PIN_0
 #define UI_INT_GPIO_Port GPIOB
+#define UI_INT_EXTI_IRQn EXTI0_1_IRQn
 
 /* USER CODE BEGIN Private defines */
 # define LED_1_ON   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_15, GPIO_PIN_SET)

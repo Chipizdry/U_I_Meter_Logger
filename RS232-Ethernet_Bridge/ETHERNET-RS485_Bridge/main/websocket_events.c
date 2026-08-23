@@ -301,6 +301,7 @@ static bool handle_mtcp_data(const char *json)
     static uint8_t resp[256];
     int resp_len = 0;
 
+    ESP_LOGW(TAG, "FREE HEAP: %lu | MIN: %lu", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
     esp_err_t err = modbus_tcp_request(ip_str,port_v,unit,func_v,start,qty,val,resp,&resp_len);
 
     if (err == ESP_OK) {

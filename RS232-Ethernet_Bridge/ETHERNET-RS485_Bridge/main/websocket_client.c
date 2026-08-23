@@ -11,6 +11,7 @@
 #include "freertos/task.h"
 #include "esp_sntp.h"
 #include "esp_https_ota.h"
+#include "lwip/netdb.h"
 #include "driver/uart.h"
 #include "cJSON.h"
 
@@ -24,9 +25,6 @@
 #include "ota_pull.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
-
-//static uint32_t last_modbus_tick = 0;
-//static uint32_t last_pi30_tick   = 0;
 
 static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(20000); // 20 секунд
 // переменные для авторизации
@@ -54,6 +52,10 @@ static const char *TAG = "websocket_client";
 
 bool ws_connected = false;
 static bool ws_reconnect_enabled = true;
+static int reconnect_fail_count = 0;
+static int reconnect_delay_sec = 5;        // начальная задержка 5 сек
+static const int MAX_RECONNECT_DELAY_SEC = 120;   // максимум 2 минуты
+static const int MAX_DNS_ERRORS = 10;               // после 10 DNS-ошибок отключаем реконнект
 
 char cloud_status_msg[32] = "Idle";   // статус по умолчанию
 char ws_rx_buf[512];
@@ -74,9 +76,18 @@ void websocket_enable_reconnect(void)
 }
 
 
+static bool can_resolve_host(const char *host)
+{
+    struct hostent *he = gethostbyname(host);
+    return (he != NULL);
+}
+
+
+
+/*
  void websocket_reconnect_task(void *pvParameters)
 {
-    const TickType_t check_interval = pdMS_TO_TICKS(2000); // проверяем каждую секунду
+    const TickType_t check_interval = pdMS_TO_TICKS(5000); // проверяем каждую секунду
 
     for (;;)
     {
@@ -132,6 +143,92 @@ void websocket_enable_reconnect(void)
     }
 }
 
+*/
+
+void websocket_reconnect_task(void *pvParameters)
+{
+    const TickType_t base_delay_ticks = pdMS_TO_TICKS(5000); // для проверки флага
+
+    for (;;)
+    {
+        if (!ws_reconnect_enabled) {
+            vTaskDelay(base_delay_ticks);
+            continue;
+        }
+
+        bool need_reconnect = false;
+        if (!ws_connected) {
+            need_reconnect = true;
+        } else {
+            TickType_t now = xTaskGetTickCount();
+            if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
+                ESP_LOGW(TAG, "⚠️ No WS activity for 20 seconds, forcing reconnect");
+                need_reconnect = true;
+            }
+        }
+
+        if (need_reconnect && !ws_reconnect_in_progress) {
+            ws_reconnect_in_progress = true;
+
+            // Останавливаем и уничтожаем старый клиент, если есть
+            if (client) {
+                esp_websocket_client_stop(client);
+                vTaskDelay(pdMS_TO_TICKS(100));
+                esp_websocket_client_destroy(client);
+                client = NULL;
+                ws_connected = false;
+            }
+
+            // Проверяем, можно ли резолвить хост (извлечём хост из URI)
+            // Для простоты – проверяем фиксированный домен (или можно парсить из sys.ws_server)
+            if (!can_resolve_host("dev.monitoring.cor-int.com")) {
+                ESP_LOGE(TAG, "❌ Cannot resolve host, postponing reconnect");
+                reconnect_fail_count++;
+                if (reconnect_fail_count >= MAX_DNS_ERRORS) {
+                    ESP_LOGE(TAG, "Too many DNS errors, disabling reconnect");
+                    websocket_disable_reconnect();
+                    ws_reconnect_in_progress = false;
+                    break;  // выходим из задачи (или можно просто ждать вечно)
+                }
+                // Увеличиваем задержку
+                reconnect_delay_sec = (reconnect_delay_sec * 2 < MAX_RECONNECT_DELAY_SEC) ? reconnect_delay_sec * 2 : MAX_RECONNECT_DELAY_SEC;
+                ESP_LOGI(TAG, "Next reconnect attempt in %d seconds", reconnect_delay_sec);
+                vTaskDelay(pdMS_TO_TICKS(reconnect_delay_sec * 1000));
+                ws_reconnect_in_progress = false;
+                continue;
+            }
+
+            // Сброс счётчика ошибок при успешном резолвинге
+            reconnect_fail_count = 0;
+
+            const char *email_to_use = test_account_active ? ws_email : user_cfg.account_login;
+            const char *pass_to_use  = test_account_active ? ws_password : user_cfg.account_password;
+            const char *node_name_use  = test_account_active ? ws_node_name : user_cfg.node_name;
+
+            esp_err_t ok = websocket_client_start(user_cfg.serial, email_to_use, pass_to_use, node_name_use);
+            if (ok == ESP_OK) {
+                ESP_LOGI(TAG, "Reconnect started");
+                reconnect_delay_sec = 5; // сбрасываем задержку при успехе
+            } else {
+                ESP_LOGE(TAG, "Reconnect failed: %s", esp_err_to_name(ok));
+                reconnect_fail_count++;
+                // Увеличиваем задержку
+                reconnect_delay_sec = (reconnect_delay_sec * 2 < MAX_RECONNECT_DELAY_SEC) ? reconnect_delay_sec * 2 : MAX_RECONNECT_DELAY_SEC;
+                ESP_LOGI(TAG, "Next reconnect attempt in %d seconds", reconnect_delay_sec);
+                vTaskDelay(pdMS_TO_TICKS(reconnect_delay_sec * 1000));
+                ws_reconnect_in_progress = false;
+                continue;
+            }
+
+            ws_reconnect_in_progress = false;
+        }
+
+        // Ждём перед следующей проверкой (но не блокируем надолго, чтобы отреагировать на изменения)
+        vTaskDelay(pdMS_TO_TICKS(5000));
+    }
+}
+
+
 
 static void websocket_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
 {
@@ -155,6 +252,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
            //  gpio_set_net_led(true);
              ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
              last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
+             ws_reconnect_in_progress = false; // сбрасываем флаг реконнекта
         break;
 
 
@@ -320,7 +418,7 @@ void initialize_sntp(void)
             return;
         }
         ESP_LOGI("SNTP", "Waiting for time... (%d/%d)", i + 1, max_wait_sec);
-        vTaskDelay(pdMS_TO_TICKS(1000));
+        vTaskDelay(pdMS_TO_TICKS(2000));
     }
 
     ESP_LOGW("TIME", "❌ SNTP sync timeout, continuing with default time");
@@ -399,7 +497,7 @@ void websocket_restart(const char *email, const char *password, const char *node
     } else {
         ESP_LOGE(TAG, "❌ WebSocket restart failed: %s", esp_err_to_name(ok));
     }
-     ws_reconnect_in_progress = false;
+   //  ws_reconnect_in_progress = false;
 }
 
 

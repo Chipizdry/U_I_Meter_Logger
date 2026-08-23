@@ -77,7 +77,18 @@ esp_err_t ota_post_handler(httpd_req_t *req) {
 
     ESP_LOGI(TAG, "=== OTA POST === len=%d total_received=%d ===", req->content_len, total_received);
 
-    char *buffer = malloc(OTA_CHUNK_SIZE);
+  //  char *buffer = malloc(OTA_CHUNK_SIZE);
+
+  if (req->content_len <= 0 || req->content_len > 8192) {
+    httpd_resp_send_err(req, 413, "Chunk too large");
+    return ESP_FAIL;
+}
+
+char *buffer = malloc(req->content_len);
+if (!buffer) {
+    httpd_resp_send_err(req, 500, "No memory");
+    return ESP_FAIL;
+}
     if (!buffer) {
         httpd_resp_send_err(req, 500, "No memory");
         return ESP_FAIL;

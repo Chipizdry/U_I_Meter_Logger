@@ -1,8 +1,8 @@
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:862:13:HAL_ADC_MspInit	1
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:379:19:HAL_ADC_Init	19
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:879:13:HAL_ADC_MspDeInit	1
-../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:1264:19:HAL_ADC_PollForConversion	13
-../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:1397:19:HAL_ADC_PollForEvent	12
+../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:1264:19:HAL_ADC_PollForConversion	14
+../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:1397:19:HAL_ADC_PollForEvent	13
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:1842:10:HAL_ADC_GetValue	1
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:2069:13:HAL_ADC_ConvCpltCallback	1
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_adc.c:2084:13:HAL_ADC_ConvHalfCpltCallback	1

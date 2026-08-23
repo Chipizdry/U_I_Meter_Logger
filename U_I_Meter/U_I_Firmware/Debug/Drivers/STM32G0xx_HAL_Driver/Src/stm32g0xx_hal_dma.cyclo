@@ -6,7 +6,7 @@
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:433:19:HAL_DMA_Start_IT	6
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:507:19:HAL_DMA_Abort	4
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:572:19:HAL_DMA_Abort_IT	4
-../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:637:19:HAL_DMA_PollForTransfer	13
+../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:637:19:HAL_DMA_PollForTransfer	15
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:797:6:HAL_DMA_IRQHandler	12
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:903:19:HAL_DMA_RegisterCallback	7
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_dma.c:954:19:HAL_DMA_UnRegisterCallback	8

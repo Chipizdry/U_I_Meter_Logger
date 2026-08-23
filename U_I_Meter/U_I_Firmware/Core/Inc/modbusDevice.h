@@ -56,5 +56,6 @@ uint8_t encodeBitsIntoByte (uint8_t *bitToEncode, uint8_t len);
 uint8_t encodeCoils(uint8_t* coilValues, uint8_t coilsNum, uint8_t* output_array);
 void copyFrom_S_to_E_UpTo8Values(uint8_t* origin, uint8_t* destination, uint8_t start,  uint8_t end);
 modbusResult sendModBusRequest(UART_HandleTypeDef* huart,uint8_t* frame,uint8_t len);
+void sendError(UART_HandleTypeDef* huart, uint8_t opCode, uint8_t errorCode);
 
 #endif /* INC_MODBUSMASTER_H__OLD_ */

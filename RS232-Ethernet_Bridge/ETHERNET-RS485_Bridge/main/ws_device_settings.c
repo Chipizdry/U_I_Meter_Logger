@@ -192,7 +192,7 @@ static void send_error(const char *msg)
     ws_send_json(root);
 }
 
- bool handle_settings_command(const char *json)
+bool handle_settings_command(const char *json)
 {
     // Если DHCP включен, берем текущие настройки с Ethernet
   
@@ -317,7 +317,7 @@ static void send_error(const char *msg)
     }
 
 // ==========================================================
-// 3) SET SETTINGS
+//  SET SETTINGS
 // ==========================================================
     if (strcmp(command_type, "set_settings") == 0)
         {
@@ -366,49 +366,6 @@ static void send_error(const char *msg)
 
         ESP_LOGI(TAG, "Category to apply: %s", category);
 
-            /*
-            char category[32] = {0};
-
-            char *settings_ptr = strstr(json, "\"settings\"");
-            if (!settings_ptr)
-            {
-                send_error("Missing settings");
-                return true;
-            }
-
-            if (strstr(settings_ptr, "\"account\""))
-                strcpy(category, "account");
-
-            else if (strstr(settings_ptr, "\"wifi\""))
-                strcpy(category, "wifi");
-
-            else if (strstr(settings_ptr, "\"network\""))
-                strcpy(category, "network");
-
-            else if (strstr(settings_ptr, "\"uart\""))
-                strcpy(category, "uart");
-
-            else if (strstr(settings_ptr, "\"user\""))
-                strcpy(category, "user");
-
-            else if (strstr(settings_ptr, "\"system\""))
-                strcpy(category, "system");
-
-            else if (strstr(settings_ptr, "\"all\""))
-                strcpy(category, "all");
-
-            else
-            {
-                send_error("Unknown settings category");
-                return false ;
-            }
-
-            ESP_LOGI(TAG, "Category to apply: %s", category);
-             */
-            // ⚡ Здесь вызываем обработчики
-            /*
-            if (strcmp(category,"wifi")==0) apply_wifi_settings(...);
-            */
  // ==========================================================
 // UART SETTINGS
 // ==========================================================
@@ -417,24 +374,12 @@ if (strcmp(category, "uart") == 0)
     ESP_LOGI(TAG, "⚙️ Applying UART settings");
 
 
-    if (!root)
-    {
-        websocket_send_text(
-            "{\"status\":\"error\",\"message\":\"Invalid JSON\"}"
-        );
-        return true;
-    }
-
-    cJSON *settings = cJSON_GetObjectItem(root, "settings");
-
     if (!settings)
     {
         cJSON_Delete(root);
 
-        websocket_send_text(
-            "{\"status\":\"error\",\"message\":\"Missing settings\"}"
-        );
-
+       // websocket_send_text("{\"status\":\"error\",\"message\":\"Missing settings\"}");
+        send_error("Missing settings");
         return true;
     }
 
@@ -448,10 +393,8 @@ if (strcmp(category, "uart") == 0)
     {
         cJSON_Delete(root);
 
-        websocket_send_text(
-            "{\"status\":\"error\",\"message\":\"Missing uart field\"}"
-        );
-
+       // websocket_send_text( "{\"status\":\"error\",\"message\":\"Missing uart field\"}");
+        send_error("Missing uart field");
         return true;
     }
 
@@ -463,7 +406,7 @@ if (strcmp(category, "uart") == 0)
     {
         uart_json = uart_item;
     }
-    // uart = "{\"baud\":9600}"
+    
     else if (cJSON_IsString(uart_item))
     {
         uart_json = cJSON_Parse(uart_item->valuestring);
@@ -471,7 +414,8 @@ if (strcmp(category, "uart") == 0)
         if (!uart_json)
         {
             cJSON_Delete(root);
-            websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart JSON string\"}" );
+            // websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart JSON string\"}" );
+            send_error("Invalid uart JSON string");
             return true;
         }
 
@@ -480,7 +424,8 @@ if (strcmp(category, "uart") == 0)
     else
     {
         cJSON_Delete(root);
-        websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart type\"}");
+      //  websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart type\"}");
+        send_error("Invalid uart type");
         return true;
     }
 
@@ -606,54 +551,61 @@ if (strcmp(category, "uart") == 0)
     return true;
 }
 
-/*
-            if (strcmp(category,"network")==0) apply_network_settings(...);
-            if (strcmp(category,"account")==0) apply_account_settings(...);
-            */
             // ==========================================================
             // SYSTEM COMMAND PARSE
             // ==========================================================
-            if (strcmp(category, "system") == 0)
+          if (strcmp(category, "system") == 0)
             {
-                char value[32] = {0};
-                char *sys_ptr = strstr(settings_ptr, "\"system\"");
-                if (sys_ptr)
+                cJSON *system_item = cJSON_GetObjectItem(settings, "system");
+
+                if (!system_item)
                 {
-                    char *s = strchr(sys_ptr, ':');
-                    if (s && (s = strchr(s, '"')))
+                    send_error("Missing system field");
+                    cJSON_Delete(root);
+                    return false;
+                }
+
+                const char *value = NULL;
+
+                // system: "reboot"
+                if (cJSON_IsString(system_item))
+                {
+                    value = system_item->valuestring;
+                }
+                // system: { "action":"reboot" }
+                else if (cJSON_IsObject(system_item))
+                {
+                    cJSON *action = cJSON_GetObjectItem(system_item, "action");
+
+                    if (cJSON_IsString(action))
                     {
-                        s++;
-                        char *e = strchr(s, '"');
-                        if (e)
-                        {
-                            int l = e - s;
-                            if (l < sizeof(value))
-                            {
-                                memcpy(value, s, l);
-                                value[l] = 0;
-                            }
-                        }
+                        value = action->valuestring;
                     }
+                }
+
+                if (!value)
+                {
+                    send_error("Invalid system command");
+                    cJSON_Delete(root);
+                    return false;
                 }
 
                 ESP_LOGI(TAG, "🛠 System command: %s", value);
 
-                // ==================================================
-                // REBOOT
-                // ==================================================
                 if (strcmp(value, "reboot") == 0)
                 {
                     ESP_LOGW(TAG, "🔄 Reboot command received");
-                  //  websocket_send_text( "{\"command_type\":\"set_settings_ack\",\"status\":\"ok\",\"action\":\"reboot\"}");
-                    send_ack("System reboot");
-                    vTaskDelay(pdMS_TO_TICKS(500)); // дать уйти ack
+                    send_action_ack("reboot");
+                    cJSON_Delete(root);
+                    vTaskDelay(pdMS_TO_TICKS(500));
                     esp_restart();
                 }
+
+                send_error("Unknown system command");
+                cJSON_Delete(root);
+                return false;
             }
-          
-            send_action_ack("reboot");
-             gpio_link_led(0);
-            return true;
+                
        }
     gpio_link_led(0);
     return true;

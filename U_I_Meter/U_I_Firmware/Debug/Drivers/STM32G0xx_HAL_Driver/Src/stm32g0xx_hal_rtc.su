@@ -6,7 +6,7 @@
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:1628:19:HAL_RTC_PollForAlarmAEvent	24	static
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:1687:19:HAL_RTC_WaitForSynchro	24	static
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:1731:21:HAL_RTC_GetState	0	static
-../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:1754:19:RTC_EnterInitMode	24	static
+../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:1754:19:RTC_EnterInitMode	32	static
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:1785:19:RTC_ExitInitMode	8	static
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:242:19:HAL_RTC_Init	8	static
 ../Drivers/STM32G0xx_HAL_Driver/Src/stm32g0xx_hal_rtc.c:358:19:HAL_RTC_DeInit	24	static

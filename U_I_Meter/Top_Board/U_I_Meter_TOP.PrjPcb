@@ -83,149 +83,22 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=EDDCSMXV
 
-[GeneratedDocument1]
-DocumentPath=Project Outputs for U_I_Meter_TOP\Design Rule Check - U_I_Meter_TOP.html
+[Document3]
+DocumentPath=U_I_Meter_TOP.OutJob
+AnnotationEnabled=1
+AnnotateStartValue=1
+AnnotationIndexControlEnabled=0
+AnnotateSuffix=
+AnnotateScope=All
+AnnotateOrder=-1
+DoLibraryUpdate=1
+DoDatabaseUpdate=1
+ClassGenCCAutoEnabled=1
+ClassGenCCAutoRoomEnabled=0
+ClassGenNCAutoScope=None
 DItemRevisionGUID=
-
-[GeneratedDocument2]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP.DRR
-DItemRevisionGUID=
-
-[GeneratedDocument3]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP.EXTREP
-DItemRevisionGUID=
-
-[GeneratedDocument4]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP.LDP
-DItemRevisionGUID=
-
-[GeneratedDocument5]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP.REP
-DItemRevisionGUID=
-
-[GeneratedDocument6]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP.TXT
-DItemRevisionGUID=
-
-[GeneratedDocument7]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Bottom_3D_Body.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument8]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Bottom_Assembly.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument9]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Bottom_Component_Center.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument10]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Bottom_Courtyard.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument11]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Copper_Signal_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument12]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Copper_Signal_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument13]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Drawing_1.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument14]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Drillmap_1.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument15]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Keep-out.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument16]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Legend_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument17]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Legend_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument18]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Mechanical_1.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument19]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Mechanical_3.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument20]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Mechanical_10.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument21]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Mechanical_12.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument22]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_NPTH_Drill.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument23]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Pads_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument24]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Pads_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument25]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Paste_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument26]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Paste_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument27]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Profile.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument28]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_PTH_Drill.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument29]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Soldermask_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument30]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Soldermask_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument31]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Top_3D_Body.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument32]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Top_Assembly.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument33]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Top_Component_Center.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument34]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Top_Component_Outline.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument35]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Top_Courtyard.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument36]
-DocumentPath=Project Outputs for U_I_Meter_TOP\U_I_Meter_TOP_Top_Designator.gbr
-DItemRevisionGUID=
+GenerateClassCluster=0
+DocumentUniqueId=
 
 [Configuration1]
 Name=Sources
@@ -236,6 +109,45 @@ Variant=[No Variations]
 OutputJobsCount=0
 ContentTypeGUID=CB6F2064-E317-11DF-B822-12313F0024A2
 ConfigurationType=Source
+
+[Generic_SmartPDF]
+AutoOpenFile=-1
+AutoOpenOutJob=-1
+
+[Generic_SmartPDFSettings]
+ProjectMode=0
+ZoomPrecision=50
+AddNetsInformation=-1
+AddNetPins=-1
+AddNetNetLabels=-1
+AddNetPorts=-1
+ShowComponentParameters=-1
+GlobalBookmarks=0
+ExportBOM=0
+TemplateFilename=
+TemplateStoreRelative=-1
+PCB_PrintColor=1
+SCH_PrintColor=0
+PrintQuality=-4
+SCH_ShowNoErc=-1
+SCH_ShowParameter=-1
+SCH_ShowProbes=-1
+SCH_ShowBlankets=-1
+SCH_NoERCSymbolsToShow="Thin Cross","Thick Cross","Small Cross",Checkbox,Triangle
+SCH_ShowNote=-1
+SCH_ShowNoteCollapsed=-1
+Wir_PrintColor=0
+Ldr_PrintColor=0
+Esd_PrintColor=0
+SCH_ExpandLogicalToPhysical=0
+SCH_VariantName=[No Variations]
+SCH_ExpandComponentDesignators=-1
+SCH_ExpandNetlabels=0
+SCH_ExpandPorts=0
+SCH_ExpandSheetNumber=0
+SCH_ExpandDocumentNumber=0
+SCH_HasExpandLogicalToPhysicalSheets=-1
+SaveSettingsToOutJob=-1
 
 [OutputGroup1]
 Name=Netlist Outputs
@@ -629,6 +541,11 @@ OutputName10=GOST BOM
 OutputDocumentPath10=
 OutputVariantName10=[No Variations]
 OutputDefault10=0
+OutputType11=BOM_ReportManufacturing
+OutputName11=Manufacturing Data
+OutputDocumentPath11=
+OutputVariantName11=[No Variations]
+OutputDefault11=0
 
 [OutputGroup7]
 Name=Other Outputs
@@ -920,6 +837,16 @@ Type148=1
 Type149=1
 Type150=1
 Type151=1
+Type152=1
+Type153=1
+Type154=1
+Type155=1
+Type156=1
+Type157=1
+Type158=1
+Type159=1
+Type160=1
+Type161=1
 
 [Difference Levels]
 Type1=1
@@ -1004,6 +931,12 @@ Type79=1
 Type80=1
 Type81=1
 Type82=1
+Type83=1
+Type84=1
+Type85=1
+Type86=1
+Type87=1
+Type88=1
 
 [Electrical Rules Check]
 Type1=1
@@ -1167,6 +1100,10 @@ Type158=0
 Type159=0
 Type160=0
 Type161=0
+Type162=1
+Type163=1
+Type164=1
+Type165=2
 
 [ERC Connection Matrix]
 L1=NNNNNNNNNNNWNNNWW

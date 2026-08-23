@@ -112,7 +112,6 @@ void app_main(void)
         esp_restart();
     }
 
-
     ota_init();
     if (web_server_start() != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start web server");
@@ -120,9 +119,7 @@ void app_main(void)
         esp_restart();
     }
 
-  
-    xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
     start_wifi_manager_task();
     initialize_sntp();
-
+    xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
 }

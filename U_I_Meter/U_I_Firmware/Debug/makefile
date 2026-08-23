@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (13.3.rel1)
+# Toolchain: GNU Tools for STM32 (14.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -84,8 +84,8 @@ all: main-build
 main-build: U_I_Meter.elf secondary-outputs
 
 # Tool invocations
-U_I_Meter.elf U_I_Meter.map: $(OBJS) $(USER_OBJS) D:\WORK\U_I_Meter\STM32G030F6PX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-g++ -o "U_I_Meter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\WORK\U_I_Meter\STM32G030F6PX_FLASH.ld" --specs=nosys.specs -Wl,-Map="U_I_Meter.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
+U_I_Meter.elf U_I_Meter.map: $(OBJS) $(USER_OBJS) D:\GitHub\U_I_Meter_Logger\U_I_Meter\U_I_Firmware\STM32G030F6PX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-g++ -o "U_I_Meter.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\GitHub\U_I_Meter_Logger\U_I_Meter\U_I_Firmware\STM32G030F6PX_FLASH.ld" --specs=nosys.specs -Wl,-Map="U_I_Meter.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -lstdc++ -lsupc++ -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

@@ -42,6 +42,7 @@
 
 uint16_t adc_values[ADC_NUM_CHANNELS];
 volatile uint8_t adc_ready = 0;
+volatile uint8_t need_adc_calibration = 0;
 uint32_t lastActivityTime = 0;
  bool usartBusy = false;
  uint8_t rxFrame[64];
@@ -113,6 +114,7 @@ void Check_USART1_Timeout(void);
 void Reset_USART1(void);
 float calculate_ntc_temperature(uint16_t adc_raw);
 void MA_Update(MovingAverageFilter *filter, uint16_t new_value);
+void Calibrate_Current_Zero(void);
 /* USER CODE END 0 */
 
 /**
@@ -159,6 +161,8 @@ int main(void)
    __HAL_DMA_DISABLE_IT(&hdma_usart1_rx, DMA_IT_HT);
    HAL_ADCEx_Calibration_Start(&hadc1);
    HAL_TIM_Base_Start_IT(&htim14);
+   HAL_Delay(100);
+   Calibrate_Current_Zero();
 
   /* USER CODE END 2 */
 
@@ -167,12 +171,22 @@ int main(void)
   while (1)
   {
 
+
+	  if(need_adc_calibration)
+	  {
+	      need_adc_calibration = 0;
+
+	      Calibrate_Current_Zero();
+	  }
+
+
 	// float t_float = calculate_ntc_temperature(adc_values[2]);
 	  Check_USART1_Timeout();
-	data_reg[0] = ma_filters[0].result*0.74;
+  //data_reg[0] = ma_filters[0].result*0.74;
+	data_reg[0] = ma_filters[0].result*0.94;
 	data_reg[1] = ACS712_GetCurrent_mA(ma_filters[1].result);
 	memcpy(&data_reg[2], (int16_t[]){(int16_t)(calculate_ntc_temperature(adc_values[2]) * 10.0f + 0.5f)}, 2);
-	data_reg[3]=adc_values[3];
+	data_reg[3]=adc_values[0];
 	data_reg[4]=adc_values[4];
     data_reg[5]=adc_values[5];
     data_reg[6]=adc_values[6];
@@ -568,8 +582,12 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin : UI_INT_Pin */
   GPIO_InitStruct.Pin = UI_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(UI_INT_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_1_IRQn, 2, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
 
   /* USER CODE BEGIN MX_GPIO_Init_2 */
   /* USER CODE END MX_GPIO_Init_2 */
@@ -694,7 +712,36 @@ void Check_USART1_Timeout(void)
 
  }
 
+ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+ {
+     if(GPIO_Pin == UI_INT_Pin)
+     {
+    	 LED_2_ON;
+         need_adc_calibration = 1;
+     }
+ }
 
+ void Calibrate_Current_Zero(void)
+ {
+     uint32_t sum = 0;
+     const uint16_t samples = 64;
+
+     for(uint16_t i = 0; i < samples; i++)
+     {
+         HAL_ADC_Start_DMA(&hadc1, (uint32_t*)adc_values, ADC_NUM_CHANNELS);
+
+         while(adc_ready == 0);
+
+         adc_ready = 0;
+
+         sum += adc_values[1]; // канал ACS712
+         HAL_Delay(2);
+     }
+
+     uint16_t avg = sum / samples;
+
+     ACS712_CalibrateZero(avg);
+ }
 
  float calculate_ntc_temperature(uint16_t adc_raw)
  {

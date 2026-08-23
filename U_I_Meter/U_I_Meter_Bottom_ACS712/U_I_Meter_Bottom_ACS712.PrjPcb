@@ -83,176 +83,6 @@ DItemRevisionGUID=
 GenerateClassCluster=0
 DocumentUniqueId=KLKQCPMB
 
-[Document3]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\CAMtastic1.Cam
-AnnotationEnabled=1
-AnnotateStartValue=1
-AnnotationIndexControlEnabled=0
-AnnotateSuffix=
-AnnotateScope=All
-AnnotateOrder=-1
-DoLibraryUpdate=1
-DoDatabaseUpdate=1
-ClassGenCCAutoEnabled=1
-ClassGenCCAutoRoomEnabled=0
-ClassGenNCAutoScope=None
-DItemRevisionGUID=
-GenerateClassCluster=0
-DocumentUniqueId=
-
-[Document4]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\CAMtastic2.Cam
-AnnotationEnabled=1
-AnnotateStartValue=1
-AnnotationIndexControlEnabled=0
-AnnotateSuffix=
-AnnotateScope=All
-AnnotateOrder=-1
-DoLibraryUpdate=1
-DoDatabaseUpdate=1
-ClassGenCCAutoEnabled=1
-ClassGenCCAutoRoomEnabled=0
-ClassGenNCAutoScope=None
-DItemRevisionGUID=
-GenerateClassCluster=0
-DocumentUniqueId=
-
-[GeneratedDocument1]
-DocumentPath=Project Outputs for U_I_Meter_Bottom\Design Rule Check - U_I_Meter_Bottom.html
-DItemRevisionGUID=
-
-[GeneratedDocument2]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\Design Rule Check - U_I_Meter_Bottom_ACS712.html
-DItemRevisionGUID=
-
-[GeneratedDocument3]
-DocumentPath=Project Outputs for U_I_Meter_DC\Design Rule Check - U_I_Meter_DC.html
-DItemRevisionGUID=
-
-[GeneratedDocument4]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712.DRR
-DItemRevisionGUID=
-
-[GeneratedDocument5]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712.EXTREP
-DItemRevisionGUID=
-
-[GeneratedDocument6]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712.LDP
-DItemRevisionGUID=
-
-[GeneratedDocument7]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712.REP
-DItemRevisionGUID=
-
-[GeneratedDocument8]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712.TXT
-DItemRevisionGUID=
-
-[GeneratedDocument9]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Bottom_3D_Body.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument10]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Bottom_Assembly.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument11]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Bottom_Component_Center.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument12]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Bottom_Courtyard.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument13]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Copper_Signal_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument14]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Copper_Signal_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument15]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Drawing_1.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument16]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Drillmap_1.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument17]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Keep-out.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument18]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Legend_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument19]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Legend_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument20]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Mechanical_1.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument21]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Mechanical_3.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument22]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_NPTH_Drill.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument23]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Pads_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument24]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Pads_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument25]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Paste_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument26]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Paste_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument27]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Profile.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument28]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_PTH_Drill.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument29]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Soldermask_Bot.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument30]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Soldermask_Top.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument31]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Top_3D_Body.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument32]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Top_Assembly.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument33]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Top_Component_Center.gbr
-DItemRevisionGUID=
-
-[GeneratedDocument34]
-DocumentPath=Project Outputs for U_I_Meter_Bottom_ACS712\U_I_Meter_Bottom_ACS712_Top_Courtyard.gbr
-DItemRevisionGUID=
-
 [Configuration1]
 Name=Sources
 ParameterCount=0
@@ -655,6 +485,11 @@ OutputName10=GOST BOM
 OutputDocumentPath10=
 OutputVariantName10=[No Variations]
 OutputDefault10=0
+OutputType11=BOM_ReportManufacturing
+OutputName11=Manufacturing Data
+OutputDocumentPath11=
+OutputVariantName11=[No Variations]
+OutputDefault11=0
 
 [OutputGroup7]
 Name=Other Outputs
@@ -946,6 +781,16 @@ Type148=1
 Type149=1
 Type150=1
 Type151=1
+Type152=1
+Type153=1
+Type154=1
+Type155=1
+Type156=1
+Type157=1
+Type158=1
+Type159=1
+Type160=1
+Type161=1
 
 [Difference Levels]
 Type1=1
@@ -1030,6 +875,12 @@ Type79=1
 Type80=1
 Type81=1
 Type82=1
+Type83=1
+Type84=1
+Type85=1
+Type86=1
+Type87=1
+Type88=1
 
 [Electrical Rules Check]
 Type1=1
@@ -1193,6 +1044,10 @@ Type158=0
 Type159=0
 Type160=0
 Type161=0
+Type162=1
+Type163=1
+Type164=1
+Type165=2
 
 [ERC Connection Matrix]
 L1=NNNNNNNNNNNWNNNWW

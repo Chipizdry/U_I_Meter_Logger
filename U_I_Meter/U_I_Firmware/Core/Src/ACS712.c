@@ -29,8 +29,19 @@ int16_t ACS712_GetCurrent_mA(uint16_t adc_raw)
     /* 1. Отклонение от нуля */
     int32_t delta = (int32_t)adc_raw - adc_zero_offset;
 
+
+
+
+
     /* 2. Перевод в мА */
     float current_f = (float)delta * ACS712_MA_PER_STEP;
+
+    /* Подавление шумов возле нуля */
+      if (current_f < ACS712_NOISE_THRESHOLD_mA &&
+          current_f > -ACS712_NOISE_THRESHOLD_mA)
+      {
+          current_f = 0;
+      }
 
     /* 3. Ограничение диапазона int16 */
 

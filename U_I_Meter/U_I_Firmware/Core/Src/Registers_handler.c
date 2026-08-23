@@ -67,11 +67,11 @@ void Registers_handler(uint8_t* rxFrame, uint16_t* data_reg, uint16_t* rcv_data_
 
 				  			  switch (opCode) {
 				  			   case READ_COILs:
-				  				 handleReadCoils (&huart1,coils);
+				  				 handleReadCoils (&huart1,&coils);
 				  			   break;
 
 				  			   case   READ_DISC_INPUTs:
-				  				 handleReadDiscreteInputs (&huart1, dicreteInputs);
+				  				 handleReadDiscreteInputs (&huart1, &dicreteInputs);
 							   break;
 
 				  			   case  READ_HOLDING_REGs:

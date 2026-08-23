@@ -15,4 +15,5 @@ extern uint8_t coils;
 void Registers_handler( uint8_t* rxFrame,uint16_t* data_reg, uint16_t* rcv_data_reg,uint16_t Size);
 void Modbus_parsing(uint8_t* rxFrame);
 void RestartModbusReception(uint8_t* rxFrame);
+void Reset_USART1(void);
 #endif /* INC_REGISTERS_HANDLER_H_ */
