@@ -39,8 +39,11 @@ if(NOT EXISTS "${DATA_BIN}")
     message(FATAL_ERROR "Не найден LittleFS образ: storage.bin")
 endif()
 
+
 # === Имя итогового OTA пакета ===
-set(OTA_PACKAGE "${CMAKE_BINARY_DIR}/OTA_PACKAGE_${BUILD_NUMBER}.bin")
+string(TIMESTAMP BUILD_TIMESTAMP "%Y-%m-%d_%H-%M-%S")
+
+set(OTA_PACKAGE "${CMAKE_BINARY_DIR}/FW_LNK_${BUILD_NUMBER}_${BUILD_TIMESTAMP}.bin")
 
 message(STATUS "")
 message(STATUS "========================================")

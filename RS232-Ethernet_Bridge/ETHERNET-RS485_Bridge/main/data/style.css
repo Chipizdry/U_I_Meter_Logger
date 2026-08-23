@@ -1021,7 +1021,7 @@ select#deviceType:checked {
 }
 
 .file-name {
-    font-size: 12px;
+    font-size: 10px;
     color: #291161;
     text-align: center;
     max-width: 200px;

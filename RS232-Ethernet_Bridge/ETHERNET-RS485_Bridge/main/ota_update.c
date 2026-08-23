@@ -225,7 +225,10 @@ if (!buffer) {
 
     ESP_LOGI(TAG, "CHUNK %d -> clean binary: %d bytes", chunk_number, data_len);
 
+    // Общий объём принятых бинарных данных
+    total_received += data_len;
 
+    ESP_LOGI(TAG, "📥 TOTAL RECEIVED: %d bytes", total_received);
 
 
 uint8_t *ptr = (uint8_t *)data_start;
