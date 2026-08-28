@@ -22,6 +22,7 @@
 #include "freertos/semphr.h"
 #include "esp_rom_sys.h" 
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
 
 #include "websocket_client.h"
 #include "nvs_settings.h" 
@@ -56,6 +57,7 @@ static SemaphoreHandle_t s_uart_mutex = NULL;
 static volatile bool s_running = false;
 
 /* CRC16 (Modbus) */
+/*
 static uint16_t modbus_crc16(const uint8_t *buf, size_t len)
 {
     uint16_t crc = 0xFFFF;
@@ -68,7 +70,7 @@ static uint16_t modbus_crc16(const uint8_t *buf, size_t len)
     }
     return crc;
 }
-
+*/
 
 static void de_off_timer_cb(void *arg)
 {
@@ -99,6 +101,7 @@ static inline uint32_t char_time_us_from_baud(int baud)
 /* Построение Modbus RTU read holding registers (Функция 0x03)
    request: addr | func | start_hi | start_lo | count_hi | count_lo | crc_lo | crc_hi
 */
+/*
 static int build_read_request(uint8_t addr, uint16_t start, uint16_t count, uint8_t *out, size_t out_len)
 {
     if (out_len < 8) return -1;
@@ -113,7 +116,7 @@ static int build_read_request(uint8_t addr, uint16_t start, uint16_t count, uint
     out[7] = (crc >> 8) & 0xFF;
     return 8;
 }
-
+*/
 /* Чтение ответа с таймаутом: читаем по одному байту, пока не наберём max или не выйдет таймаут */
    
 
@@ -173,6 +176,7 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
 }
 
 /* Single poll operation on a slave: отправка запроса и чтение ответа, update data */
+/*
 static void poll_slave(slave_entry_t *s)
 {
     const int uart_num = RS485_UART_NUM;
@@ -276,8 +280,9 @@ static void poll_slave(slave_entry_t *s)
 
     heap_caps_free(resp);
 }
-
+*/
 /* Polling task: идёт по всем слейвам и опрашивает те, у которых время пришло */
+/*
 static void poll_task(void *arg)
 {
    // const int uart_num = RS485_UART_NUM;
@@ -297,7 +302,7 @@ static void poll_task(void *arg)
     }
     vTaskDelete(NULL);
 }
-
+*/
 /* --- Публичные API --- */
 
 esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size, int tx_buf_size)
@@ -523,12 +528,18 @@ static void rs485_request_task(void *arg)
         if (xQueueReceive(s_req_queue, &req, portMAX_DELAY) == pdTRUE) {
 
          //   ESP_LOGI(TAG, "Dequeued custom RS485 request (%d bytes)", req.len);
+         // size_t heap_before = esp_get_free_heap_size();
+
+         //   ESP_LOGI(TAG, "RS485 request start, free heap=%u",(unsigned)heap_before);
 
             uint32_t char_time_us = char_time_us_from_baud(s_baud);
             send_request_async(uart_num, req.data, req.len, char_time_us);
 
             uint8_t resp[256] = {0};
             int rx_len = uart_read_bytes(uart_num, resp, sizeof(resp), pdMS_TO_TICKS(1000));
+           //  size_t heap_after = esp_get_free_heap_size();
+
+          //  ESP_LOGI(TAG, "RS485 request end: RX=%d heap=%u delta=%d", rx_len,(unsigned)heap_after,(int)heap_after - (int)heap_before);
 
             if (rx_len > 0) {
 
@@ -547,11 +558,11 @@ static void rs485_request_task(void *arg)
              //   ESP_LOGI(TAG, "Sent response back to WebSocket: %s", ws_msg);
 
             } else {
-                ESP_LOGW(TAG, "No response from slave");
-
+                ESP_LOGW(TAG, "No response from slave");  
                 // --- переиспользуем ws_msg снова ---
                 snprintf(ws_msg, sizeof(ws_msg), "{\"hex_response\":\"No response from RS485\"}");
-                websocket_send_text(ws_msg);
+               websocket_send_text(ws_msg);
+          
             }
         }
     }

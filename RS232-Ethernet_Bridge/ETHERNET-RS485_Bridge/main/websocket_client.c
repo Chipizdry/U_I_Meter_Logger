@@ -313,7 +313,11 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                     ws_rx_buf[0] = 0;
                     return;
                 }
+
+                log_heap_full("BEFORE websocket_process_message");
                 websocket_process_message(ws_rx_buf);
+                vTaskDelay(pdMS_TO_TICKS(50));
+                log_heap_full("AFTER websocket_process_message");
                 // Очистка буфера
                 ws_rx_len = 0;
                 ws_rx_buf[0] = 0;
@@ -362,10 +366,21 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
 
     esp_err_t err = esp_websocket_client_start(client);
 
+    /*
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));
         return err;
-    }
+    }  */
+
+
+    if (err != ESP_OK)
+        {
+            ESP_LOGE(TAG, "Failed to start WebSocket client: %s",esp_err_to_name(err));
+            esp_websocket_client_destroy(client);
+            client = NULL;
+            ws_connected = false;
+            return err;
+        }
 
     ESP_LOGI(TAG, "🚀 WebSocket client started: %s", uri);
 

@@ -5,7 +5,7 @@
 #include "esp_err.h"
 
 void ws_server_init(httpd_handle_t httpd);
-
+void log_heap_full(const char *tag);
 //void ws_send(int fd, const char *text);
 void ws_broadcast(const char *text);
 void ws_send(int client_fd, const char* text);

@@ -52,15 +52,23 @@ static inline uint32_t ticks_to_ms(uint32_t ticks)
 }
 
 bool websocket_process_message(const char *json)
-{  
+{   
+   // log_heap_full("START");
     gpio_link_led(1);
     if (!json) return false;
     handle_msg_data(json);
+   // log_heap_full("after msg");
     handle_hex_data(json);
+   // log_heap_full("after hex");
     handle_pi30_data(json);
+   // log_heap_full("after pi30");
     handle_mtcp_data(json);
+   // log_heap_full("after mtcp");
     handle_settings_command(json);
+  //  log_heap_full("after settings");
     handle_ota_update(json, ws_session_id);
+   // log_heap_full("after ota");
+
 
     return true;
 }
@@ -255,6 +263,21 @@ static bool handle_pi30_data(const char *json)
 
 static bool handle_mtcp_data(const char *json)
 {
+
+
+  char command_type[32] = {0};
+
+    if (!extract_json_value(json, "command_type", command_type, sizeof(command_type))) {
+        return false;
+    }
+
+    if (strcmp(command_type, "modbus_tcp") != 0) {
+        return false;
+    }
+
+
+
+    
     cJSON *root = cJSON_Parse(json);
     if (!root) {
         ESP_LOGE(TAG, "MTCP JSON parse error");
@@ -301,21 +324,31 @@ static bool handle_mtcp_data(const char *json)
     static uint8_t resp[256];
     int resp_len = 0;
 
-    ESP_LOGW(TAG, "FREE HEAP: %lu | MIN: %lu", esp_get_free_heap_size(), esp_get_minimum_free_heap_size());
+
     esp_err_t err = modbus_tcp_request(ip_str,port_v,unit,func_v,start,qty,val,resp,&resp_len);
 
     if (err == ESP_OK) {
 
     // ---- чистый modbus пакет без MBAP ----
-    static char hex[520];
+    
+   static char hex[520];
 
-    if (resp_len > 6) {
-        bytes_to_hex(resp + 6, resp_len - 6, hex, sizeof(hex));
+    if (resp_len > 0) {
+        bytes_to_hex(resp, resp_len, hex, sizeof(hex));
     } else {
-        strcpy(hex, "");
+        hex[0] = '\0';
     }
 
-   // ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
+/*
+    static char hex[520];
+
+    if (resp_len > 0) {
+        bytes_to_hex(resp, resp_len, hex, sizeof(hex));
+    } else {
+        hex[0] = '\0';
+    }
+*/
+    ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
 
     // command_name
     cJSON *cmd_name = cJSON_GetObjectItem(root, "command_name");

@@ -7,6 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "esp_heap_caps.h"
 #include "websocket_client.h"
 #include "wifi_manager.h"
 #include "esp_websocket_client.h"
@@ -38,6 +39,28 @@ typedef struct {
     int fd;
     bool authorized;
 } ws_client_t;
+
+
+
+
+void log_heap_full(const char *tag)
+{
+     multi_heap_info_t info;
+
+    heap_caps_get_info(&info, MALLOC_CAP_8BIT);
+
+    ESP_LOGI("HEAP",
+             "%s: free=%u min=%u largest=%u "
+             "alloc=%u free_blocks=%u total_free=%u",
+             tag,
+             (unsigned)info.total_free_bytes,
+             (unsigned)info.minimum_free_bytes,
+             (unsigned)info.largest_free_block,
+             (unsigned)info.total_allocated_bytes,
+             (unsigned)info.free_blocks,
+             (unsigned)info.total_free_bytes);
+}
+
 
 static ws_client_t ws_clients[MAX_CLIENTS] = {{0}};
 void cancel_test_account(void);
@@ -256,7 +279,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
 
         vTaskDelay(pdMS_TO_TICKS(200));
 
-        esp_websocket_client_destroy(client);
+     //   esp_websocket_client_destroy(client);
 
         client = NULL;
     }
@@ -269,24 +292,14 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
     // ==========================================
     // Запускаем тестовый клиент
     // ==========================================
-
-    websocket_client_start(
-        user_cfg.serial,
-        ws_email,
-        ws_password,
-        ws_node_name
-    );
+    websocket_client_start( user_cfg.serial, ws_email, ws_password, ws_node_name);
 
 
     // ==========================================
     // Сообщаем браузеру
     // ==========================================
 
-    ws_send_fd(
-        fd,
-        "{\"cloud_status\":\"Проверка учетной записи\"}"
-    );
-
+    ws_send_fd( fd,"{\"cloud_status\":\"Проверка учетной записи\"}");
     return;
 }
 
@@ -318,6 +331,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
 
 /* ---------------- MAIN WS HANDLER ---------------- */
 esp_err_t ws_handler(httpd_req_t *req) {
+    log_heap_full("WS_HANDLER BEGIN");
     int fd = httpd_req_to_sockfd(req);
 
     WS_LOG("WS handler invoked. FD=%d, method=%s", fd,
@@ -342,6 +356,9 @@ esp_err_t ws_handler(httpd_req_t *req) {
     ws_pkt.payload = (uint8_t*)buf;
     ret = httpd_ws_recv_frame(req, &ws_pkt, ws_pkt.len);
     if (ret != ESP_OK) return ret;
+    log_heap_full("AFTER WS RECV");
+
+
 
     buf[ws_pkt.len] = '\0';
     WS_LOG("Received WS payload: %s", buf);
@@ -354,6 +371,7 @@ esp_err_t ws_handler(httpd_req_t *req) {
     if (strcmp(buf, "pong") == 0) return ESP_OK;
 
     // JSON parse
+    log_heap_full("BEFORE CJSON");
     cJSON *msg = cJSON_Parse(buf);
     if (!msg) return ESP_OK;
 
@@ -382,6 +400,7 @@ esp_err_t ws_handler(httpd_req_t *req) {
 
     handle_ws_custom_message(fd, msg);
     cJSON_Delete(msg);
+    log_heap_full("AFTER CJSON DELETE");
     return ESP_OK;
 }
 

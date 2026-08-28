@@ -607,6 +607,7 @@ if (strcmp(category, "uart") == 0)
             }
                 
        }
+         cJSON_Delete(root);
     gpio_link_led(0);
     return true;
 }
