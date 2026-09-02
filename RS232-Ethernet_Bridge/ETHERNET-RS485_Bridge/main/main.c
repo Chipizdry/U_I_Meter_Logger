@@ -29,6 +29,7 @@
 #include "dns_server.h"
 #include "network_state.h"
 #include "modbus_tcp_client.h"
+#include "ble_manager.h"
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -72,7 +73,7 @@ void app_main(void)
     nvs_load_wifi_settings(&wifi_cfg);
     nvs_load_system_settings(&sys);
     nvs_load_uart_settings(&uart_cfg);
-
+   // ESP_ERROR_CHECK(ble_manager_init());
     
     /* === АВТО-ОБНОВЛЕНИЕ BUILD INFO ПРИ НОВОЙ ПРОШИВКЕ === */
     system_update_build_info();

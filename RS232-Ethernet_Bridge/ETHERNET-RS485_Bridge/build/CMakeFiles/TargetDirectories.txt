@@ -468,6 +468,7 @@ D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_gdbstub/CMakeFiles/install.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_gdbstub/CMakeFiles/install/local.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/esp_gdbstub/CMakeFiles/install/strip.dir
+D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/bt/CMakeFiles/__idf_bt.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/bt/CMakeFiles/edit_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/bt/CMakeFiles/rebuild_cache.dir
 D:/GitHub/U_I_Meter_Logger/RS232-Ethernet_Bridge/ETHERNET-RS485_Bridge/build/esp-idf/bt/CMakeFiles/list_install_components.dir

@@ -21,10 +21,11 @@ idf_component_register(
         "dns_server.c"
         "server_handlers.c"
         "modbus_tcp_client.c"
-        
+        "ble_manager.c"
 
     INCLUDE_DIRS "."
     REQUIRES 
+        bt
         esp_netif 
         esp_eth 
         lwip 
