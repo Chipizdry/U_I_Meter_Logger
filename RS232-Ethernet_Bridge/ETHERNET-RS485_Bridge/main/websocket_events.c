@@ -274,10 +274,7 @@ static bool handle_mtcp_data(const char *json)
     if (strcmp(command_type, "modbus_tcp") != 0) {
         return false;
     }
-
-
-
-    
+ 
     cJSON *root = cJSON_Parse(json);
     if (!root) {
         ESP_LOGE(TAG, "MTCP JSON parse error");
@@ -321,6 +318,46 @@ static bool handle_mtcp_data(const char *json)
     ESP_LOGI(TAG, "📡 MTCP request -> %s:%d unit=%d func=%d start=%d qty=%d val=%d",
              ip_str, port_v, unit, func_v, start, qty, val);
 
+             if (diagnostics_active) {
+    char diag_msg[256];
+
+    snprintf(diag_msg, sizeof(diag_msg),
+             "{\"command_type\":\"MTCP request -> %s:%u unit=%u func=%u start=%u qty=%u val=%u\"}",
+             ip_str,
+             port_v,
+             unit,
+             func_v,
+             start,
+             qty,
+             val);
+
+   // websocket_send_text(diag_msg);
+    ws_broadcast(diag_msg);
+
+
+}
+
+
+char cloud_msg[256];
+
+snprintf(cloud_msg, sizeof(cloud_msg),
+         "{\"command_type\":\"Modbus TCP request received\","
+         "\"ip\":\"%s\","
+         "\"port\":%u,"
+         "\"unit_id\":%u,"
+         "\"func\":%u,"
+         "\"start_addr\":%u,"
+         "\"quantity\":%u,"
+         "\"value\":%u}",
+         ip_str,
+         port_v,
+         unit,
+         func_v,
+         start,
+         qty,
+         val);
+
+websocket_send_text(cloud_msg);
     static uint8_t resp[256];
     int resp_len = 0;
 
@@ -328,9 +365,6 @@ static bool handle_mtcp_data(const char *json)
     esp_err_t err = modbus_tcp_request(ip_str,port_v,unit,func_v,start,qty,val,resp,&resp_len);
 
     if (err == ESP_OK) {
-
-    // ---- чистый modbus пакет без MBAP ----
-    
    static char hex[520];
 
     if (resp_len > 0) {
@@ -339,24 +373,12 @@ static bool handle_mtcp_data(const char *json)
         hex[0] = '\0';
     }
 
-/*
-    static char hex[520];
-
-    if (resp_len > 0) {
-        bytes_to_hex(resp, resp_len, hex, sizeof(hex));
-    } else {
-        hex[0] = '\0';
-    }
-*/
     ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
 
     // command_name
     cJSON *cmd_name = cJSON_GetObjectItem(root, "command_name");
 
-    const char *name =
-        (cJSON_IsString(cmd_name)) ?
-        cmd_name->valuestring :
-        "unknown";
+    const char *name = (cJSON_IsString(cmd_name)) ? cmd_name->valuestring : "unknown";
 
     // ---- WS JSON ----
     static char ws_msg[1024];

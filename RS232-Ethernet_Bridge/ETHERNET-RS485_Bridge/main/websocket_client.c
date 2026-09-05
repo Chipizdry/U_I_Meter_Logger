@@ -366,13 +366,6 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
 
     esp_err_t err = esp_websocket_client_start(client);
 
-    /*
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start WebSocket client: %s", esp_err_to_name(err));
-        return err;
-    }  */
-
-
     if (err != ESP_OK)
         {
             ESP_LOGE(TAG, "Failed to start WebSocket client: %s",esp_err_to_name(err));

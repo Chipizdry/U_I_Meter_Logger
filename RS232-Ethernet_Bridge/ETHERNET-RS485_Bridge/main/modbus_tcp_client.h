@@ -1,15 +1,36 @@
-
-
 #pragma once
 
 #include "esp_err.h"
 #include <stdint.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+typedef enum {
+    MODBUS_TCP_OK = 0,
 
-esp_err_t modbus_tcp_request(
+    MODBUS_TCP_ERR_INVALID_ARG,
+    MODBUS_TCP_ERR_SOCKET,
+    MODBUS_TCP_ERR_CONNECT,
+    MODBUS_TCP_ERR_SEND,
+
+    // TCP соединение установлено,
+    // но Modbus slave не ответил за timeout
+    MODBUS_TCP_ERR_TIMEOUT,
+
+    // Slave сам закрыл TCP соединение
+    MODBUS_TCP_ERR_CONNECTION_CLOSED,
+
+    // Некорректный MBAP
+    MODBUS_TCP_ERR_INVALID_MBAP,
+
+    // Некорректный PDU
+    MODBUS_TCP_ERR_INVALID_PDU,
+
+    // Modbus exception response
+    MODBUS_TCP_ERR_EXCEPTION,
+
+} modbus_tcp_status_t;
+
+
+modbus_tcp_status_t modbus_tcp_request(
     const char *ip,
     uint16_t port,
     uint8_t unit,
@@ -21,7 +42,4 @@ esp_err_t modbus_tcp_request(
     int *resp_len
 );
 
-#ifdef __cplusplus
-}
-#endif
 

@@ -165,7 +165,18 @@ static void send_system_settings(void)
     cJSON_AddItemToObject(root, "data", data);
     ws_send_json(root);
 }
-
+static void send_test_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "test");
+    cJSON_AddNumberToObject(data, "build_number", sys.build_number);
+    cJSON_AddStringToObject(data, "build_date", sys.build_date);
+    cJSON_AddStringToObject( data, "node_name", user_cfg.node_name);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
 static void send_ack(const char *category)
 {
     cJSON *root = cJSON_CreateObject();
@@ -290,7 +301,13 @@ bool handle_settings_command(const char *json)
                 gpio_link_led(0);
                 return true;
             }
-
+       else if (strcmp(category, "test") == 0)
+            {
+                send_test_settings();
+                cJSON_Delete(root);
+                gpio_link_led(0);
+                return true;
+            }
 
         else if (strcmp(category, "all") == 0)
             {
@@ -365,6 +382,121 @@ bool handle_settings_command(const char *json)
         }
 
         ESP_LOGI(TAG, "Category to apply: %s", category);
+
+// ==========================================================
+// ACCOUNT SETTINGS
+// ==========================================================
+
+if (strcmp(category, "account") == 0)
+{
+    cJSON *account = cJSON_GetObjectItem(settings, "account");
+
+    if (!account)
+    {
+        ESP_LOGE(TAG, "❌ Missing 'account' settings");
+        send_error("Missing account settings");
+        cJSON_Delete(root);
+        gpio_link_led(0);
+        return false;
+    }
+
+    cJSON *account_obj = account;
+
+    /* Фронтенд может отправить аккаунт как JSON объект
+       или как JSON строку */
+    if (cJSON_IsString(account))
+    {
+        account_obj = cJSON_Parse(account->valuestring);
+
+        if (!account_obj)
+        {
+            ESP_LOGE(TAG, "❌ Failed to parse account JSON string");
+            send_error("Invalid account JSON");
+            cJSON_Delete(root);
+            gpio_link_led(0);
+            return false;
+        }
+    }
+
+    if (!cJSON_IsObject(account_obj))
+    {
+        ESP_LOGE(TAG, "❌ Invalid account settings format");
+        send_error("Invalid account settings");
+
+        if (account_obj != account)
+            cJSON_Delete(account_obj);
+
+        cJSON_Delete(root);
+        gpio_link_led(0);
+        return false;
+    }
+
+    cJSON *node_name = cJSON_GetObjectItem(account_obj, "node_name");
+    cJSON *login     = cJSON_GetObjectItem(account_obj, "login");
+    cJSON *password  = cJSON_GetObjectItem(account_obj, "password");
+
+    if (cJSON_IsString(node_name))
+    {
+        strlcpy(
+            user_cfg.node_name,
+            node_name->valuestring,
+            sizeof(user_cfg.node_name)
+        );
+    }
+
+    if (cJSON_IsString(login))
+    {
+        strlcpy(
+            user_cfg.account_login,
+            login->valuestring,
+            sizeof(user_cfg.account_login)
+        );
+    }
+
+    if (cJSON_IsString(password))
+    {
+        strlcpy(
+            user_cfg.account_password,
+            password->valuestring,
+            sizeof(user_cfg.account_password)
+        );
+    }
+
+    ESP_LOGI(TAG,
+             "💾 Account settings: node_name='%s', login='%s'",
+             user_cfg.node_name,
+             user_cfg.account_login);
+
+    /* Сохраняем в NVS */
+    esp_err_t err = nvs_save_user_settings(&user_cfg);
+
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG,
+                 "❌ Failed to save account settings to NVS: %s",
+                 esp_err_to_name(err));
+
+        send_error("Failed to save account settings");
+
+        if (account_obj != account)
+            cJSON_Delete(account_obj);
+
+        cJSON_Delete(root);
+        gpio_link_led(0);
+        return false;
+    }
+
+    if (account_obj != account)
+        cJSON_Delete(account_obj);
+
+    ESP_LOGI(TAG, "✅ Account settings saved to NVS");
+
+    send_ack("account");
+
+    cJSON_Delete(root);
+    gpio_link_led(0);
+    return true;
+}
 
  // ==========================================================
 // UART SETTINGS
