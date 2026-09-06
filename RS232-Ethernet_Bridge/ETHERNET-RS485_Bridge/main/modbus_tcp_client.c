@@ -270,13 +270,7 @@ modbus_tcp_status_t modbus_tcp_request(
     // CONNECT
     // ------------------------------------------------------------------------
 
-    ESP_LOGI(
-        TAG,
-        "Connecting to %s:%u",
-        ip,
-        port
-    );
-
+  //  ESP_LOGI( TAG, "Connecting to %s:%u", ip, port);
 
     if (connect(
             sock,
@@ -298,12 +292,7 @@ modbus_tcp_status_t modbus_tcp_request(
     }
 
 
-    ESP_LOGI(
-        TAG,
-        "Connected to %s:%u",
-        ip,
-        port
-    );
+  //  ESP_LOGI( TAG, "Connected to %s:%u", ip, port );
 
 
     // ------------------------------------------------------------------------
@@ -336,17 +325,8 @@ modbus_tcp_status_t modbus_tcp_request(
     }
 
 
-    ESP_LOGI(
-        TAG,
-        "TX %d bytes",
-        tx_len
-    );
-
-    ESP_LOG_BUFFER_HEX(
-        TAG,
-        tx,
-        tx_len
-    );
+   // ESP_LOGI( TAG, "TX %d bytes",tx_len );
+   // ESP_LOG_BUFFER_HEX(TAG,tx, tx_len);
 
 
     // ------------------------------------------------------------------------
@@ -464,16 +444,8 @@ modbus_tcp_status_t modbus_tcp_request(
     // DEBUG MBAP
     // ------------------------------------------------------------------------
 
-    ESP_LOGI(
-        TAG,
-        "RX MBAP"
-    );
-
-    ESP_LOG_BUFFER_HEX(
-        TAG,
-        mbap,
-        sizeof(mbap)
-    );
+  //  ESP_LOGI(TAG,"RX MBAP");
+  //  ESP_LOG_BUFFER_HEX(TAG, mbap, sizeof(mbap));
 
 
     // ------------------------------------------------------------------------
@@ -498,14 +470,7 @@ modbus_tcp_status_t modbus_tcp_request(
     uint8_t rx_unit = mbap[6];
 
 
-    ESP_LOGI(
-        TAG,
-        "MBAP: TID=%u PID=%u LEN=%u UNIT=%u",
-        transaction_id,
-        protocol_id,
-        length,
-        rx_unit
-    );
+  //  ESP_LOGI(TAG, "MBAP: TID=%u PID=%u LEN=%u UNIT=%u", transaction_id,  protocol_id, length, rx_unit);
 
 
     // ------------------------------------------------------------------------
@@ -654,17 +619,8 @@ modbus_tcp_status_t modbus_tcp_request(
     // DEBUG PDU
     // ------------------------------------------------------------------------
 
-    ESP_LOGI(
-        TAG,
-        "RX PDU %d bytes",
-        n
-    );
-
-    ESP_LOG_BUFFER_HEX(
-        TAG,
-        resp,
-        n
-    );
+ //   ESP_LOGI(TAG,"RX PDU %d bytes",n);
+ //   ESP_LOG_BUFFER_HEX( TAG, resp, n );
 
 
     // ------------------------------------------------------------------------

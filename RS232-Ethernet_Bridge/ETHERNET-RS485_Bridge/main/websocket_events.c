@@ -315,8 +315,7 @@ static bool handle_mtcp_data(const char *json)
     uint16_t qty          = quantity ? quantity->valueint : 0;
     uint16_t val          = value ? value->valueint : 0;
 
-    ESP_LOGI(TAG, "📡 MTCP request -> %s:%d unit=%d func=%d start=%d qty=%d val=%d",
-             ip_str, port_v, unit, func_v, start, qty, val);
+  //  ESP_LOGI(TAG, "📡 MTCP request -> %s:%d unit=%d func=%d start=%d qty=%d val=%d", ip_str, port_v, unit, func_v, start, qty, val);
 
              if (diagnostics_active) {
     char diag_msg[256];
@@ -373,7 +372,7 @@ websocket_send_text(cloud_msg);
         hex[0] = '\0';
     }
 
-    ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
+   // ESP_LOGI(TAG, "📥 MTCP MODBUS: %s", hex);
 
     // command_name
     cJSON *cmd_name = cJSON_GetObjectItem(root, "command_name");
@@ -395,7 +394,7 @@ websocket_send_text(cloud_msg);
 
     websocket_send_text(ws_msg);
 
-    ESP_LOGI(TAG, "📤 WS sent: %s", ws_msg);
+  //  ESP_LOGI(TAG, "📤 WS sent: %s", ws_msg);
 }
 
     cJSON_Delete(root);

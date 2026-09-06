@@ -8,6 +8,7 @@ idf_component_register(
         "ethernet_manager.c"
         "web_server.c"
         "ws_device_settings.c"
+        "ws_settings_manager.c"
         "websocket_client.c"
         "websocket_events.c"
         "network_state.c"

@@ -16,7 +16,7 @@
 #include "network_state.h"
 #include "websocket_client.h"
 #include "modbus_tcp_client.h"
-
+#include "ws_settings_manager.h"
 
 static const char *TAG = "ws_device_settings";
 
@@ -243,7 +243,7 @@ bool handle_settings_command(const char *json)
     if (strcmp(command_type, "get_settings") == 0)
     {
 
-       
+       /*
       const char *category = "all";
 
             cJSON *cat = cJSON_GetObjectItem(root, "settings_requested");
@@ -252,6 +252,32 @@ bool handle_settings_command(const char *json)
             {
                 category = cat->valuestring;
             }
+*/
+const char *category = "all";
+
+cJSON *cat = cJSON_GetObjectItem(root, "settings_requested");
+
+if (cJSON_IsString(cat))
+{
+    // Старый формат:
+    // "settings_requested": "system"
+    category = cat->valuestring;
+}
+else if (cJSON_IsArray(cat))
+{
+    // Новый формат:
+    // "settings_requested": ["system"]
+
+    if (cJSON_GetArraySize(cat) == 1)
+    {
+        cJSON *item = cJSON_GetArrayItem(cat, 0);
+
+        if (cJSON_IsString(item))
+        {
+            category = item->valuestring;
+        }
+    }
+}
 
         ESP_LOGI(TAG, "📥 Requested category: %s", category);
 
@@ -393,293 +419,100 @@ if (strcmp(category, "account") == 0)
 
     if (!account)
     {
-        ESP_LOGE(TAG, "❌ Missing 'account' settings");
+        ESP_LOGE(TAG, "Missing 'account' settings");
         send_error("Missing account settings");
         cJSON_Delete(root);
         gpio_link_led(0);
         return false;
     }
 
-    cJSON *account_obj = account;
-
-    /* Фронтенд может отправить аккаунт как JSON объект
-       или как JSON строку */
-    if (cJSON_IsString(account))
-    {
-        account_obj = cJSON_Parse(account->valuestring);
-
-        if (!account_obj)
-        {
-            ESP_LOGE(TAG, "❌ Failed to parse account JSON string");
-            send_error("Invalid account JSON");
-            cJSON_Delete(root);
-            gpio_link_led(0);
-            return false;
-        }
-    }
-
-    if (!cJSON_IsObject(account_obj))
-    {
-        ESP_LOGE(TAG, "❌ Invalid account settings format");
-        send_error("Invalid account settings");
-
-        if (account_obj != account)
-            cJSON_Delete(account_obj);
-
-        cJSON_Delete(root);
-        gpio_link_led(0);
-        return false;
-    }
-
-    cJSON *node_name = cJSON_GetObjectItem(account_obj, "node_name");
-    cJSON *login     = cJSON_GetObjectItem(account_obj, "login");
-    cJSON *password  = cJSON_GetObjectItem(account_obj, "password");
-
-    if (cJSON_IsString(node_name))
-    {
-        strlcpy(
-            user_cfg.node_name,
-            node_name->valuestring,
-            sizeof(user_cfg.node_name)
-        );
-    }
-
-    if (cJSON_IsString(login))
-    {
-        strlcpy(
-            user_cfg.account_login,
-            login->valuestring,
-            sizeof(user_cfg.account_login)
-        );
-    }
-
-    if (cJSON_IsString(password))
-    {
-        strlcpy(
-            user_cfg.account_password,
-            password->valuestring,
-            sizeof(user_cfg.account_password)
-        );
-    }
-
-    ESP_LOGI(TAG,
-             "💾 Account settings: node_name='%s', login='%s'",
-             user_cfg.node_name,
-             user_cfg.account_login);
-
-    /* Сохраняем в NVS */
-    esp_err_t err = nvs_save_user_settings(&user_cfg);
+    esp_err_t err = ws_settings_apply_account(account, &user_cfg);
 
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG,
-                 "❌ Failed to save account settings to NVS: %s",
-                 esp_err_to_name(err));
-
-        send_error("Failed to save account settings");
-
-        if (account_obj != account)
-            cJSON_Delete(account_obj);
-
+        send_error("Failed to apply account settings");
         cJSON_Delete(root);
         gpio_link_led(0);
         return false;
     }
 
-    if (account_obj != account)
-        cJSON_Delete(account_obj);
-
-    ESP_LOGI(TAG, "✅ Account settings saved to NVS");
-
+    ESP_LOGI(TAG, "Account settings applied and saved");
     send_ack("account");
-
     cJSON_Delete(root);
     gpio_link_led(0);
+
     return true;
 }
-
  // ==========================================================
 // UART SETTINGS
 // ==========================================================
+
 if (strcmp(category, "uart") == 0)
 {
     ESP_LOGI(TAG, "⚙️ Applying UART settings");
-
-
-    if (!settings)
-    {
-        cJSON_Delete(root);
-
-       // websocket_send_text("{\"status\":\"error\",\"message\":\"Missing settings\"}");
-        send_error("Missing settings");
-        return true;
-    }
-
-    // ======================================================
-    // UART OBJECT / JSON STRING
-    // ======================================================
 
     cJSON *uart_item = cJSON_GetObjectItem(settings, "uart");
 
     if (!uart_item)
     {
-        cJSON_Delete(root);
-
-       // websocket_send_text( "{\"status\":\"error\",\"message\":\"Missing uart field\"}");
         send_error("Missing uart field");
-        return true;
-    }
-
-    cJSON *uart_json = NULL;
-    bool uart_json_allocated = false;
-
-    // uart = { ... }
-    if (cJSON_IsObject(uart_item))
-    {
-        uart_json = uart_item;
-    }
-    
-    else if (cJSON_IsString(uart_item))
-    {
-        uart_json = cJSON_Parse(uart_item->valuestring);
-
-        if (!uart_json)
-        {
-            cJSON_Delete(root);
-            // websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart JSON string\"}" );
-            send_error("Invalid uart JSON string");
-            return true;
-        }
-
-        uart_json_allocated = true;
-    }
-    else
-    {
         cJSON_Delete(root);
-      //  websocket_send_text("{\"status\":\"error\",\"message\":\"Invalid uart type\"}");
-        send_error("Invalid uart type");
-        return true;
+        return false;
     }
 
-    // ======================================================
-    // fields
-    // ======================================================
+    esp_err_t err = ws_settings_apply_uart(uart_item,&uart_cfg);
 
-    cJSON *baud      = cJSON_GetObjectItem(uart_json, "baud");
-    cJSON *data_bits = cJSON_GetObjectItem(uart_json, "data_bits");
-    cJSON *stop_bits = cJSON_GetObjectItem(uart_json, "stop_bits");
-    cJSON *parity    = cJSON_GetObjectItem(uart_json, "parity");
-    cJSON *mode      = cJSON_GetObjectItem(uart_json, "mode");
-
-    // baud
-    if (baud && cJSON_IsNumber(baud))
+    if (err != ESP_OK)
     {
-        uart_cfg.baud_rate = baud->valueint;
+        send_error("Failed to apply UART settings");
+        cJSON_Delete(root);
+        gpio_link_led(0);
+        return false;
     }
-
-    // data bits
-    if (data_bits && cJSON_IsNumber(data_bits))
-    {
-        switch (data_bits->valueint)
-        {
-            case 5:
-                uart_cfg.data_bits = UART_DATA_5_BITS;
-                break;
-
-            case 6:
-                uart_cfg.data_bits = UART_DATA_6_BITS;
-                break;
-
-            case 7:
-                uart_cfg.data_bits = UART_DATA_7_BITS;
-                break;
-
-            case 8:
-            default:
-                uart_cfg.data_bits = UART_DATA_8_BITS;
-                break;
-        }
-    }
-
-    // stop bits
-    if (stop_bits && cJSON_IsNumber(stop_bits))
-    {
-        switch (stop_bits->valueint)
-        {
-            case 1:
-                uart_cfg.stop_bits = UART_STOP_BITS_1;
-                break;
-
-            case 2:
-                uart_cfg.stop_bits = UART_STOP_BITS_2;
-                break;
-
-            case 15:
-                uart_cfg.stop_bits = UART_STOP_BITS_1_5;
-                break;
-
-            default:
-                uart_cfg.stop_bits = UART_STOP_BITS_1;
-                break;
-        }
-    }
-
-    // parity
-    if (parity && cJSON_IsNumber(parity))
-    {
-        switch (parity->valueint)
-        {
-            case UART_PARITY_DISABLE:
-            case UART_PARITY_EVEN:
-            case UART_PARITY_ODD:
-                uart_cfg.parity = parity->valueint;
-                break;
-
-            default:
-                uart_cfg.parity = UART_PARITY_DISABLE;
-                break;
-        }
-    }
-
-    // mode
-    if (mode && cJSON_IsNumber(mode))
-    {
-        uart_cfg.rs485_mode = mode->valueint;
-    }
-
-    ESP_LOGI(
-        TAG,
-        "UART applied: baud=%d data=%d stop=%d parity=%d mode=%s",
-        uart_cfg.baud_rate,
-        uart_cfg.data_bits,
-        uart_cfg.stop_bits,
-        uart_cfg.parity,
-        uart_cfg.rs485_mode ? "RS485" : "RS232"
-    );
-
-    // ======================================================
-    // SAVE SETTINGS
-    // ======================================================
-
-    nvs_save_uart_settings(&uart_cfg);
 
     rs485_master_deinit();
-
     vTaskDelay(pdMS_TO_TICKS(100));
-
-    rs485_master_init_from_cfg(&uart_cfg, 2048, 1024);
-
-    // ======================================================
-    // FREE MEMORY
-    // ======================================================
-
-    if (uart_json_allocated)
-    {
-        cJSON_Delete(uart_json);
-    }
+    rs485_master_init_from_cfg( &uart_cfg, 2048, 1024);
+    send_ack("uart");
 
     cJSON_Delete(root);
-    send_ack("uart");
+    gpio_link_led(0);
+
+    return true;
+}
+// ==========================================================
+// USER SETTINGS
+// ==========================================================
+
+if (strcmp(category, "user") == 0)
+{
+
+    ESP_LOGI(TAG, "⚙️ Applying USER settings");
+
+    cJSON *user_item = cJSON_GetObjectItem(settings, "user");
+
+    if (!user_item)
+    {
+        send_error("Missing user field");
+        cJSON_Delete(root);
+        return false;
+    }
+
+    esp_err_t err = ws_settings_apply_user(user_item,&user_cfg);
+
+    if (err != ESP_OK)
+    {
+        send_error("Failed to apply USER settings");
+        cJSON_Delete(root);
+        gpio_link_led(0);
+        return false;
+    }
+
+    send_ack("user");
+
+    cJSON_Delete(root);
+    gpio_link_led(0);
+
     return true;
 }
 
