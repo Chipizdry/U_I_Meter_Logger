@@ -7,6 +7,8 @@
 
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
+#include <sys/select.h>
 
 #include "esp_log.h"
 
@@ -157,6 +159,120 @@ static int recv_exact(int sock,
 }
 
 
+
+static int connect_with_timeout(
+    int sock,
+    const struct sockaddr *addr,
+    socklen_t addrlen,
+    int timeout_ms)
+{
+    // ---------------------------------------------------------
+    // NON-BLOCKING
+    // ---------------------------------------------------------
+
+    int flags = fcntl(sock, F_GETFL, 0);
+
+    if (flags < 0) {
+        return -1;
+    }
+
+    if (fcntl(sock, F_SETFL, flags | O_NONBLOCK) < 0) {
+        return -1;
+    }
+
+
+    // ---------------------------------------------------------
+    // CONNECT
+    // ---------------------------------------------------------
+
+    int ret = connect(sock, addr, addrlen);
+
+    if (ret == 0) {
+        // Connected immediately
+        return 0;
+    }
+
+    if (errno != EINPROGRESS &&
+        errno != EWOULDBLOCK) {
+
+        return -1;
+    }
+
+
+    // ---------------------------------------------------------
+    // WAIT FOR CONNECT
+    // ---------------------------------------------------------
+
+    fd_set writefds;
+
+    FD_ZERO(&writefds);
+    FD_SET(sock, &writefds);
+
+    struct timeval tv = {
+        .tv_sec = timeout_ms / 1000,
+        .tv_usec = (timeout_ms % 1000) * 1000
+    };
+
+
+    ret = select(
+        sock + 1,
+        NULL,
+        &writefds,
+        NULL,
+        &tv
+    );
+
+
+    // ---------------------------------------------------------
+    // TIMEOUT
+    // ---------------------------------------------------------
+
+    if (ret == 0) {
+
+        errno = ETIMEDOUT;
+
+        return -2;
+    }
+
+
+    // ---------------------------------------------------------
+    // SELECT ERROR
+    // ---------------------------------------------------------
+
+    if (ret < 0) {
+
+        return -1;
+    }
+
+
+    // ---------------------------------------------------------
+    // CHECK SOCKET ERROR
+    // ---------------------------------------------------------
+
+    int socket_error = 0;
+    socklen_t error_len = sizeof(socket_error);
+
+    if (getsockopt(
+            sock,
+            SOL_SOCKET,
+            SO_ERROR,
+            &socket_error,
+            &error_len) < 0) {
+
+        return -1;
+    }
+
+
+    if (socket_error != 0) {
+        errno = socket_error;
+        return -1;
+    }
+
+
+    return 0;
+}
+
+
 // ============================================================================
 // MODBUS TCP REQUEST
 // ============================================================================
@@ -271,25 +387,34 @@ modbus_tcp_status_t modbus_tcp_request(
     // ------------------------------------------------------------------------
 
   //  ESP_LOGI( TAG, "Connecting to %s:%u", ip, port);
+/*
+    if (connect( sock,(struct sockaddr *)&addr, sizeof(addr)) != 0) {
 
-    if (connect(
-            sock,
-            (struct sockaddr *)&addr,
-            sizeof(addr)) != 0) {
-
-        ESP_LOGW(
-            TAG,
-            "connect() failed: %s:%u errno=%d (%s)",
-            ip,
-            port,
-            errno,
-            strerror(errno)
-        );
-
+        ESP_LOGW( TAG,"connect() failed: %s:%u errno=%d (%s)", ip, port,errno,strerror(errno) );
         close(sock);
 
         return MODBUS_TCP_ERR_CONNECT;
     }
+*/
+int connect_result = connect_with_timeout(
+    sock,
+    (struct sockaddr *)&addr,
+    sizeof(addr),
+    MODBUS_TCP_TIMEOUT_MS
+);
+
+if (connect_result != 0) {
+
+    if (connect_result == -2) {
+        ESP_LOGW(TAG,"CONNECT TIMEOUT: %s:%u after %d ms",ip,port,MODBUS_TCP_TIMEOUT_MS);
+        close(sock);
+        return MODBUS_TCP_ERR_TIMEOUT;
+    }
+
+    ESP_LOGW(TAG,"connect() failed: %s:%u errno=%d (%s)",ip,port,errno,strerror(errno));
+    close(sock);
+    return MODBUS_TCP_ERR_CONNECT;
+}
 
 
   //  ESP_LOGI( TAG, "Connected to %s:%u", ip, port );
@@ -301,26 +426,11 @@ modbus_tcp_status_t modbus_tcp_request(
 
     uint8_t tx[TX_SIZE];
 
-    int tx_len = build_req(
-        tx,
-        unit,
-        func,
-        start,
-        qty,
-        value
-    );
-
+    int tx_len = build_req(tx,unit,func,start,qty,value);
 
     if (tx_len < 0) {
-
-        ESP_LOGE(
-            TAG,
-            "Unsupported Modbus function: %u",
-            func
-        );
-
+        ESP_LOGE(TAG,"Unsupported Modbus function: %u",func);
         close(sock);
-
         return MODBUS_TCP_ERR_INVALID_ARG;
     }
 
@@ -342,31 +452,15 @@ modbus_tcp_status_t modbus_tcp_request(
 
 
     if (sent < 0) {
-
-        ESP_LOGW(
-            TAG,
-            "send() failed: errno=%d (%s)",
-            errno,
-            strerror(errno)
-        );
-
+        ESP_LOGW(TAG,"send() failed: errno=%d (%s)",errno,strerror(errno));
         close(sock);
-
         return MODBUS_TCP_ERR_SEND;
     }
 
 
     if (sent != tx_len) {
-
-        ESP_LOGW(
-            TAG,
-            "Partial send: %d/%d",
-            sent,
-            tx_len
-        );
-
+        ESP_LOGW(TAG,"Partial send: %d/%d",sent,tx_len);
         close(sock);
-
         return MODBUS_TCP_ERR_SEND;
     }
 
@@ -396,46 +490,21 @@ modbus_tcp_status_t modbus_tcp_request(
     // ------------------------------------------------------------------------
 
     if (n == -2) {
-
-        ESP_LOGW(
-            TAG,
-            "TIMEOUT waiting MBAP response from %s:%u",
-            ip,
-            port
-        );
-
+        ESP_LOGW(TAG,"TIMEOUT waiting MBAP response from %s:%u",ip,port);
         close(sock);
-
         return MODBUS_TCP_ERR_TIMEOUT;
     }
 
 
     if (n == 0) {
-
-        ESP_LOGW(
-            TAG,
-            "Remote host closed connection without MBAP: %s:%u",
-            ip,
-            port
-        );
-
+        ESP_LOGW(TAG,"Remote host closed connection without MBAP: %s:%u",ip,port);
         close(sock);
-
         return MODBUS_TCP_ERR_CONNECTION_CLOSED;
     }
 
-
     if (n < 0) {
-
-        ESP_LOGW(
-            TAG,
-            "MBAP recv socket error: errno=%d (%s)",
-            errno,
-            strerror(errno)
-        );
-
+        ESP_LOGW(TAG,"MBAP recv socket error: errno=%d (%s)",errno,strerror(errno));
         close(sock);
-
         return MODBUS_TCP_ERR_SOCKET;
     }
 
@@ -452,9 +521,7 @@ modbus_tcp_status_t modbus_tcp_request(
     // PARSE MBAP
     // ------------------------------------------------------------------------
 
-    uint16_t transaction_id =
-        ((uint16_t)mbap[0] << 8) |
-        mbap[1];
+    //uint16_t transaction_id =((uint16_t)mbap[0] << 8) | mbap[1];
 
 
     uint16_t protocol_id =
@@ -659,16 +726,8 @@ modbus_tcp_status_t modbus_tcp_request(
     // ------------------------------------------------------------------------
 
     if (rx_func != func) {
-
-        ESP_LOGW(
-            TAG,
-            "Invalid response function: TX=%u RX=%u",
-            func,
-            rx_func
-        );
-
+        ESP_LOGW(TAG,"Invalid response function: TX=%u RX=%u",func,rx_func);
         close(sock);
-
         return MODBUS_TCP_ERR_INVALID_PDU;
     }
 
@@ -678,8 +737,6 @@ modbus_tcp_status_t modbus_tcp_request(
     // ------------------------------------------------------------------------
 
     close(sock);
-
-
     return MODBUS_TCP_OK;
 }
 

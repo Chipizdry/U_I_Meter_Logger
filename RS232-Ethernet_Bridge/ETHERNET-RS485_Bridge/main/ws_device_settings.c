@@ -235,7 +235,7 @@ bool handle_settings_command(const char *json)
     }
 
     const char *command_type = cmd->valuestring;
-    //ESP_LOGI(TAG, "⚙️ WS Settings command: %s", command_type);
+    ESP_LOGI(TAG, "⚙️ WS Settings command: %s", command_type);
 
     // ==========================================================
     // 2) GET SETTINGS

@@ -83,68 +83,6 @@ static bool can_resolve_host(const char *host)
 }
 
 
-
-/*
- void websocket_reconnect_task(void *pvParameters)
-{
-    const TickType_t check_interval = pdMS_TO_TICKS(5000); // проверяем каждую секунду
-
-    for (;;)
-    {
-
-        if (!ws_reconnect_enabled) {
-            vTaskDelay(check_interval);
-            continue;     // реконс не работает
-        }
-        bool need_reconnect = false;
-
-        if (!ws_connected) {
-            need_reconnect = true;
-        } else {
-            TickType_t now = xTaskGetTickCount();
-            if ((now - last_ws_event_tick) > WS_TIMEOUT_TICKS) {
-                ESP_LOGW(TAG, "⚠️ No WS activity for 20 seconds, forcing reconnect");
-                need_reconnect = true;
-            }
-        }
-
-        if (need_reconnect) {
-    if (ws_reconnect_in_progress) {
-        vTaskDelay(check_interval);
-        continue;
-    }
-
-    ws_reconnect_in_progress = true;
-
-    if (client) {
-        esp_websocket_client_stop(client);
-        vTaskDelay(pdMS_TO_TICKS(100));
-        esp_websocket_client_destroy(client);
-        client = NULL;
-        ws_connected = false;
-    }
-
-    const char *email_to_use = test_account_active ? ws_email : user_cfg.account_login;
-    const char *pass_to_use  = test_account_active ? ws_password : user_cfg.account_password;
-    const char *node_name_use  = test_account_active ? ws_node_name : user_cfg.node_name;
-
-
-    esp_err_t ok = websocket_client_start(user_cfg.serial, email_to_use, pass_to_use, node_name_use);
-    if (ok == ESP_OK) {
-        ESP_LOGI(TAG, "Reconnect started");
-    } else {
-        ESP_LOGE(TAG, "Reconnect failed: %s", esp_err_to_name(ok));
-    }
-
-    ws_reconnect_in_progress = false;
-}
-
-        vTaskDelay(check_interval);
-    }
-}
-
-*/
-
 void websocket_reconnect_task(void *pvParameters)
 {
     const TickType_t base_delay_ticks = pdMS_TO_TICKS(5000); // для проверки флага
@@ -493,7 +431,6 @@ void websocket_restart(const char *email, const char *password, const char *node
         esp_websocket_client_destroy(client);
         client = NULL;
     }
-
     ws_connected = false;
     
 
