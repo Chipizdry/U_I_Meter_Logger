@@ -174,7 +174,7 @@ static bool handle_hex_data(const char *json)
  }
 
 
-
+/*
 static bool handle_pi30_data(const char *json)
 {
     char *pi30_ptr = strstr(json, "\"pi30\"");
@@ -260,6 +260,190 @@ static bool handle_pi30_data(const char *json)
          gpio_link_led(0);
     return true;
 }
+*/
+
+static bool handle_pi30_data(const char *json)
+{
+    char *pi30_ptr = strstr(json, "\"pi30\"");
+    if (!pi30_ptr) {
+        return false;
+    }
+
+    char *start = strchr(pi30_ptr, ':');
+    if (!start || !(start = strchr(start, '"'))) {
+        ESP_LOGE(TAG, "pi30: format error");
+        return true;
+    }
+
+    start++;
+
+    char *end = strchr(start, '"');
+    if (!end || end <= start) {
+        ESP_LOGE(TAG, "pi30: empty value");
+        return true;
+    }
+
+    char hex_str[128] = {0};
+
+    int len = end - start;
+
+    if (len >= sizeof(hex_str)) {
+        ESP_LOGE(TAG, "pi30 too long");
+        return true;
+    }
+
+    memcpy(hex_str, start, len);
+    hex_str[len] = '\0';
+
+    char clean_hex[128] = {0};
+    int j = 0;
+
+    for (int i = 0; i < len; i++) {
+
+        if (hex_str[i] != ' '  &&
+            hex_str[i] != '\n' &&
+            hex_str[i] != '\r' &&
+            hex_str[i] != '\t') {
+
+            if (j >= sizeof(clean_hex) - 1) {
+                ESP_LOGE(TAG, "pi30 cleaned HEX too long");
+                return true;
+            }
+
+            clean_hex[j++] = hex_str[i];
+        }
+    }
+
+    clean_hex[j] = '\0';
+
+    /*
+     * ============================================================
+     * Diagnostics
+     * ============================================================
+     */
+    uint32_t now = xTaskGetTickCount();
+
+    uint32_t delta_ms = last_pi30_tick ? ticks_to_ms(now - last_pi30_tick) : 0;
+
+    last_pi30_tick = now;
+
+    if (diagnostics_active && delta_ms > 0) {
+
+        char msg[64];
+
+        snprintf(msg,
+                 sizeof(msg),
+                 "{\"diag\":\"PI30 update : %" PRIu32 "\"}",
+                 delta_ms);
+
+        ws_broadcast(msg);
+    }
+
+    /*
+     * ============================================================
+     * HEX -> bytes
+     * ============================================================
+     */
+    uint8_t bytes[64];
+
+    int byte_len =
+        hex_to_bytes(
+            clean_hex,
+            bytes,
+            sizeof(bytes)
+        );
+
+    if (byte_len <= 0) {
+        ESP_LOGE(TAG, "PI30 HEX parse error");
+        return true;
+    }
+
+   
+    char ascii[128];
+    int ai = 0;
+
+    for (int i = 0;
+         i < byte_len && ai < sizeof(ascii) - 1;
+         i++) {
+
+        char c = bytes[i];
+
+        ascii[ai++] =
+            (c >= 32 && c < 127) ? c : '.';
+    }
+
+    ascii[ai] = '\0';
+
+  //  ESP_LOGI(TAG, "🔤 PI30 ASCII: %s", ascii);
+    char command_name[64] = {0};
+    char *cmd_ptr = strstr(json, "\"command_name\"");
+
+    if (cmd_ptr) {
+
+        char *cmd_start = strchr(cmd_ptr, ':');
+
+        if (cmd_start &&
+            (cmd_start = strchr(cmd_start, '"'))) {
+
+            cmd_start++;
+
+            char *cmd_end = strchr(cmd_start, '"');
+
+            if (cmd_end && cmd_end > cmd_start) {
+
+                int cmd_len = cmd_end - cmd_start;
+
+                if (cmd_len >= sizeof(command_name)) {
+                    ESP_LOGE(TAG,"PI30 command_name too long");
+                    return true;
+                }
+
+                memcpy(command_name,cmd_start, cmd_len);
+
+                command_name[cmd_len] = '\0';
+            }
+        }
+    }
+
+
+    if (command_name[0] == '\0') {
+        ESP_LOGW(TAG, "PI30: command_name not found");
+        strcpy(command_name, "UNKNOWN");
+    }
+
+    ESP_LOGI(TAG, "📋 PI30 COMMAND: %s",command_name);
+
+    /*
+     * ============================================================
+     * Формируем RS485 request
+     * ============================================================
+     */
+    rs485_req_t req = {0};
+
+    /*
+     * В data кладём ПОЛНЫЙ исходный PI30 кадр:
+     *
+     * COMMAND + CRC + CR
+     */
+    memcpy(req.data, bytes, byte_len);
+
+    req.len = byte_len;
+
+    
+ //   snprintf(req.cmd, sizeof(req.cmd),"%s", command_name);
+
+strncpy(req.cmd, command_name, sizeof(req.cmd) - 1);
+req.cmd[sizeof(req.cmd) - 1] = '\0';
+
+   // ESP_LOGI(TAG, "📤 PI30 SEND: cmd=%s len=%d", req.cmd,req.len);
+
+    rs485_master_send_req(&req);
+
+    gpio_link_led(0);
+
+    return true;
+}
+
 
 static bool handle_mtcp_data(const char *json)
 {

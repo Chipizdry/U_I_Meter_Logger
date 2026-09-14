@@ -34,6 +34,8 @@ static bool wifi_initialized = false;
 
 static volatile bool wifi_scan_in_progress = false;
 static volatile bool wifi_scan_completed = false;
+static TaskHandle_t reconnect_task_handle = NULL;
+static volatile bool wifi_reconnect_requested = false;
 
 // Сохранённые результаты сканирования
 static char *pending_scan_results = NULL;
@@ -58,6 +60,7 @@ typedef struct {
 static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
 static void process_scan_results_task(void *pvParameters);
 static void delayed_reconnect_task(void *pvParameters);
+static void wifi_reconnect_task(void *pvParameters);
 static void save_scan_results_for_later(const char *json_results);
 static void reconnect_after_scan_task(void *pvParameters);
 esp_err_t wifi_connect_to(const char* ssid, const char* password);
@@ -345,19 +348,21 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                 ESP_LOGI(TAG, "STA connected");
                 break;
                 
-            case WIFI_EVENT_STA_DISCONNECTED: {
-                wifi_event_sta_disconnected_t *disconn = event_data;
-                ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)", 
-                         disconn->reason, wifi_reason_to_str(disconn->reason));
-                network_set_wifi_state(NET_STATE_WIFI_DOWN);
-                
-                // Если это не сканирование - переподключаемся
-                if (!wifi_scan_in_progress) {
-                    xTaskCreate(reconnect_to_saved_wifi_task, "reconnect_wifi", 
-                               RECONNECT_TASK_STACK_SIZE, NULL, 3, NULL);
-                }
+            case WIFI_EVENT_STA_DISCONNECTED:
+                {
+                    wifi_event_sta_disconnected_t *disconn = event_data;
+                    ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)", disconn->reason,wifi_reason_to_str(disconn->reason));
+                    network_set_wifi_state(NET_STATE_WIFI_DOWN);
+
+                    if (!wifi_scan_in_progress)
+                    {
+                        if (reconnect_task_handle != NULL)
+                        {
+                            xTaskNotifyGive(reconnect_task_handle);
+                        }
+                    }
                 break;
-            }
+                }
             
             case WIFI_EVENT_AP_START:
                 ESP_LOGI(TAG, "AP started");
@@ -657,6 +662,18 @@ void start_wifi_manager_task(void)
         pending_results_mutex = xSemaphoreCreateMutex();
         assert(pending_results_mutex);
     }
+   /*
+     * Создаём reconnect task ОДИН РАЗ
+     */
+    if (reconnect_task_handle == NULL)
+    {
+        BaseType_t ret = xTaskCreate(wifi_reconnect_task,"wifi_reconnect", RECONNECT_TASK_STACK_SIZE, NULL, 3,&reconnect_task_handle);
+        if (ret != pdPASS)
+        {
+            ESP_LOGE(TAG, "❌ Failed to create WiFi reconnect task");
+            reconnect_task_handle = NULL;
+        }
+    }
 
     xTaskCreatePinnedToCore(wifi_manager_task, "wifi_manager_task", 4096,NULL, 3, NULL, tskNO_AFFINITY);
     ESP_LOGI(TAG, "Wi-Fi manager started");
@@ -695,4 +712,71 @@ static void wifi_apply_ip_settings(const network_settings_t *cfg)
         esp_netif_set_dns_info(netif, ESP_NETIF_DNS_MAIN, &dns);
     }
 }
+
+static void wifi_reconnect_task(void *pvParameters)
+{
+    wifi_settings_t cfg;
+
+    for (;;)
+    {
+        /*
+         * Ждём запроса на reconnect.
+         * Задача при этом вообще не занимает CPU.
+         */
+        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+        ESP_LOGI(TAG, "🔄 WiFi reconnect task: reconnect requested");
+
+        /*
+         * Небольшая задержка перед повторным подключением.
+         * Не блокирует остальные задачи ESP32 — блокируется только
+         * эта reconnect task.
+         */
+        vTaskDelay(pdMS_TO_TICKS(3000));
+
+        /*
+         * Проверяем, не восстановилось ли соединение
+         * за эти 3 секунды.
+         */
+        if (network_get_wifi_state() == NET_STATE_WIFI_UP)
+        {
+            ESP_LOGI(TAG, "✅ WiFi already connected");
+            continue;
+        }
+
+        if (nvs_load_wifi_settings(&cfg) != ESP_OK)
+        {
+            ESP_LOGW(TAG, "⚠️ Cannot load WiFi settings");
+            continue;
+        }
+
+        if (strlen(cfg.sta_ssid) == 0)
+        {
+            ESP_LOGW(TAG, "⚠️ No saved WiFi SSID");
+            continue;
+        }
+
+        ESP_LOGI(TAG, "📡 Connecting to saved WiFi: %s",
+                 cfg.sta_ssid);
+
+        esp_err_t err = wifi_connect_to(
+            cfg.sta_ssid,
+            cfg.sta_password
+        );
+
+        if (err != ESP_OK)
+        {
+            ESP_LOGW(TAG,"⚠️ esp_wifi_connect() failed: %s",esp_err_to_name(err));
+
+            /*
+             * Не делаем здесь повторный connect.
+             *
+             * Если WiFi не подключится,
+             * WIFI_EVENT_STA_DISCONNECTED снова
+             * разбудит эту же задачу.
+             */
+        }
+    }
+}
+
 
