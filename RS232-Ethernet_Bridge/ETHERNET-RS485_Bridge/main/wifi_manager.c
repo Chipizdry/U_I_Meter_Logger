@@ -125,6 +125,7 @@ void wifi_manager_init_once(void)
         IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_event_handler, NULL));
 
     ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
 
     inited = true;
 }

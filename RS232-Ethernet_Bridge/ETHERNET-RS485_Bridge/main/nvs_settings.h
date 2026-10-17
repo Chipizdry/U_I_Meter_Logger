@@ -66,6 +66,7 @@ typedef struct {
     int build_number;          // 👈 номер сборки
     char build_date[32];       // 👈 дата и время сборки
     char ws_server[64];    // адрес WS сервера
+    char ws_server_2[64]; // адрес WS сервера для dev-режима
 } system_settings_t;
 
 typedef struct {

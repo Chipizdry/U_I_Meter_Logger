@@ -27,6 +27,10 @@ extern user_settings_t user_cfg;
 extern system_settings_t sys;
 extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
 
+
+
+
+
 static void send_account_settings(void);
 static void send_user_settings(void);
 static void send_network_settings(void);
@@ -203,39 +207,57 @@ static void send_error(const char *msg)
     ws_send_json(root);
 }
 
-bool handle_settings_command(const char *json)
+bool handle_settings_command(cJSON *root)
 {
-    // Если DHCP включен, берем текущие настройки с Ethernet
-  
-        if (net_cfg.dhcp_enabled) {
-        fill_netif_ip_info("ETH_DEF", net_cfg.ip, net_cfg.mask,net_cfg.gateway,net_cfg.dns, sizeof(net_cfg.ip) );
-    }
-
-        if (net_cfg.wifi_dhcp_enabled &&
-        (wifi_cfg.mode == WIFI_MODE_STA || wifi_cfg.mode == WIFI_MODE_APSTA)) {
-        fill_netif_ip_info("WIFI_STA_DEF", net_cfg.wifi_ip, net_cfg.wifi_mask, net_cfg.wifi_gateway, net_cfg.wifi_dns,sizeof(net_cfg.wifi_ip) );
-    }
-
-
-    cJSON *root = cJSON_Parse(json);
-
-    if (!root)
-    {
-        send_error("Invalid JSON");
+    if (!root) {
         return false;
     }
 
-    cJSON *cmd = cJSON_GetObjectItem(root, "command_type");
+    /*
+     * Если DHCP включен, берем текущие настройки
+     */
+
+    if (net_cfg.dhcp_enabled)
+    {
+        fill_netif_ip_info(
+            "ETH_DEF",
+            net_cfg.ip,
+            net_cfg.mask,
+            net_cfg.gateway,
+            net_cfg.dns,
+            sizeof(net_cfg.ip)
+        );
+    }
+
+    if (net_cfg.wifi_dhcp_enabled &&
+        (wifi_cfg.mode == WIFI_MODE_STA ||
+         wifi_cfg.mode == WIFI_MODE_APSTA))
+    {
+        fill_netif_ip_info(
+            "WIFI_STA_DEF",
+            net_cfg.wifi_ip,
+            net_cfg.wifi_mask,
+            net_cfg.wifi_gateway,
+            net_cfg.wifi_dns,
+            sizeof(net_cfg.wifi_ip)
+        );
+    }
+
+    cJSON *cmd =
+        cJSON_GetObjectItem(
+            root,
+            "command_type"
+        );
 
     if (!cJSON_IsString(cmd))
     {
-        cJSON_Delete(root);
         send_error("Missing command_type");
         return false;
     }
 
-    const char *command_type = cmd->valuestring;
-    ESP_LOGI(TAG, "⚙️ WS Settings command: %s", command_type);
+    const char *command_type =cmd->valuestring;
+    ESP_LOGI(TAG,"⚙️ WS Settings command: %s",command_type);
+
 
     // ==========================================================
     // 2) GET SETTINGS
@@ -284,54 +306,54 @@ else if (cJSON_IsArray(cat))
         if (strcmp(category, "user") == 0)
             {
                 send_user_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
                 return true;
             }
         else if (strcmp(category, "account") == 0)
             {
                 send_account_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+              //  cJSON_Delete(root);
+              //  gpio_link_led(0);
                 return true;
             }
 
         else if (strcmp(category, "network") == 0)
             {
                 send_network_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
                 return true;
             }
  
         else if (strcmp(category, "wifi") == 0)
             {
                 send_wifi_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+              //  cJSON_Delete(root);
+              //  gpio_link_led(0);
                 return true;
             }
                            
         else if (strcmp(category, "uart") == 0)
             {
                 send_uart_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+             //   cJSON_Delete(root);
+              //  gpio_link_led(0);
                 return true;
             }
 
        else if (strcmp(category, "system") == 0)
             {
                 send_system_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
                 return true;
             }
        else if (strcmp(category, "test") == 0)
             {
                 send_test_settings();
-                cJSON_Delete(root);
-                gpio_link_led(0);
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
                 return true;
             }
 
@@ -344,18 +366,18 @@ else if (cJSON_IsArray(cat))
                 send_wifi_settings();
                 send_uart_settings();
                 send_system_settings(); 
-                cJSON_Delete(root);
-                gpio_link_led(0);
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
                 return true;
             }
 
         else
             {
                 send_error("Unknown settings category");
-                cJSON_Delete(root);
+              //  cJSON_Delete(root);
                 return false;
             }
-        cJSON_Delete(root);    
+       // cJSON_Delete(root);    
         return true;
     }
 
@@ -363,51 +385,41 @@ else if (cJSON_IsArray(cat))
 //  SET SETTINGS
 // ==========================================================
     if (strcmp(command_type, "set_settings") == 0)
-        {
-        ESP_LOGI(TAG, "✍️ SET SETTINGS received");
-        const char *category = NULL;
-        cJSON *settings = cJSON_GetObjectItem(root, "settings");
+{
+    ESP_LOGI(TAG, "✍️ SET SETTINGS received");
+    const char *category = NULL;
+    cJSON *settings = cJSON_GetObjectItem(root, "settings");
+    if (!cJSON_IsObject(settings))
+    {
+        send_error("Missing settings");
+        return false;
+    }
 
-        if (!cJSON_IsObject(settings))
-        {
-            send_error("Missing settings");
-            cJSON_Delete(root);
-            return false;
-        }
+    if (cJSON_HasObjectItem(settings, "account"))
+        category = "account";
 
-        if (cJSON_HasObjectItem(settings, "account"))
-        {
-            category = "account";
-        }
-        else if (cJSON_HasObjectItem(settings, "wifi"))
-        {
-            category = "wifi";
-        }
-        else if (cJSON_HasObjectItem(settings, "network"))
-        {
-            category = "network";
-        }
-        else if (cJSON_HasObjectItem(settings, "uart"))
-        {
-            category = "uart";
-        }
-        else if (cJSON_HasObjectItem(settings, "user"))
-        {
-            category = "user";
-        }
-        else if (cJSON_HasObjectItem(settings, "system"))
-        {
-            category = "system";
-        }
+    else if (cJSON_HasObjectItem(settings, "wifi"))
+        category = "wifi";
 
-        if (!category)
-        {
-            send_error("Unknown settings category");
-            cJSON_Delete(root);
-            return false;
-        }
+    else if (cJSON_HasObjectItem(settings, "network"))
+        category = "network";
 
-        ESP_LOGI(TAG, "Category to apply: %s", category);
+    else if (cJSON_HasObjectItem(settings, "uart"))
+        category = "uart";
+
+    else if (cJSON_HasObjectItem(settings, "user"))
+        category = "user";
+
+    else if (cJSON_HasObjectItem(settings, "system"))
+        category = "system";
+
+    if (!category)
+    {
+        send_error("Unknown settings category");
+        return false;
+    }
+
+    ESP_LOGI( TAG,"Category to apply: %s", category);
 
 // ==========================================================
 // ACCOUNT SETTINGS
@@ -421,8 +433,6 @@ if (strcmp(category, "account") == 0)
     {
         ESP_LOGE(TAG, "Missing 'account' settings");
         send_error("Missing account settings");
-        cJSON_Delete(root);
-        gpio_link_led(0);
         return false;
     }
 
@@ -431,16 +441,11 @@ if (strcmp(category, "account") == 0)
     if (err != ESP_OK)
     {
         send_error("Failed to apply account settings");
-        cJSON_Delete(root);
-        gpio_link_led(0);
         return false;
     }
 
     ESP_LOGI(TAG, "Account settings applied and saved");
     send_ack("account");
-    cJSON_Delete(root);
-    gpio_link_led(0);
-
     return true;
 }
  // ==========================================================
@@ -456,7 +461,6 @@ if (strcmp(category, "uart") == 0)
     if (!uart_item)
     {
         send_error("Missing uart field");
-        cJSON_Delete(root);
         return false;
     }
 
@@ -465,8 +469,6 @@ if (strcmp(category, "uart") == 0)
     if (err != ESP_OK)
     {
         send_error("Failed to apply UART settings");
-        cJSON_Delete(root);
-        gpio_link_led(0);
         return false;
     }
 
@@ -474,10 +476,6 @@ if (strcmp(category, "uart") == 0)
     vTaskDelay(pdMS_TO_TICKS(100));
     rs485_master_init_from_cfg( &uart_cfg, 2048, 1024);
     send_ack("uart");
-
-    cJSON_Delete(root);
-    gpio_link_led(0);
-
     return true;
 }
 // ==========================================================
@@ -488,13 +486,11 @@ if (strcmp(category, "user") == 0)
 {
 
     ESP_LOGI(TAG, "⚙️ Applying USER settings");
-
     cJSON *user_item = cJSON_GetObjectItem(settings, "user");
 
     if (!user_item)
     {
         send_error("Missing user field");
-        cJSON_Delete(root);
         return false;
     }
 
@@ -503,16 +499,10 @@ if (strcmp(category, "user") == 0)
     if (err != ESP_OK)
     {
         send_error("Failed to apply USER settings");
-        cJSON_Delete(root);
-        gpio_link_led(0);
         return false;
     }
 
     send_ack("user");
-
-    cJSON_Delete(root);
-    gpio_link_led(0);
-
     return true;
 }
 
@@ -526,7 +516,6 @@ if (strcmp(category, "user") == 0)
                 if (!system_item)
                 {
                     send_error("Missing system field");
-                    cJSON_Delete(root);
                     return false;
                 }
 
@@ -551,7 +540,6 @@ if (strcmp(category, "user") == 0)
                 if (!value)
                 {
                     send_error("Invalid system command");
-                    cJSON_Delete(root);
                     return false;
                 }
 
@@ -561,19 +549,15 @@ if (strcmp(category, "user") == 0)
                 {
                     ESP_LOGW(TAG, "🔄 Reboot command received");
                     send_action_ack("reboot");
-                    cJSON_Delete(root);
                     vTaskDelay(pdMS_TO_TICKS(500));
                     esp_restart();
                 }
 
                 send_error("Unknown system command");
-                cJSON_Delete(root);
                 return false;
             }
                 
        }
-         cJSON_Delete(root);
-    gpio_link_led(0);
     return true;
 }
 

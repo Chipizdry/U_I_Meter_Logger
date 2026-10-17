@@ -108,6 +108,7 @@ static void set_default_system_settings(system_settings_t *s) {
     strncpy(s->build_date, BUILD_DATE, sizeof(s->build_date)-1);
     //strncpy(s->ws_server, "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
     strncpy(s->ws_server, "wss://dev.monitoring.cor-int.com/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
+    strncpy(s->ws_server_2, "wss://monitoring.cor-int.com/dev-modbus/devices?session_id=", sizeof(s->ws_server_2)-1);
 }
 
 
@@ -137,17 +138,6 @@ static esp_err_t nvs_save_blob(const char *key, const void *data, size_t size) {
 }
 
 
-/*
-static esp_err_t nvs_load_blob(const char *key, void *data, size_t size) {
-    nvs_handle_t handle;
-    size_t len = size;
-    esp_err_t err = nvs_open(NAMESPACE, NVS_READONLY, &handle);
-    if (err != ESP_OK) return err;
-
-    err = nvs_get_blob(handle, key, data, &len);
-    nvs_close(handle);
-    return err;
-}  */
 static esp_err_t nvs_load_blob(const char *key, void *data, size_t size)
 {
     nvs_handle_t handle;

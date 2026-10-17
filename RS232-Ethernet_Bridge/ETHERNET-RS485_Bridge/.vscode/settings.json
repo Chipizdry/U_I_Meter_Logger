@@ -30,8 +30,8 @@
         "--clang-tidy=false"
     ],
     "idf.flashType": "UART",
-    "idf.portWin": "COM7",
     "idf.monitorPort": "COM7",
-    "editor.semanticHighlighting.enabled": false
+    "editor.semanticHighlighting.enabled": false,
+    "idf.port": "COM7"
 }
 

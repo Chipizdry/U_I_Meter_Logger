@@ -23,6 +23,7 @@ idf_component_register(
         "server_handlers.c"
         "modbus_tcp_client.c"
         "ble_manager.c"
+        "traceroute.c"
 
     INCLUDE_DIRS "."
     REQUIRES 

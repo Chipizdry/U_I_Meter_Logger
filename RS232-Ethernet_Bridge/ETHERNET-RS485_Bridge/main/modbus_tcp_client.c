@@ -109,52 +109,27 @@ static int build_req(uint8_t *b,
 //   -1  = socket error
 //   -2  = timeout
 // ============================================================================
-
-static int recv_exact(int sock,
-                      uint8_t *buf,
-                      int len)
+static int recv_exact(int sock, uint8_t *buf, int len)
 {
     int received = 0;
-
     while (received < len) {
+        fd_set rfds;
+        FD_ZERO(&rfds);
+        FD_SET(sock, &rfds);
+        struct timeval tv = { .tv_sec = MODBUS_TCP_TIMEOUT_MS/1000,
+                              .tv_usec = (MODBUS_TCP_TIMEOUT_MS%1000)*1000 };
+        int s = select(sock + 1, &rfds, NULL, NULL, &tv);
+        if (s == 0) return -2;              // timeout
+        if (s < 0)  return -1;              // socket error
 
-        int n = recv(
-            sock,
-            buf + received,
-            len - received,
-            0
-        );
-
-
-        // -----------------------------------------------------
-        // TIMEOUT / SOCKET ERROR
-        // -----------------------------------------------------
-
+        int n = recv(sock, buf + received, len - received, 0);
         if (n < 0) {
-
-            if (errno == EAGAIN ||
-                errno == EWOULDBLOCK) {
-
-                return -2;
-            }
-
+            if (errno == EAGAIN || errno == EWOULDBLOCK) continue;
             return -1;
         }
-
-
-        // -----------------------------------------------------
-        // REMOTE CLOSED CONNECTION
-        // -----------------------------------------------------
-
-        if (n == 0) {
-
-            return 0;
-        }
-
-
+        if (n == 0) return 0;
         received += n;
     }
-
     return received;
 }
 
