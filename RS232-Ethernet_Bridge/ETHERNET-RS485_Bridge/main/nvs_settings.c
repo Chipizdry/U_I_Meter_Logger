@@ -122,7 +122,12 @@ static void set_default_uart_settings(uart_settings_t *s) {
     s->rs485_mode   = true;                  // RS485 по умолчанию  
 }
 
-
+static void set_default_session_settings(fs_session_t *s) {
+    memset(s, 0, sizeof(*s));
+    memset(s->session_token, 0, sizeof(s->session_token));
+    s->expires = 0;
+    s->device_model_id = MODEL_ID;
+}
 
 
 // ========= универсальная функция =========
@@ -271,6 +276,21 @@ esp_err_t nvs_clear_system_settings(void) {
     return nvs_clear_key("system");
 }
 
+esp_err_t nvs_save_session_settings(const fs_session_t *settings) {
+    return nvs_save_blob("fs_session", settings, sizeof(fs_session_t));
+}
+
+esp_err_t nvs_load_session_settings(fs_session_t *settings) {
+    esp_err_t err = nvs_load_blob("fs_session", settings, sizeof(fs_session_t));
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "No session settings found, loading defaults");
+        set_default_session_settings(settings);
+        nvs_save_session_settings(settings);
+        return ESP_OK;
+    }
+    return err;
+}
+
 
 
 // ========= UART настройки =========
@@ -369,18 +389,21 @@ void nvs_factory_reset(void)
     wifi_settings_t wifi;
     system_settings_t sys;
     uart_settings_t uart;
+    fs_session_t session;
 
     set_default_user_settings(&user);
     set_default_network_settings(&net);
     set_default_wifi_settings(&wifi);
     set_default_system_settings(&sys);
     set_default_uart_settings(&uart);
+    set_default_session_settings(&session);
 
     ESP_ERROR_CHECK(nvs_save_user_settings(&user));
     ESP_ERROR_CHECK(nvs_save_network_settings(&net));
     ESP_ERROR_CHECK(nvs_save_wifi_settings(&wifi));
     ESP_ERROR_CHECK(nvs_save_system_settings(&sys));
     ESP_ERROR_CHECK(nvs_save_uart_settings(&uart));
+    ESP_ERROR_CHECK(nvs_save_session_settings(&session));
     ESP_LOGW(TAG, "Factory defaults applied successfully");
 }
 

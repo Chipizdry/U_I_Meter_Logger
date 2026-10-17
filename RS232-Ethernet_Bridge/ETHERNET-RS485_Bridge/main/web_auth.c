@@ -98,7 +98,7 @@ bool check_token(httpd_req_t *req) {
     return ESP_OK;
 }
 
-
+/*
  bool check_ota_session(httpd_req_t *req)
     {
         size_t len = httpd_req_get_hdr_value_len(req, "X-OTA-Session") + 1;
@@ -136,3 +136,4 @@ bool check_token(httpd_req_t *req) {
         free(hdr);
         return ok;
     }
+*/

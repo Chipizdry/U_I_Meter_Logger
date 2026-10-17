@@ -11,6 +11,7 @@ idf_component_register(
         "ws_settings_manager.c"
         "websocket_client.c"
         "websocket_events.c"
+        "pairing_manager.c"
         "network_state.c"
         "nvs_settings.c"
         "wifi_manager.c"
@@ -24,6 +25,7 @@ idf_component_register(
         "modbus_tcp_client.c"
         "ble_manager.c"
         "traceroute.c"
+        
 
     INCLUDE_DIRS "."
     REQUIRES 

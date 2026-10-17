@@ -14,7 +14,8 @@ extern "C" {
 #define USER_SETTINGS_VERSION     1
 #define NETWORK_SETTINGS_VERSION  2
 #define SYSTEM_SETTINGS_VERSION   1
-
+#define SESSION_SETTINGS_VERSION  1
+#define MODEL_ID                  3
 
 typedef struct {
     uint8_t version;
@@ -80,8 +81,9 @@ typedef struct {
 } uart_settings_t;
 
 typedef struct {
-    char token[33];     // одноразовый fs token
+    char session_token[33];     // одноразовый fs token
     uint32_t expires;   // unix time (опционально)
+    uint32_t device_model_id; // идентификатор модели устройства (опционально)
 } fs_session_t;
 
 extern user_settings_t user_cfg;
@@ -91,7 +93,7 @@ extern system_settings_t sys;
 extern uart_settings_t uart_cfg;
 extern fs_session_t fs_session;
 
-
+void generate_device_serial(char *serial, size_t size);
 // Инициализация NVS
 esp_err_t nvs_settings_init(void);
 

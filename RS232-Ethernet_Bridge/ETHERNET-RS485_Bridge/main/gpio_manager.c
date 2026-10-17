@@ -9,6 +9,7 @@
 #include "esp_system.h"
 #include "nvs_settings.h"
 #include "network_state.h"
+#include "pairing_manager.h"
 
 static const char *TAG = "GPIO_MANAGER";
 static void status_led_task(void *arg);
@@ -31,14 +32,7 @@ static void factory_reset_task(void *arg)
 
  void reset_to_factory_defaults(void)
 {
-    xTaskCreate(
-        factory_reset_task,
-        "factory_reset_task",
-        4096,
-        NULL,
-        5,
-        NULL
-    );
+    xTaskCreate(factory_reset_task,"factory_reset_task",4096,NULL,5,NULL);
 }
 
 // ================================
@@ -113,11 +107,13 @@ esp_err_t gpio_manager_init(void)
 }
 
 
-
+/*
 void gpio_manager_task(void *arg)
 {
     int pressed_time = 0;
     const int step_ms = 100;
+      bool pairing_triggered = false;
+    bool reset_triggered = false;
 
     while (1) {
         if (gpio_get_level(GPIO_RESET_BUTTON) == 0) { // активный LOW
@@ -125,7 +121,13 @@ void gpio_manager_task(void *arg)
 
             // Мигаем LED во время удержания
          //   gpio_set_level(GPIO_STATUS_LED, (pressed_time / 250) % 2);
+         if (pressed_time >= PAIRING_HOLD_TIME_MS) {
+               
 
+
+
+
+            }
             if (pressed_time >= RESET_HOLD_TIME_MS) {
                 reset_to_factory_defaults();
             }
@@ -137,8 +139,46 @@ void gpio_manager_task(void *arg)
         vTaskDelay(pdMS_TO_TICKS(step_ms));
     }
 }
+*/
+void gpio_manager_task(void *arg)
+{
+    int pressed_time = 0;
+    const int step_ms = 100;
+    bool button_was_pressed = false;
+    bool action_done = false;
 
+    while (1) {
+        bool pressed = (gpio_get_level(GPIO_RESET_BUTTON) == 0);
 
+        if (pressed) {
+            button_was_pressed = true;
+
+            if (pressed_time < RESET_HOLD_TIME_MS) {
+                pressed_time += step_ms;
+            }
+        } else {
+            if (button_was_pressed && !action_done) {
+                if (pressed_time >= RESET_HOLD_TIME_MS) {
+                    action_done = true;
+                    reset_to_factory_defaults();
+                } else if (pressed_time >= PAIRING_HOLD_TIME_MS) {
+                    action_done = true;
+
+                    esp_err_t err = pairing_manager_request();
+                    if (err != ESP_OK) {
+                        ESP_LOGE(TAG, "Pairing request failed: %s",esp_err_to_name(err));
+                    }
+                }
+            }
+
+            pressed_time = 0;
+            button_was_pressed = false;
+            action_done = false;
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(step_ms));
+    }
+}
 
 static void status_led_task(void *arg)
 {
@@ -147,7 +187,14 @@ static void status_led_task(void *arg)
     while (1) {
         net_state_t wifi = network_get_wifi_state();
         net_state_t eth  = network_get_ethernet_state();
-
+        /* 🔵 Pairing — частое мигание STATUS + MODE_CHANGE */
+        if (pairing_is_active()) {
+            led = !led;
+            gpio_set_level(GPIO_STATUS_LED, led);
+            gpio_set_level(GPIO_NET_LED, !led);
+            vTaskDelay(pdMS_TO_TICKS(150));
+            continue;
+        }
         /* 🔴 1. Если есть UP — LED всегда ВКЛ */
         if (wifi == NET_STATE_WIFI_UP || eth == NET_STATE_ETHERNET_UP) {
             gpio_set_level(GPIO_STATUS_LED, 1);

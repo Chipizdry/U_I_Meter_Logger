@@ -22,7 +22,8 @@ extern "C" {
 #define ETH_RST_PIN         16   //Phy reset
 
 // ===== Время удержания для сброса =====
-#define RESET_HOLD_TIME_MS  5000
+#define RESET_HOLD_TIME_MS  10000
+#define PAIRING_HOLD_TIME_MS  2000
 
 // ===== Публичные функции =====
 esp_err_t gpio_manager_init(void);

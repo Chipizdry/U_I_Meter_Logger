@@ -30,7 +30,8 @@ static uint16_t ap_count = 0;
 
 static esp_netif_t *sta_netif = NULL;
 static esp_netif_t *ap_netif  = NULL;
-static bool wifi_initialized = false;
+//static bool wifi_initialized = false;
+static volatile bool wifi_paused = false;
 
 static volatile bool wifi_scan_in_progress = false;
 static volatile bool wifi_scan_completed = false;
@@ -355,7 +356,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                     ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)", disconn->reason,wifi_reason_to_str(disconn->reason));
                     network_set_wifi_state(NET_STATE_WIFI_DOWN);
 
-                    if (!wifi_scan_in_progress)
+                    if (!wifi_scan_in_progress && !wifi_paused)
                     {
                         if (reconnect_task_handle != NULL)
                         {
@@ -612,12 +613,30 @@ esp_err_t wifi_connect_to(const char* ssid, const char* password)
     return ESP_OK;
 }
 
+/*
 void wifi_manager_stop(void)
 {
     wifi_scan_in_progress = false;
     esp_wifi_stop();
     ESP_LOGI(TAG, "Wi-Fi stopped");
 }
+*/
+void wifi_manager_stop(void)
+{
+    wifi_paused = true;
+    wifi_scan_in_progress = false;
+    esp_wifi_disconnect();
+    vTaskDelay(pdMS_TO_TICKS(100));
+    esp_wifi_stop();
+    ESP_LOGI(TAG, "Wi-Fi stop (reconnect paused)");
+}
+
+void wifi_manager_resume(void)
+{
+    wifi_paused = false;
+    ESP_LOGI(TAG, "Wi-Fi reconnect resumed");
+}
+
 
 void wifi_manager_task(void *arg)
 {
@@ -725,9 +744,9 @@ static void wifi_reconnect_task(void *pvParameters)
          * Задача при этом вообще не занимает CPU.
          */
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
+        if (wifi_paused) continue;
         ESP_LOGI(TAG, "🔄 WiFi reconnect task: reconnect requested");
-
+        
         /*
          * Небольшая задержка перед повторным подключением.
          * Не блокирует остальные задачи ESP32 — блокируется только
@@ -768,14 +787,6 @@ static void wifi_reconnect_task(void *pvParameters)
         if (err != ESP_OK)
         {
             ESP_LOGW(TAG,"⚠️ esp_wifi_connect() failed: %s",esp_err_to_name(err));
-
-            /*
-             * Не делаем здесь повторный connect.
-             *
-             * Если WiFi не подключится,
-             * WIFI_EVENT_STA_DISCONNECTED снова
-             * разбудит эту же задачу.
-             */
         }
     }
 }

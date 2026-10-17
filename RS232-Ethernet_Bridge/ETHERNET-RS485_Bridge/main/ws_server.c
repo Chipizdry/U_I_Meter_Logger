@@ -270,10 +270,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
 
     if (client) {
 
-        ESP_LOGI(
-            TAG,
-            "Stopping existing cloud websocket before test"
-        );
+        ESP_LOGI(TAG,"Stopping existing cloud websocket before test");
 
         websocket_client_stop();
 
