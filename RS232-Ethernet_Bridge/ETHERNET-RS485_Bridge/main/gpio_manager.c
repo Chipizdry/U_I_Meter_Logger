@@ -10,6 +10,7 @@
 #include "nvs_settings.h"
 #include "network_state.h"
 #include "pairing_manager.h"
+#include "websocket_client.h" 
 
 static const char *TAG = "GPIO_MANAGER";
 static void status_led_task(void *arg);
@@ -167,30 +168,40 @@ void gpio_manager_task(void *arg)
     }
 }
 
-
 static void status_led_task(void *arg)
 {
     bool led = false;
+    bool was_show_mode = false;   // были ли в hold/pairing на прошлой итерации
 
     while (1) {
         hold_state_t hold = s_hold_state;
+        bool pairing = pairing_is_active();
+        bool show_mode = (hold != HOLD_NONE) || pairing;
 
-        /* 🔵 0. Прогресс удержания — индикация прямо во время нажатия */
+        /* ---- Выход из «показного» режима — восстановить NET_LED по факту авторизации ---- */
+        if (was_show_mode && !show_mode) {
+            bool auth = cloud_is_authenticated();
+            gpio_set_level(GPIO_NET_LED, auth ? 1 : 0);
+           // ESP_LOGI(TAG, "NET_LED restored after hold/pairing: %d (cloud=%s)",auth, cloud_status_msg);
+        }
+        was_show_mode = show_mode;
+
+        /* ========== 0. Прогресс удержания кнопки — только в этом режиме трогаем NET_LED ========== */
         switch (hold) {
         case HOLD_PROGRESS:
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
             gpio_set_level(GPIO_NET_LED, 0);
             gpio_set_level(GPIO_ERROR_LED, 0);
-            vTaskDelay(pdMS_TO_TICKS(250));      /* медленно */
+            vTaskDelay(pdMS_TO_TICKS(250));
             continue;
 
         case HOLD_PAIRING_READY:
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
-            gpio_set_level(GPIO_NET_LED, !led);  /* противофазой — заметно */
+            gpio_set_level(GPIO_NET_LED, !led);
             gpio_set_level(GPIO_ERROR_LED, 0);
-            vTaskDelay(pdMS_TO_TICKS(100));      /* быстро */
+            vTaskDelay(pdMS_TO_TICKS(100));
             continue;
 
         case HOLD_RESET_READY:
@@ -206,8 +217,8 @@ static void status_led_task(void *arg)
             break;
         }
 
-        /* 🔵 1. Pairing после нажатия — как было */
-        if (pairing_is_active()) {
+        /* ========== 1. Режим pairing — мигаем NET_LED как раньше ========== */
+        if (pairing) {
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
             gpio_set_level(GPIO_NET_LED, !led);
@@ -215,24 +226,24 @@ static void status_led_task(void *arg)
             continue;
         }
 
-        /* 🔴 2. Есть UP — постоянно ВКЛ */
+        /* ========== 2. IDLE: НИКОГДА не трогаем GPIO_NET_LED ==========
+         * Владелец NET_LED в idle — только websocket_events/websocket_client.
+         * Здесь управляем только STATUS_LED и ERROR_LED.
+         */
         net_state_t wifi = network_get_wifi_state();
         net_state_t eth  = network_get_ethernet_state();
 
         if (wifi == NET_STATE_WIFI_UP || eth == NET_STATE_ETHERNET_UP) {
             gpio_set_level(GPIO_STATUS_LED, 1);
-            gpio_set_level(GPIO_NET_LED, 0);
             gpio_set_level(GPIO_ERROR_LED, 0);
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
-        /* 🟡 CONNECTING — мигаем */
         else if (wifi == NET_STATE_WIFI_CONNECTING ||
                  eth  == NET_STATE_ETHERNET_CONNECTING) {
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
             vTaskDelay(pdMS_TO_TICKS(200));
         }
-        /* ⚫ DOWN */
         else {
             gpio_set_level(GPIO_STATUS_LED, 0);
             vTaskDelay(pdMS_TO_TICKS(500));

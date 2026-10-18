@@ -34,6 +34,7 @@ idf_component_register(
         esp_eth 
         lwip 
         json
+        efuse
         driver
         app_update 
         esp_wifi

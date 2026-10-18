@@ -8,7 +8,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "esp_mac.h"
-
+#include "esp_efuse.h"
+#include "esp_chip_info.h" 
 
 #include "driver/uart.h"
 
@@ -24,7 +25,55 @@
 static const char *TAG = "NVS_SETTINGS";
 static const char *NAMESPACE = "app_config";
 
+/* Формирует 32-символьный hex-идентификатор.
+ * - ESP32-S2/S3/C3/C6: настоящий 128-bit OPTIONAL_UNIQUE_ID из eFuse
+ * - ESP32 original:    MAC(6) + checksum(1) + chip_rev(1) + hash-fill(8)
+ *                      (уникален, т.к. MAC уникален, но не криптостойкий) */
+static void read_chip_unique_id_hex(char *out, size_t out_size)
+{
+    if (out_size < 33) { if (out_size) out[0] = '\0'; return; }
+    out[0] = '\0';
 
+    uint8_t uid[16] = {0};
+    bool have_uid = false;
+
+#if defined(ESP_EFUSE_OPTIONAL_UNIQUE_ID)
+    esp_err_t err = esp_efuse_read_field_blob(
+        ESP_EFUSE_OPTIONAL_UNIQUE_ID, uid, sizeof(uid) * 8);
+    if (err == ESP_OK) {
+        for (size_t i = 0; i < sizeof(uid); i++) {
+            if (uid[i] != 0x00 && uid[i] != 0xFF) { have_uid = true; break; }
+        }
+    }
+    if (!have_uid)
+        ESP_LOGW(TAG, "OPTIONAL_UNIQUE_ID not programmed, using MAC-derived");
+#else
+    ESP_LOGW(TAG, "OPTIONAL_UNIQUE_ID not available on this chip, using MAC-derived");
+#endif
+
+    if (!have_uid) {
+        /* Fallback: детерминированный 16-байтный ID из MAC + ревизии */
+        uint8_t mac[6];
+        esp_efuse_mac_get_default(mac);
+
+        memcpy(uid, mac, 6);
+        uid[6] = mac[0] ^ mac[1] ^ mac[2] ^ mac[3] ^ mac[4] ^ mac[5];
+
+        esp_chip_info_t chip;
+        esp_chip_info(&chip);
+        uid[7] = (uint8_t)(chip.revision & 0xFF);
+
+        for (int i = 8; i < 16; i++) {
+            uid[i] = (uint8_t)(mac[i % 6] ^ (uint8_t)(i * 0x1B));
+        }
+    }
+
+    for (size_t i = 0; i < sizeof(uid) && (i * 2 + 2) < out_size; i++)
+        snprintf(&out[i * 2], 3, "%02X", uid[i]);
+    out[32] = '\0';
+
+    ESP_LOGI(TAG, "Chip unique ID: %s", out);
+}
 
 void generate_device_serial(char *serial, size_t size)
 {
@@ -95,7 +144,7 @@ static void set_default_wifi_settings(wifi_settings_t *s) {
     strcpy(s->ap_password, "12345678");
     strcpy(s->sta_ssid, "");
     strcpy(s->sta_password, "");
-    s->mode = WIFI_MODE_AP;
+    s->mode = WIFI_MODE_APSTA;
 }   
 
 static void set_default_system_settings(system_settings_t *s) {
@@ -126,6 +175,7 @@ static void set_default_session_settings(fs_session_t *s) {
     memset(s->session_token, 0, sizeof(s->session_token));
     s->expires = 0;
     s->device_model_id = MODEL_ID;
+    read_chip_unique_id_hex(s->secret_key, sizeof(s->secret_key));
 }
 
 
@@ -277,6 +327,8 @@ esp_err_t nvs_save_session_settings(const fs_session_t *settings) {
     return nvs_save_blob("fs_session", settings, sizeof(fs_session_t));
 }
 
+
+/*
 esp_err_t nvs_load_session_settings(fs_session_t *settings) {
     esp_err_t err = nvs_load_blob("fs_session", settings, sizeof(fs_session_t));
     if (err == ESP_ERR_NVS_NOT_FOUND) {
@@ -287,6 +339,27 @@ esp_err_t nvs_load_session_settings(fs_session_t *settings) {
     }
     return err;
 }
+*/
+//========= Сессионные настройки =========
+//Vbugfix: Исправление функции nvs_load_session_settings для корректной загрузки secret_key из eFuse при отсутствии данных в NVS    
+
+
+esp_err_t nvs_load_session_settings(fs_session_t *settings) {
+    esp_err_t err = nvs_load_blob("fs_session", settings, sizeof(fs_session_t));
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW(TAG, "No session settings found, loading defaults");
+        set_default_session_settings(settings);
+        nvs_save_session_settings(settings);
+        return ESP_OK;
+    }
+    if (err == ESP_OK && settings->secret_key[0] == '\0') {
+        ESP_LOGW(TAG, "secret_key empty in NVS — migrating from chip UID");
+        read_chip_unique_id_hex(settings->secret_key, sizeof(settings->secret_key));
+        nvs_save_session_settings(settings);
+    }
+    return err;
+}
+
 
 esp_err_t nvs_clear_session_settings(void) {
     return nvs_clear_key("fs_session");
@@ -364,22 +437,6 @@ esp_err_t nvs_load_fs_session(fs_session_t *s)
     nvs_close(h);
     return err;
 }
-
-/*
-esp_err_t nvs_clear_session_settings(void) {
-    return nvs_clear_key("fs_session");
-}
-
-void nvs_clear_fs_session(void)
-{
-    nvs_handle_t h;
-    if (nvs_open("ota", NVS_READWRITE, &h) == ESP_OK) {
-        nvs_erase_key(h, "fs_session");
-        nvs_commit(h);
-        nvs_close(h);
-    }
-}
-*/
 
 
 

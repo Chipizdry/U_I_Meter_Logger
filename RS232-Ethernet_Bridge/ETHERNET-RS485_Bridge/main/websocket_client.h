@@ -29,3 +29,4 @@ void bytes_to_hex(const uint8_t *data, int len, char *out, int out_size);
 int hex_to_bytes(const char *in, uint8_t *out, int max_len);
 void websocket_disable_reconnect(void);
 void websocket_enable_reconnect(void);
+bool cloud_is_authenticated(void);

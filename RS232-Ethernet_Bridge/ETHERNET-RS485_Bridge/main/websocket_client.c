@@ -186,8 +186,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
                 ESP_LOGI(TAG, "📤Sent auth message:%s", auth_msg);
             }
-            ws_connected = true;
-           //  gpio_set_net_led(true);
+             ws_connected = true;
              ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
              last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
              ws_reconnect_in_progress = false; // сбрасываем флаг реконнекта
@@ -281,7 +280,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     strncpy(ws_session_id, session_id, sizeof(ws_session_id)-1);
 
     char uri[512];
-   // snprintf(uri, sizeof(uri), "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=%s", session_id);
+   
     snprintf(uri, sizeof(uri), "%s%s", sys.ws_server, session_id);
 
     esp_websocket_client_config_t websocket_cfg = {
@@ -445,7 +444,10 @@ void websocket_restart(const char *email, const char *password, const char *node
    //  ws_reconnect_in_progress = false;
 }
 
-
+bool cloud_is_authenticated(void)
+{
+    return (strcmp(cloud_status_msg, "authenticated") == 0 );
+}
 
 void get_time_iso(char *buf, size_t len)
 {
