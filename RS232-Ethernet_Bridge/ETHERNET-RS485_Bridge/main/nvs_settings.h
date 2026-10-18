@@ -70,8 +70,7 @@ typedef struct {
     char ws_server_2[64]; // адрес WS сервера для dev-режима
 } system_settings_t;
 
-typedef struct {
-    
+typedef struct {  
     int      baud_rate;
     uint8_t  data_bits;
     uint8_t  stop_bits;
@@ -123,13 +122,13 @@ esp_err_t nvs_load_wifi_settings(wifi_settings_t *settings);
 esp_err_t nvs_clear_wifi_settings(void);
 
 
+// ======== FS сессия ========
+esp_err_t nvs_save_session_settings(const fs_session_t *s);
+esp_err_t nvs_load_session_settings(fs_session_t *settings);
+esp_err_t nvs_clear_session_settings(void);
+
 // ======== Фабричный сброс ========
 void nvs_factory_reset(void);
-// ======== FS сессия ========
-esp_err_t nvs_save_fs_session(const fs_session_t *s);
-esp_err_t nvs_load_fs_session(fs_session_t *s);
-void nvs_clear_fs_session(void);
-
 
 void system_update_build_info(void);
 #ifdef __cplusplus

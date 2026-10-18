@@ -14,6 +14,15 @@
 static const char *TAG = "GPIO_MANAGER";
 static void status_led_task(void *arg);
 
+typedef enum {
+    HOLD_NONE = 0,        /* кнопка не нажата */
+    HOLD_PROGRESS,        /* удержание < PAIRING_HOLD_TIME_MS — «накапливаем» */
+    HOLD_PAIRING_READY,   /* ≥ PAIRING_HOLD_TIME_MS — отпусти → pairing */
+    HOLD_RESET_READY,     /* ≥ RESET_HOLD_TIME_MS — отпусти → factory reset */
+} hold_state_t;
+
+static volatile hold_state_t s_hold_state = HOLD_NONE;
+
 // ================================
 // ========== PRIVATE =============
 // ================================
@@ -106,40 +115,6 @@ esp_err_t gpio_manager_init(void)
     return ESP_OK;
 }
 
-
-/*
-void gpio_manager_task(void *arg)
-{
-    int pressed_time = 0;
-    const int step_ms = 100;
-      bool pairing_triggered = false;
-    bool reset_triggered = false;
-
-    while (1) {
-        if (gpio_get_level(GPIO_RESET_BUTTON) == 0) { // активный LOW
-            pressed_time += step_ms;
-
-            // Мигаем LED во время удержания
-         //   gpio_set_level(GPIO_STATUS_LED, (pressed_time / 250) % 2);
-         if (pressed_time >= PAIRING_HOLD_TIME_MS) {
-               
-
-
-
-
-            }
-            if (pressed_time >= RESET_HOLD_TIME_MS) {
-                reset_to_factory_defaults();
-            }
-        } else {
-            pressed_time = 0;
-           // gpio_set_level(GPIO_STATUS_LED, 0);
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(step_ms));
-    }
-}
-*/
 void gpio_manager_task(void *arg)
 {
     int pressed_time = 0;
@@ -156,6 +131,15 @@ void gpio_manager_task(void *arg)
             if (pressed_time < RESET_HOLD_TIME_MS) {
                 pressed_time += step_ms;
             }
+
+            /* ← NEW: обновляем состояние удержания прямо здесь */
+            if (pressed_time >= RESET_HOLD_TIME_MS) {
+                s_hold_state = HOLD_RESET_READY;
+            } else if (pressed_time >= PAIRING_HOLD_TIME_MS) {
+                s_hold_state = HOLD_PAIRING_READY;
+            } else if (pressed_time > 0) {
+                s_hold_state = HOLD_PROGRESS;
+            }
         } else {
             if (button_was_pressed && !action_done) {
                 if (pressed_time >= RESET_HOLD_TIME_MS) {
@@ -166,28 +150,63 @@ void gpio_manager_task(void *arg)
 
                     esp_err_t err = pairing_manager_request();
                     if (err != ESP_OK) {
-                        ESP_LOGE(TAG, "Pairing request failed: %s",esp_err_to_name(err));
+                        ESP_LOGE(TAG, "Pairing request failed: %s",
+                                 esp_err_to_name(err));
                     }
                 }
             }
 
-            pressed_time = 0;
+            /* ← NEW: сбрасываем состояние сразу после отпускания */
+            s_hold_state    = HOLD_NONE;
+            pressed_time    = 0;
             button_was_pressed = false;
-            action_done = false;
+            action_done     = false;
         }
 
         vTaskDelay(pdMS_TO_TICKS(step_ms));
     }
 }
 
+
 static void status_led_task(void *arg)
 {
     bool led = false;
 
     while (1) {
-        net_state_t wifi = network_get_wifi_state();
-        net_state_t eth  = network_get_ethernet_state();
-        /* 🔵 Pairing — частое мигание STATUS + MODE_CHANGE */
+        hold_state_t hold = s_hold_state;
+
+        /* 🔵 0. Прогресс удержания — индикация прямо во время нажатия */
+        switch (hold) {
+        case HOLD_PROGRESS:
+            led = !led;
+            gpio_set_level(GPIO_STATUS_LED, led);
+            gpio_set_level(GPIO_NET_LED, 0);
+            gpio_set_level(GPIO_ERROR_LED, 0);
+            vTaskDelay(pdMS_TO_TICKS(250));      /* медленно */
+            continue;
+
+        case HOLD_PAIRING_READY:
+            led = !led;
+            gpio_set_level(GPIO_STATUS_LED, led);
+            gpio_set_level(GPIO_NET_LED, !led);  /* противофазой — заметно */
+            gpio_set_level(GPIO_ERROR_LED, 0);
+            vTaskDelay(pdMS_TO_TICKS(100));      /* быстро */
+            continue;
+
+        case HOLD_RESET_READY:
+            led = !led;
+            gpio_set_level(GPIO_STATUS_LED, led);
+            gpio_set_level(GPIO_ERROR_LED, !led);
+            gpio_set_level(GPIO_NET_LED, 0);
+            vTaskDelay(pdMS_TO_TICKS(80));
+            continue;
+
+        case HOLD_NONE:
+        default:
+            break;
+        }
+
+        /* 🔵 1. Pairing после нажатия — как было */
         if (pairing_is_active()) {
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
@@ -195,19 +214,25 @@ static void status_led_task(void *arg)
             vTaskDelay(pdMS_TO_TICKS(150));
             continue;
         }
-        /* 🔴 1. Если есть UP — LED всегда ВКЛ */
+
+        /* 🔴 2. Есть UP — постоянно ВКЛ */
+        net_state_t wifi = network_get_wifi_state();
+        net_state_t eth  = network_get_ethernet_state();
+
         if (wifi == NET_STATE_WIFI_UP || eth == NET_STATE_ETHERNET_UP) {
             gpio_set_level(GPIO_STATUS_LED, 1);
+            gpio_set_level(GPIO_NET_LED, 0);
+            gpio_set_level(GPIO_ERROR_LED, 0);
             vTaskDelay(pdMS_TO_TICKS(1000));
         }
-        /* 🟡 2. Иначе если кто-то CONNECTING — мигаем */
+        /* 🟡 CONNECTING — мигаем */
         else if (wifi == NET_STATE_WIFI_CONNECTING ||
                  eth  == NET_STATE_ETHERNET_CONNECTING) {
             led = !led;
             gpio_set_level(GPIO_STATUS_LED, led);
             vTaskDelay(pdMS_TO_TICKS(200));
         }
-        /* ⚫ 3. Иначе оба DOWN */
+        /* ⚫ DOWN */
         else {
             gpio_set_level(GPIO_STATUS_LED, 0);
             vTaskDelay(pdMS_TO_TICKS(500));

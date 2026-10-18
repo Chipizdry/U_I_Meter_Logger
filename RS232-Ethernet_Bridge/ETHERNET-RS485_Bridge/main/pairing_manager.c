@@ -32,20 +32,6 @@ static esp_err_t pairing_manager_init(void)
     return ESP_OK;
 }
 
-/*
-static void stop_network_services(void)
-{
-    ESP_LOGI(TAG, "Stopping network services...");
-    websocket_client_stop();            
-    ws_cleanup_all_clients();     
-    web_server_stop();
-    dns_stop();
-    wifi_manager_stop();          
-    ethernet_deinit();
-    vTaskDelay(pdMS_TO_TICKS(800));
-    ESP_LOGI(TAG, "All network services stopped");
-}
-*/
 static void stop_network_services(void)
 {
     ESP_LOGI(TAG, "Stopping network services...");

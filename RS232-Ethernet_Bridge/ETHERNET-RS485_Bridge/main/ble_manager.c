@@ -126,11 +126,11 @@ static int pairing_gatt_access(uint16_t conn_handle, uint16_t attr_handle,
         sess.expires = cJSON_IsNumber(j_expires)
                      ? (uint32_t)j_expires->valuedouble : 0;
 
-        esp_err_t nerr = nvs_save_fs_session(&sess);
+        esp_err_t nerr = nvs_save_session_settings(&sess);
         cJSON_Delete(in);
 
         if (nerr != ESP_OK) {
-            ESP_LOGE(TAG, "nvs_save_fs_session failed: %s", esp_err_to_name(nerr));
+            ESP_LOGE(TAG, "nvs_save_session_settings failed: %s", esp_err_to_name(nerr));
             build_tx_response("error", "nvs_save_failed");
             s_pairing_ok = false; s_pairing_done = true;
             return 0;

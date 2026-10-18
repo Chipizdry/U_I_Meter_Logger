@@ -106,7 +106,6 @@ static void set_default_system_settings(system_settings_t *s) {
     s->debug_mode = false;
     s->build_number = BUILD_NUMBER;
     strncpy(s->build_date, BUILD_DATE, sizeof(s->build_date)-1);
-    //strncpy(s->ws_server, "wss://dev-corid.cor-medical.ua/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
     strncpy(s->ws_server, "wss://dev.monitoring.cor-int.com/dev-modbus/devices?session_id=", sizeof(s->ws_server)-1);
     strncpy(s->ws_server_2, "wss://monitoring.cor-int.com/dev-modbus/devices?session_id=", sizeof(s->ws_server_2)-1);
 }
@@ -227,9 +226,6 @@ esp_err_t nvs_load_user_settings(user_settings_t *settings) {
     return err;
 }
 
-
-
-
 esp_err_t nvs_clear_user_settings(void) {
     return nvs_clear_key("user");
 }
@@ -276,6 +272,7 @@ esp_err_t nvs_clear_system_settings(void) {
     return nvs_clear_key("system");
 }
 
+// ========= Сессионные настройки =========
 esp_err_t nvs_save_session_settings(const fs_session_t *settings) {
     return nvs_save_blob("fs_session", settings, sizeof(fs_session_t));
 }
@@ -291,7 +288,9 @@ esp_err_t nvs_load_session_settings(fs_session_t *settings) {
     return err;
 }
 
-
+esp_err_t nvs_clear_session_settings(void) {
+    return nvs_clear_key("fs_session");
+}
 
 // ========= UART настройки =========
 
@@ -366,6 +365,11 @@ esp_err_t nvs_load_fs_session(fs_session_t *s)
     return err;
 }
 
+/*
+esp_err_t nvs_clear_session_settings(void) {
+    return nvs_clear_key("fs_session");
+}
+
 void nvs_clear_fs_session(void)
 {
     nvs_handle_t h;
@@ -375,7 +379,7 @@ void nvs_clear_fs_session(void)
         nvs_close(h);
     }
 }
-
+*/
 
 
 

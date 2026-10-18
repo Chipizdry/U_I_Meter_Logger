@@ -44,6 +44,7 @@ network_settings_t net_cfg;
 wifi_settings_t wifi_cfg;
 system_settings_t sys;
 uart_settings_t uart_cfg;
+fs_session_t fs_session;
 
 
 
@@ -73,7 +74,8 @@ void app_main(void)
     nvs_load_wifi_settings(&wifi_cfg);
     nvs_load_system_settings(&sys);
     nvs_load_uart_settings(&uart_cfg);
-   // ESP_ERROR_CHECK(ble_manager_init());
+    nvs_load_session_settings(&fs_session);
+   
     
     /* === АВТО-ОБНОВЛЕНИЕ BUILD INFO ПРИ НОВОЙ ПРОШИВКЕ === */
     system_update_build_info();
@@ -89,6 +91,7 @@ void app_main(void)
     ESP_LOGI("MAIN", "WebSocket Server: %s", sys.ws_server);
     ESP_LOGI("MAIN", "WebSocket Server 2: %s", sys.ws_server_2);
     ESP_LOGI("MAIN", "Loaded UART config: baudrate:%d , DataBits:%d ,StopBits:%d ,Parity: %d, Mode:(%s) ", uart_cfg.baud_rate, uart_cfg.data_bits, uart_cfg.stop_bits, uart_cfg.parity, uart_cfg.rs485_mode ? "RS485" : "RS232");
+    ESP_LOGI("MAIN", "Loaded FS session: token=%s expires=%u model=%u", fs_session.session_token, fs_session.expires, fs_session.device_model_id);
     network_state_init();
     ESP_ERROR_CHECK(gpio_manager_init());
    

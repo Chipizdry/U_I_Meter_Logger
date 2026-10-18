@@ -21,9 +21,6 @@ extern "C" {
 #define RS485_DE_PIN        33   // RS485 DE pin
 #define ETH_RST_PIN         16   //Phy reset
 
-// ===== Время удержания для сброса =====
-#define RESET_HOLD_TIME_MS  10000
-#define PAIRING_HOLD_TIME_MS  2000
 
 // ===== Публичные функции =====
 esp_err_t gpio_manager_init(void);
