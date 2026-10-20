@@ -486,7 +486,7 @@ if (section == SECTION_ACCOUNT) {
     ESP_LOGI("ACCOUNT","Saved OK: login=%s password=%s node_name=%s",user_cfg.account_login,user_cfg.account_password,user_cfg.node_name);
 
     // -------- APPLY RUNTIME SIDE EFFECTS --------
-    websocket_restart(user_cfg.account_login,user_cfg.account_password,user_cfg.node_name);
+    websocket_restart(user_cfg.account_login, fs_session.session_token, user_cfg.account_password, user_cfg.node_name);
 
     // -------- RESPONSE --------
     httpd_resp_set_type(req, "application/json");

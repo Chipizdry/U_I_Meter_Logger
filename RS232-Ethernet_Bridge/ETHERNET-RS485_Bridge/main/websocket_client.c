@@ -32,6 +32,7 @@ static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(20000); // 20 секу�
  char ws_password[64];
  char ws_node_name[64];
  char ws_session_id[128] = {0};
+ char ws_session_token[32] = {0};
 
 static bool ws_reconnect_in_progress = false;
 extern bool test_account_active;// из ws_server.c 
@@ -142,8 +143,9 @@ void websocket_reconnect_task(void *pvParameters)
             const char *email_to_use = test_account_active ? ws_email : user_cfg.account_login;
             const char *pass_to_use  = test_account_active ? ws_password : user_cfg.account_password;
             const char *node_name_use  = test_account_active ? ws_node_name : user_cfg.node_name;
+            const char *token = fs_session.session_token;
 
-            esp_err_t ok = websocket_client_start(user_cfg.serial, email_to_use, pass_to_use, node_name_use);
+            esp_err_t ok = websocket_client_start(user_cfg.serial, email_to_use, token, pass_to_use, node_name_use);
             if (ok == ESP_OK) {
                 ESP_LOGI(TAG, "Reconnect started");
                 reconnect_delay_sec = 5; // сбрасываем задержку при успехе
@@ -179,10 +181,9 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
        
         last_ws_event_tick = xTaskGetTickCount(); // сброс таймера при подключении
             // отправляем авторизационное сообщение
-            if (strlen(ws_email) > 0 && strlen(ws_password) > 0) {
-                char auth_msg[256];
-                snprintf(auth_msg, sizeof(auth_msg), "{\"email\":\"%s\", \"password\":\"%s\", \"node_name\":\"%s\"}", ws_email, ws_password, ws_node_name);
-
+            if (strlen(ws_email) > 0 && ((strlen(ws_password) > 0) || strlen(ws_session_token)) > 0) {
+                char auth_msg[384];
+                snprintf(auth_msg, sizeof(auth_msg), "{\"email\":\"%s\", \"token\":\"%s\", \"password\":\"%s\", \"node_name\":\"%s\"}", ws_email, ws_session_token, ws_password, ws_node_name);
                 esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
                 ESP_LOGI(TAG, "📤Sent auth message:%s", auth_msg);
             }
@@ -267,7 +268,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
 
 
-esp_err_t websocket_client_start(const char *session_id, const char *email, const char *password , const char *node_name)
+esp_err_t websocket_client_start(const char *session_id, const char *email, const char *session_token, const char *password , const char *node_name)
 {
     if (client) {
         ESP_LOGW(TAG, "WebSocket client already started");
@@ -278,6 +279,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
     strncpy(ws_password, password, sizeof(ws_password) - 1);
     strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
     strncpy(ws_session_id, session_id, sizeof(ws_session_id)-1);
+    strncpy(ws_session_token, session_token, sizeof(ws_session_token)-1);
 
     char uri[512];
    
@@ -413,13 +415,14 @@ bool websocket_send_text(const char *msg)
 }
 
 
-void websocket_restart(const char *email, const char *password, const char *node_name)
+void websocket_restart(const char *email, const char *session_token, const char *password, const char *node_name)
 {
     ESP_LOGW(TAG, "🔄 Restarting WebSocket client with new credentials...");
 
      ws_reconnect_in_progress = true;
     // Обновляем глобальные переменные
     strncpy(ws_email, email, sizeof(ws_email)-1);
+    strncpy(ws_session_token, session_token, sizeof(ws_session_token)-1);
     strncpy(ws_password, password, sizeof(ws_password)-1);
     strncpy(ws_node_name, node_name, sizeof(ws_node_name)-1);
 
@@ -434,7 +437,7 @@ void websocket_restart(const char *email, const char *password, const char *node
     
 
     // Стартуем заново
-    esp_err_t ok = websocket_client_start(user_cfg.serial, ws_email, ws_password, user_cfg.node_name);
+    esp_err_t ok = websocket_client_start(user_cfg.serial, ws_email, ws_session_token, ws_password, user_cfg.node_name);
 
     if (ok == ESP_OK) {
         ESP_LOGI(TAG, "✅ WebSocket restarted successfully");

@@ -24,6 +24,7 @@ extern httpd_handle_t server;
 extern char ws_email[64];
 extern char ws_password[64];
 extern char ws_node_name[32];
+extern char ws_session_token[32];
 extern esp_websocket_client_handle_t client;
 extern uint32_t last_ws_event_tick;
 extern bool ws_connected;
@@ -173,38 +174,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
     if (!action || !cJSON_IsString(action)) return;
 
     const char *act = action->valuestring;
-/*
-    if (strcmp(act, "test_account") == 0) {
-        cJSON *login = cJSON_GetObjectItem(msg, "account_login");
-        cJSON *password = cJSON_GetObjectItem(msg, "account_password");
-        cJSON *node_name = cJSON_GetObjectItem(msg, "node_name");
 
-        if (!login || !password || !cJSON_IsString(login) || !cJSON_IsString(password)) {
-            ws_send_fd(fd, "{\"error\":\"invalid test_account payload\"}");
-            return;
-        }
-
-        strncpy(ws_email, login->valuestring, sizeof(ws_email)-1);
-        strncpy(ws_password, password->valuestring, sizeof(ws_password)-1);
-        strncpy(ws_node_name, node_name->valuestring, sizeof(ws_node_name)-1);
-        test_account_active = true;
-
-        if (client) {
-            esp_websocket_client_stop(client);
-            vTaskDelay(pdMS_TO_TICKS(100));
-            esp_websocket_client_destroy(client);
-            client = NULL;
-        }
-
-        ws_connected = false;
-        last_ws_event_tick = 0;
-
-        websocket_client_start(user_cfg.serial, ws_email, ws_password, ws_node_name);
-        ws_send_fd(fd, "{\"cloud_status\":\"Проверка учетной записи\"}");
-        return;
-    }
-
-    */
     if (strcmp(act, "test_account") == 0) {
 
     cJSON *login = cJSON_GetObjectItem(msg, "account_login");
@@ -289,7 +259,7 @@ void handle_ws_custom_message(int fd, cJSON *msg) {
     // ==========================================
     // Запускаем тестовый клиент
     // ==========================================
-    websocket_client_start( user_cfg.serial, ws_email, ws_password, ws_node_name);
+    websocket_client_start( user_cfg.serial, ws_email,fs_session.session_token, ws_password, ws_node_name);
 
 
     // ==========================================
@@ -416,7 +386,7 @@ void cancel_test_account(void) {
         client = NULL;
     }
 
-    websocket_client_start(user_cfg.serial, ws_email, ws_password, ws_node_name);
+    websocket_client_start(user_cfg.serial, ws_email, fs_session.session_token, ws_password, ws_node_name);
     websocket_enable_reconnect();
 }
 

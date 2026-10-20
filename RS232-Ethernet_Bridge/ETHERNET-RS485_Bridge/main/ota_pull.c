@@ -14,7 +14,7 @@
 
 #include "websocket_client.h"
 
-#define OTA_PULL_BUF_SIZE 4096
+#define OTA_PULL_BUF_SIZE 2048
 
 static const char *TAG = "OTA_PULL";
 
@@ -307,12 +307,11 @@ void ota_task(void *param)
 static void ota_send_progress(const char *phase_name, uint32_t done, uint32_t total)
 {
     if (!ws_connected || total == 0) return;
-
     char msg[128];
     int percent = (int)((done * 100) / total);
     if (percent > 100) percent = 100;
-
     snprintf(msg, sizeof(msg), "{\"ota_phase\":\"%s\",\"progress\":%d}", phase_name, percent);
-
     websocket_send_text(msg);
 }
+
+
