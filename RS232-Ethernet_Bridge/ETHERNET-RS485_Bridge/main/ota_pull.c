@@ -288,6 +288,8 @@ esp_err_t ota_pull_start(const char *url)
     ESP_LOGW(TAG, "OTA SUCCESS — rebooting");
     
     vTaskDelay(pdMS_TO_TICKS(1000));
+    websocket_send_text("{\"ota_phase\":\"Обновление завершено, перезагрузка\"}" );
+    vTaskDelay(pdMS_TO_TICKS(1000));
     esp_restart();
 
     return ESP_OK;
