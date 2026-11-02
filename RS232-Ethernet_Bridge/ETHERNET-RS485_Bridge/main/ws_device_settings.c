@@ -25,6 +25,7 @@ extern wifi_settings_t wifi_cfg;
 extern uart_settings_t uart_cfg;
 extern user_settings_t user_cfg;
 extern system_settings_t sys;
+extern fs_session_t fs_session;
 extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
 
 
@@ -165,6 +166,7 @@ static void send_system_settings(void)
     cJSON_AddBoolToObject(data, "debug_mode", sys.debug_mode);
     cJSON_AddNumberToObject(data, "build_number", sys.build_number);
     cJSON_AddStringToObject(data, "build_date", sys.build_date);
+    cJSON_AddNumberToObject(data, "model_ID", fs_session.device_model_id);
     cJSON_AddStringToObject(data, "ws_server", sys.ws_server);
     cJSON_AddItemToObject(root, "data", data);
     ws_send_json(root);
@@ -178,6 +180,7 @@ static void send_test_settings(void)
     cJSON_AddNumberToObject(data, "build_number", sys.build_number);
     cJSON_AddStringToObject(data, "build_date", sys.build_date);
     cJSON_AddStringToObject( data, "node_name", user_cfg.node_name);
+    cJSON_AddNumberToObject(data, "model_ID", fs_session.device_model_id); 
     cJSON_AddItemToObject(root, "data", data);
     ws_send_json(root);
 }

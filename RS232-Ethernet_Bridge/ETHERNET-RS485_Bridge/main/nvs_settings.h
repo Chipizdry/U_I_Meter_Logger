@@ -15,7 +15,7 @@ extern "C" {
 #define NETWORK_SETTINGS_VERSION  2
 #define SYSTEM_SETTINGS_VERSION   1
 #define SESSION_SETTINGS_VERSION  1
-#define MODEL_ID                  3
+#define MODEL_ID                  4
 
 typedef struct {
     uint8_t version;

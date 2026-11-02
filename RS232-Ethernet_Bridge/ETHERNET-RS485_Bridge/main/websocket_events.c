@@ -158,17 +158,8 @@ static void traceroute_ws_callback(
      * Header
      * ===================================================== */
 
-    cJSON_AddStringToObject(
-        root,
-        "command_type",
-        "traceroute_result"
-    );
-
-    cJSON_AddStringToObject(
-        root,
-        "host",
-        result->host
-    );
+    cJSON_AddStringToObject(root,"command_type", "traceroute_result");
+    cJSON_AddStringToObject(root, "host", result->host);
 
     cJSON_AddStringToObject(
         root,
@@ -1133,9 +1124,7 @@ static bool handle_traceroute(cJSON *root)
 
 
 
-static bool handle_ota_update(
-    cJSON *root,
-    const char *session_id)
+static bool handle_ota_update( cJSON *root, const char *session_id)
 {
     cJSON *url_item = cJSON_GetObjectItem( root, "firmware_url");
 

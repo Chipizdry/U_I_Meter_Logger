@@ -9,6 +9,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_heap_caps.h"
 #include "esp_sntp.h"
 #include "esp_https_ota.h"
 #include "lwip/netdb.h"
@@ -404,6 +405,17 @@ bool websocket_send_text(const char *msg)
         ESP_LOGW(TAG, "⚠️ WebSocket not connected, drop message");
         return false;
     }
+
+
+      /* TLS-запись требует ~4437 байт непрерывного блока.
+     * Порог 6000 — запас на заголовки WS + запись record-заголовка. */
+    size_t largest = heap_caps_get_largest_free_block(
+                         MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+    if (largest < 6000) {
+        ESP_LOGW(TAG, "skip WS send: largest=%u < 6000", (unsigned)largest);
+        return false;
+    }
+
 
     esp_err_t ret = websocket_client_send( msg);
     if (ret != ESP_OK) {
