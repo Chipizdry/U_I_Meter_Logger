@@ -1,7 +1,14 @@
 
-nvs,          data, nvs,      0x9000,   0x11000
-phy_init,     data, phy,      0x20000,  0x10000
-otadata,      data, ota,      0x30000,  0x2000
-app0,         app,  ota_0,    0x40000,  0x180000
-app1,         app,  ota_1,    0x1C0000, 0x180000    
-storage,      data, littlefs, 0x340000, 0xC0000     
+#nvs,          data, nvs,      0x9000,   0x11000
+#phy_init,     data, phy,      0x20000,  0x10000
+#otadata,      data, ota,      0x30000,  0x2000
+#app0,         app,  ota_0,    0x40000,  0x180000
+#app1,         app,  ota_1,    0x1C0000, 0x180000    
+#storage,      data, littlefs, 0x340000, 0xC0000     
+
+nvs,      data, nvs,     0x9000,   0x11000,   
+phy_init, data, phy,     0x1A000,  0x1000,   
+otadata,  data, ota,     0x1B000,  0x2000,   
+app0,     app,  ota_0,   0x20000,  0x180000,  
+app1,     app,  ota_1,   0x1A0000, 0x180000,  
+storage,  data, littlefs,  0x320000, 0xE0000,   
