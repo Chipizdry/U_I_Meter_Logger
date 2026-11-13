@@ -28,6 +28,9 @@ bool ethernet_is_connected(void);
 // Получить текущую IP-конфигурацию
 esp_netif_ip_info_t ethernet_get_ip_info(void);
 
+// Получить указатель на esp_netif для Ethernet
+esp_netif_t *ethernet_get_netif(void);
+
 #endif /* ETHERNET_MANAGER_H_ */
 
 

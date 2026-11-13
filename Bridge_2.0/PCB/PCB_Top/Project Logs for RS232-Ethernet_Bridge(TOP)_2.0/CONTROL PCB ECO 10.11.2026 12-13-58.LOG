@@ -1,0 +1,33 @@
+Change Component Footprint: Designator=FB1 Old Footprint=FP-BLM21-0_2-t0_85-e0_5-IPC_A New Footprint=FP-BLM21-0_2-t0_85-e0_5-IPC_A
+Change Component Footprint: Designator=U4 Old Footprint=FP-PW0014A-IPC_B New Footprint=FP-PW0014A-IPC_B
+Change Component Footprint: Designator=U8 Old Footprint=FP-RW-20-IPC_B New Footprint=FP-RW-20-IPC_B
+Change Component Footprint: Designator=D10 Old Footprint=FP-SMA-MFG New Footprint=FP-SMA-MFG
+Change Component Footprint: Designator=D12 Old Footprint=FP-SMA-MFG New Footprint=FP-SMA-MFG
+Add component: Footprint Not Found 61300611121
+Add component: Footprint Not Found 691305540002
+Add component: Footprint Not Found 47D-15
+Added Component: Designator=Y1(FP-ABM8)
+Add Pin To Net: Unknown Pin: Pin P2-1
+Add Pin To Net: Unknown Pin: Pin P2-2
+Add Pin To Net: Unknown Pin: Pin P2-3
+Add Pin To Net: Unknown Pin: Pin P2-4
+Add Pin To Net: Unknown Pin: Pin P2-5
+Add Pin To Net: Unknown Pin: Pin P2-6
+Add Pin To Net: Unknown Pin: Pin P4-1
+Add Pin To Net: Unknown Pin: Pin P4-2
+Add Pin To Net: Unknown Pin: Pin RT1-1
+Add Pin To Net: Unknown Pin: Pin RT1-2
+Added Pin To Net: NetName=NetB1_30 Pin=Y1-1
+Added Pin To Net: NetName=GND Pin=Y1-2
+Added Pin To Net: NetName=NetB1_31 Pin=Y1-3
+Added Pin To Net: NetName=GND Pin=Y1-4
+Add Differential Pair: Number of nets in differential pair NetC49_1 is 1 instead of 2
+Add Differential Pair: Number of nets in differential pair NetC50_2 is 1 instead of 2
+Add Class Member: Failed to add class member : Component P2 61300611121
+Add Class Member: Failed to add class member : Component P2 61300611121
+Add Class Member: Failed to add class member : Component P4 691305540002
+Add Class Member: Failed to add class member : Component P4 691305540002
+Add Class Member: Failed to add class member : Component RT1 MF52 5D7
+Add Class Member: Failed to add class member : Component RT1 MF52 5D7
+Added Member To Class: ClassName=CONTROL Member=Component Y1 ABM8-25.000MHZ-D1X-T
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component Y1 ABM8-25.000MHZ-D1X-T

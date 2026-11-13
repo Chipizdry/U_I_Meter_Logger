@@ -22,16 +22,14 @@
     "C_Cpp.default.compileCommands": "${workspaceFolder}/build/compile_commands.json",
     "C_Cpp.intelliSenseEngine": "disabled",
     "clangd.arguments": [
-        "--compile-commands-dir=build",
-        "--query-driver=C:/Espressif/tools/**/xtensa-esp32-elf-gcc.exe",
         "--background-index",
-        "--completion-style=detailed",
-        "--header-insertion=never",
-        "--clang-tidy=false"
-    ],
+        "--query-driver=**",
+        "--compile-commands-dir=d:\\GitHub\\U_I_Meter_Logger\\RS232-Ethernet_Bridge\\ETHERNET-RS485_Bridge\\build"
+      ],
     "idf.flashType": "UART",
     "idf.monitorPort": "COM7",
     "editor.semanticHighlighting.enabled": false,
-    "idf.port": "COM7"
+    "idf.port": "COM7",
+    "clangd.path": "C:\\Espressif\\tools\\esp-clang\\esp-19.1.2_20250312\\esp-clang\\bin\\clangd.exe"
 }
 

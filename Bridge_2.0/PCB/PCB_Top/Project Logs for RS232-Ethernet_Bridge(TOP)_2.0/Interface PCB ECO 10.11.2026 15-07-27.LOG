@@ -1,0 +1,701 @@
+Added Component: Designator=B1(QFP50P900X900X160-48N)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = "W5500"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = "https://www.arrow.com/en/products/w5500/wiznet?utm_currency=USD&region=nac"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://docs.wiznet.io/img/products/w5500/W5500_ds_v110e.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "1.6mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wiznet Technology"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "W5500"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=C17(CAP-0603)
+Added Component: Designator=C30(CAP-0603)
+Added Component: Designator=C31(2n2 2200V Film capacitor)
+Added Component: Designator=C35(CAPPOL-10x17)
+Added Component: Designator=C36(CAP_SMD_Size_G)
+Added Component: Designator=C37(CAP_SMD_Size_G)
+Added Component: Designator=C39(EEE-FK1H330P)
+Added Component: Designator=C41(CAP-0603)
+Added Component: Designator=C44(CAP-0603)
+Added Component: Designator=C45(CAP-0603)
+Added Component: Designator=C46(CAP-0603)
+Added Component: Designator=C47(CAP-0805)
+Added Component: Designator=C48(CAP-0805)
+Added Component: Designator=C49(CAP-0603)
+Added Component: Designator=C50(CAP-0603)
+Added Component: Designator=C51(CAP-0603)
+Added Component: Designator=C52(CAP-0603)
+Added Component: Designator=C53(CAP-0603)
+Added Component: Designator=C54(CAP-0805)
+Added Component: Designator=C55(CAP-0603)
+Added Component: Designator=C56(CAP-0603)
+Added Component: Designator=C57(CAP-0603)
+Added Component: Designator=C58(CAP-0603)
+Added Component: Designator=C59(CAP-0603)
+Added Component: Designator=C60(CAP-0603)
+Added Component: Designator=C61(CAP-0603)
+Added Component: Designator=C62(CAP-0603)
+Added Component: Designator=C63(CAP-0603)
+Added Component: Designator=C64(CAP-0603)
+Added Component: Designator=C65(CAP-0603)
+Added Component: Designator=D3(LED_GREEN)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://katalog.we-online.de/led/datasheet/151031YS06000.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "5.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "710-151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Wurth-Elektronik/151031YS06000?qs=LlUlMxKIyB3xSYYW%252BcuBiQ%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=D4(LED_RED)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://katalog.we-online.de/led/datasheet/151031YS06000.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "5.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "710-151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Wurth-Elektronik/151031YS06000?qs=LlUlMxKIyB3xSYYW%252BcuBiQ%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=D5(LED_RED)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://katalog.we-online.de/led/datasheet/151031YS06000.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "5.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "710-151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Wurth-Elektronik/151031YS06000?qs=LlUlMxKIyB3xSYYW%252BcuBiQ%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=D6(LED_GREEN)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://katalog.we-online.de/led/datasheet/151031YS06000.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "5.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "710-151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Wurth-Elektronik/151031YS06000?qs=LlUlMxKIyB3xSYYW%252BcuBiQ%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=D7(LED_RED)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://katalog.we-online.de/led/datasheet/151031YS06000.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "5.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "710-151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Wurth-Elektronik/151031YS06000?qs=LlUlMxKIyB3xSYYW%252BcuBiQ%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=D9(DB*07S)
+Added Component: Designator=D10(FP-SMA-MFG)
+Added Component: Designator=D11(DO-214-AC)
+Added Component: Designator=D12(FP-SMA-MFG)
+Added Component: Designator=D13(LED_RED)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://katalog.we-online.de/led/datasheet/151031YS06000.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "5.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = "710-151031YS06000"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = "https://www.mouser.co.uk/ProductDetail/Wurth-Elektronik/151031YS06000?qs=LlUlMxKIyB3xSYYW%252BcuBiQ%3D%3D"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Testing Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=D14(SODFL3618X110N)
+Add component (AddParameter): Name = "Arrow Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Arrow Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Datasheet Link"; Value = "https://datasheet.lcsc.com/szlcsc/SK-FR107W_C122857.pdf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Geometry.Height"; Value = "1.1mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Name"; Value = "Shikues"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer_Part_Number"; Value = "FR107W"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Part Number"; Value = ""; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mouser Price/Stock"; Value = ""; VariantName = "[No Variations]"
+Added Component: Designator=ESP32-S3_WROOM-1(ESP32S3WROOM1N16R8)
+Added Component: Designator=J1(RJ-45)
+Added Component: Designator=L3(Common Mode Choke Inductor  30mH)
+Added Component: Designator=L4(WE-PD2_5848)
+Add component (AddParameter): Name = "Case/Size Code"; Value = "5848"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Category"; Value = "Unshielded Power Inductors"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1Description"; Value = "Website Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1URL"; Value = "https://www.we-online.com/redexpert/article/744774033?ad"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2Description"; Value = "Datasheet Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2URL"; Value = "https://www.we-online.com/redexpert/spec/744774033?ad"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "DC Resistance"; Value = "0.042?"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "DC Resistance Max"; Value = "0.06?"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Height"; Value = "4.5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Inductance"; Value = "3.3µH"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Length"; Value = "5.8mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "744774033"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Match Code"; Value = "WE-PD2"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mount"; Value = "Surface Mount"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Temperature Max"; Value = "125°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Temperature Min"; Value = "-40°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Packaging"; Value = "Tape and Reel"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Rated Current"; Value = "4A"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Saturation Current"; Value = "7.5A"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Self Resonant Frequency"; Value = "43MHz"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Width"; Value = "5.2mm"; VariantName = "[No Variations]"
+Added Component: Designator=L5(Coil_4.5x4.5_mm)
+Added Component: Designator=P2(61300611121)
+Add component (AddParameter): Name = "Category"; Value = "Board-to-Board Connectors"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1Description"; Value = "Website Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1URL"; Value = "https://www.we-online.com/redexpert/article/61300611121?ad"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2Description"; Value = "Datasheet Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2URL"; Value = "https://www.we-online.com/redexpert/spec/61300611121?ad"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Contact Resistance"; Value = "20m?"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Gender"; Value = "Pin Header"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "61300611121"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Match Code"; Value = "WR-PHD"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mount"; Value = "Through Hole"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Pins"; Value = "6"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Rows"; Value = "1"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Temperature Max"; Value = "105°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Temperature Min"; Value = "-40°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Orientation"; Value = "Vertical"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Packaging"; Value = "Bag"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Pitch"; Value = "2.54mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Rated Current"; Value = "3A"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Withstanding Voltage"; Value = "500V"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Working Voltage"; Value = "250V"; VariantName = "[No Variations]"
+Added Component: Designator=P4(691305540002)
+Add component (AddParameter): Name = "Application"; Value = "Pluggable"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1Description"; Value = "Website Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1URL"; Value = "https://www.we-online.com"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2Description"; Value = "Datasheet Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2URL"; Value = "https://www.we-online.com/components/products/datasheet/691305540002"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Lead Pitch"; Value = "5.08mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "691305540002"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Modularity"; Value = "No"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mount"; Value = "Through Hole"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Pins"; Value = "2"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Number of Rows"; Value = "1"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Temperature Max"; Value = "105degC"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operating Temperature Min"; Value = "-40degC"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Orientation"; Value = "Horizontal"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Packaging"; Value = "Box"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Product Series"; Value = "WR-TBL"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Rated Current"; Value = "16A"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Working Voltage"; Value = "300V (AC)"; VariantName = "[No Variations]"
+Added Component: Designator=R2(RES-0603)
+Added Component: Designator=R12(RES-0603)
+Added Component: Designator=R16(RES-0603)
+Added Component: Designator=R17(RES-0603)
+Added Component: Designator=R18(RES-0603)
+Added Component: Designator=R19(RES-0603)
+Added Component: Designator=R21(RES-0603)
+Added Component: Designator=R25(RES-1206)
+Added Component: Designator=R26(RES-1206)
+Added Component: Designator=R28(RES-1206)
+Added Component: Designator=R29(RES-0603)
+Added Component: Designator=R30(RES-0603)
+Added Component: Designator=R31(RES-0603)
+Added Component: Designator=R34(RES-0603)
+Added Component: Designator=R35(RES-0603)
+Added Component: Designator=R36(RES-0603)
+Added Component: Designator=R37(RES-0603)
+Added Component: Designator=R38(RES-0603)
+Added Component: Designator=R39(RES-0603)
+Added Component: Designator=R40(RES-0603)
+Added Component: Designator=R41(RES-0603)
+Added Component: Designator=R42(RES-0603)
+Added Component: Designator=R43(RES-0603)
+Added Component: Designator=R44(RES-0603)
+Added Component: Designator=R45(RES-0603)
+Added Component: Designator=R46(RES-0603)
+Added Component: Designator=R47(RES-0603)
+Added Component: Designator=R48(RES-0603)
+Added Component: Designator=R49(RES-0603)
+Add component: Footprint Not Found 47D-15
+Added Component: Designator=SW1(430152050826)
+Add component (AddParameter): Name = "Category"; Value = "Tact Switch"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Circuit"; Value = "SPST-NO"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1Description"; Value = "Website Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink1URL"; Value = "https://www.we-online.com/redexpert/article/430152050826?ad"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2Description"; Value = "Datasheet Link"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "ComponentLink2URL"; Value = "https://www.we-online.com/redexpert/spec/430152050826?ad"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Contact Material"; Value = "Stainless Steel"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Contact Plating"; Value = "Silver"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Height"; Value = "5mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Length"; Value = "6mm"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer"; Value = "Wurth Elektronik"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Manufacturer Part Number"; Value = "430152050826"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Match Code"; Value = "WS-TASV"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Max Operating Temperature"; Value = "85°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Min Operating Temperature"; Value = "-40°C"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Mount"; Value = "Surface Mount"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Operation Force"; Value = "260gf"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Packaging"; Value = "Tape and Reel"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Rated Current"; Value = "50mA"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Rated Voltage (DC)"; Value = "12V"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Terminal Material"; Value = "Copper Alloy"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Terminal Plating"; Value = "Silver"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Washable"; Value = "No"; VariantName = "[No Variations]"
+Add component (AddParameter): Name = "Width"; Value = "6mm"; VariantName = "[No Variations]"
+Added Component: Designator=TR1(EE13)
+Added Component: Designator=U9(SOIC-8_M)
+Added Component: Designator=U10(EL3H7-G)
+Added Component: Designator=U11(TL431_SOT-23-3(A))
+Added Component: Designator=VR1(HEL_7D561K)
+Added Component: Designator=Y1(FP-ABM8)
+Added Pin To Net: NetName=TX_N Pin=B1-1
+Added Pin To Net: NetName=TX_P Pin=B1-2
+Added Pin To Net: NetName=GND Pin=B1-3
+Added Pin To Net: NetName=NetB1_4 Pin=B1-4
+Added Pin To Net: NetName=RX_N Pin=B1-5
+Added Pin To Net: NetName=RX_P Pin=B1-6
+Added Pin To Net: NetName=NetB1_4 Pin=B1-8
+Added Pin To Net: NetName=GND Pin=B1-9
+Added Pin To Net: NetName=NetB1_10 Pin=B1-10
+Added Pin To Net: NetName=NetB1_4 Pin=B1-11
+Added Pin To Net: NetName=GND Pin=B1-14
+Added Pin To Net: NetName=NetB1_4 Pin=B1-15
+Added Pin To Net: NetName=GND Pin=B1-16
+Added Pin To Net: NetName=NetB1_4 Pin=B1-17
+Added Pin To Net: NetName=GND Pin=B1-19
+Added Pin To Net: NetName=NetB1_20 Pin=B1-20
+Added Pin To Net: NetName=NetB1_4 Pin=B1-21
+Added Pin To Net: NetName=NetB1_22 Pin=B1-22
+Added Pin To Net: NetName=NetB1_23 Pin=B1-23
+Added Pin To Net: NetName=NetB1_25 Pin=B1-25
+Added Pin To Net: NetName=NetB1_27 Pin=B1-27
+Added Pin To Net: NetName=3v3 Pin=B1-28
+Added Pin To Net: NetName=GND Pin=B1-29
+Added Pin To Net: NetName=NetB1_30 Pin=B1-30
+Added Pin To Net: NetName=NetB1_31 Pin=B1-31
+Added Pin To Net: NetName=NetB1_32 Pin=B1-32
+Added Pin To Net: NetName=NetB1_33 Pin=B1-33
+Added Pin To Net: NetName=NetB1_34 Pin=B1-34
+Added Pin To Net: NetName=NetB1_35 Pin=B1-35
+Added Pin To Net: NetName=NetB1_36 Pin=B1-36
+Added Pin To Net: NetName=NetB1_37 Pin=B1-37
+Added Pin To Net: NetName=GND Pin=B1-38
+Added Pin To Net: NetName=GND Pin=B1-39
+Added Pin To Net: NetName=GND Pin=B1-40
+Added Pin To Net: NetName=GND Pin=B1-41
+Added Pin To Net: NetName=GND Pin=B1-42
+Added Pin To Net: NetName=NetB1_43 Pin=B1-43
+Added Pin To Net: NetName=NetB1_44 Pin=B1-44
+Added Pin To Net: NetName=NetB1_45 Pin=B1-45
+Added Pin To Net: NetName=GND Pin=B1-48
+Added Pin To Net: NetName=GND Pin=C17-1
+Added Pin To Net: NetName=GND_PE Pin=C17-2
+Added Pin To Net: NetName=GND Pin=C30-1
+Added Pin To Net: NetName=NetC30_2 Pin=C30-2
+Added Pin To Net: NetName=NetC31_1 Pin=C31-1
+Added Pin To Net: NetName=NetC31_2 Pin=C31-2
+Added Pin To Net: NetName=NetC31_2 Pin=C35-1
+Added Pin To Net: NetName=GND_PS Pin=C35-2
+Added Pin To Net: NetName=NetC36_1 Pin=C36-1
+Added Pin To Net: NetName=GND Pin=C36-2
+Added Pin To Net: NetName=NetC37_1 Pin=C37-1
+Added Pin To Net: NetName=GND Pin=C37-2
+Added Pin To Net: NetName=VDD Pin=C39-1
+Added Pin To Net: NetName=GND_PS Pin=C39-2
+Added Pin To Net: NetName=GND_PS Pin=C41-1
+Added Pin To Net: NetName=VDD Pin=C41-2
+Added Pin To Net: NetName=NetC44_1 Pin=C44-1
+Added Pin To Net: NetName=NetC44_2 Pin=C44-2
+Added Pin To Net: NetName=GND_PS Pin=C45-1
+Added Pin To Net: NetName=NetC45_2 Pin=C45-2
+Added Pin To Net: NetName=GND Pin=C46-1
+Added Pin To Net: NetName=NetC46_2 Pin=C46-2
+Added Pin To Net: NetName=GND Pin=C47-1
+Added Pin To Net: NetName=+3V3_MCU Pin=C47-2
+Added Pin To Net: NetName=GND Pin=C48-1
+Added Pin To Net: NetName=+3V3_MCU Pin=C48-2
+Added Pin To Net: NetName=NetC49_1 Pin=C49-1
+Added Pin To Net: NetName=RX_N Pin=C49-2
+Added Pin To Net: NetName=GND Pin=C50-1
+Added Pin To Net: NetName=NetC50_2 Pin=C50-2
+Added Pin To Net: NetName=NetB1_22 Pin=C51-1
+Added Pin To Net: NetName=GND Pin=C51-2
+Added Pin To Net: NetName=NetB1_20 Pin=C52-1
+Added Pin To Net: NetName=GND Pin=C52-2
+Added Pin To Net: NetName=GND Pin=C53-1
+Added Pin To Net: NetName=3v3 Pin=C53-2
+Added Pin To Net: NetName=GND Pin=C54-1
+Added Pin To Net: NetName=3v3 Pin=C54-2
+Added Pin To Net: NetName=NetC55_1 Pin=C55-1
+Added Pin To Net: NetName=RX_P Pin=C55-2
+Added Pin To Net: NetName=GND Pin=C56-1
+Added Pin To Net: NetName=NetC56_2 Pin=C56-2
+Added Pin To Net: NetName=GND Pin=C57-1
+Added Pin To Net: NetName=NetB1_30 Pin=C57-2
+Added Pin To Net: NetName=GND Pin=C58-1
+Added Pin To Net: NetName=NetB1_31 Pin=C58-2
+Added Pin To Net: NetName=GND Pin=C59-1
+Added Pin To Net: NetName=NetB1_4 Pin=C59-2
+Added Pin To Net: NetName=GND Pin=C60-1
+Added Pin To Net: NetName=NetB1_4 Pin=C60-2
+Added Pin To Net: NetName=GND Pin=C61-1
+Added Pin To Net: NetName=NetB1_4 Pin=C61-2
+Added Pin To Net: NetName=GND Pin=C62-1
+Added Pin To Net: NetName=GND Pin=C63-1
+Added Pin To Net: NetName=NetB1_4 Pin=C63-2
+Added Pin To Net: NetName=GND Pin=C64-1
+Added Pin To Net: NetName=NetB1_4 Pin=C64-2
+Added Pin To Net: NetName=GND Pin=C65-1
+Added Pin To Net: NetName=NetB1_4 Pin=C65-2
+Added Pin To Net: NetName=NetD3_1 Pin=D3-1
+Added Pin To Net: NetName=GND Pin=D3-2
+Added Pin To Net: NetName=NetD4_1 Pin=D4-1
+Added Pin To Net: NetName=GND Pin=D4-2
+Added Pin To Net: NetName=NetD5_1 Pin=D5-1
+Added Pin To Net: NetName=GND Pin=D5-2
+Added Pin To Net: NetName=NetD6_1 Pin=D6-1
+Added Pin To Net: NetName=GND Pin=D6-2
+Added Pin To Net: NetName=NetD7_1 Pin=D7-1
+Added Pin To Net: NetName=GND Pin=D7-2
+Added Pin To Net: NetName=NetD9_1 Pin=D9-1
+Added Pin To Net: NetName=NetD9_2 Pin=D9-2
+Added Pin To Net: NetName=GND_PS Pin=D9-3
+Added Pin To Net: NetName=NetC31_2 Pin=D9-4
+Added Pin To Net: NetName=NetC37_1 Pin=D10-1
+Added Pin To Net: NetName=NetD10_2 Pin=D10-2
+Added Pin To Net: NetName=NetC36_1 Pin=D11-1
+Added Pin To Net: NetName=VCC Pin=D11-2
+Added Pin To Net: NetName=VDD Pin=D12-1
+Added Pin To Net: NetName=NetD12_2 Pin=D12-2
+Added Pin To Net: NetName=NetD13_1 Pin=D13-1
+Added Pin To Net: NetName=GND Pin=D13-2
+Added Pin To Net: NetName=NetC31_1 Pin=D14-1
+Added Pin To Net: NetName=NetD14_2 Pin=D14-2
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-1
+Added Pin To Net: NetName=+3V3_MCU Pin=ESP32-S3_WROOM-1-2
+Added Pin To Net: NetName=NetC30_2 Pin=ESP32-S3_WROOM-1-3
+Added Pin To Net: NetName=NetC46_2 Pin=ESP32-S3_WROOM-1-4
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_5 Pin=ESP32-S3_WROOM-1-5
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_6 Pin=ESP32-S3_WROOM-1-6
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_7 Pin=ESP32-S3_WROOM-1-7
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_8 Pin=ESP32-S3_WROOM-1-8
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_9 Pin=ESP32-S3_WROOM-1-9
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_10 Pin=ESP32-S3_WROOM-1-10
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_11 Pin=ESP32-S3_WROOM-1-11
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_12 Pin=ESP32-S3_WROOM-1-12
+Added Pin To Net: NetName=NetB1_36 Pin=ESP32-S3_WROOM-1-17
+Added Pin To Net: NetName=NetB1_32 Pin=ESP32-S3_WROOM-1-18
+Added Pin To Net: NetName=NetB1_35 Pin=ESP32-S3_WROOM-1-19
+Added Pin To Net: NetName=NetB1_33 Pin=ESP32-S3_WROOM-1-20
+Added Pin To Net: NetName=NetB1_34 Pin=ESP32-S3_WROOM-1-21
+Added Pin To Net: NetName=NetB1_37 Pin=ESP32-S3_WROOM-1-22
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_23 Pin=ESP32-S3_WROOM-1-23
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_27 Pin=ESP32-S3_WROOM-1-27
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_36 Pin=ESP32-S3_WROOM-1-36
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_37 Pin=ESP32-S3_WROOM-1-37
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-40
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-41
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-42
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-43
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-44
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-45
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-46
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-47
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-48
+Added Pin To Net: NetName=GND Pin=ESP32-S3_WROOM-1-49
+Added Pin To Net: NetName=TX_P Pin=J1-1
+Added Pin To Net: NetName=TX_N Pin=J1-2
+Added Pin To Net: NetName=NetC55_1 Pin=J1-3
+Added Pin To Net: NetName=NetC56_2 Pin=J1-4
+Added Pin To Net: NetName=NetC50_2 Pin=J1-5
+Added Pin To Net: NetName=NetC49_1 Pin=J1-6
+Added Pin To Net: NetName=GND_PE Pin=J1-8
+Added Pin To Net: NetName=NetB1_4 Pin=J1-9
+Added Pin To Net: NetName=NetJ1_10 Pin=J1-10
+Added Pin To Net: NetName=NetJ1_11 Pin=J1-11
+Added Pin To Net: NetName=NetB1_4 Pin=J1-12
+Added Pin To Net: NetName=GND_PE Pin=J1-13
+Added Pin To Net: NetName=GND_PE Pin=J1-14
+Added Pin To Net: NetName=NetL3_1 Pin=L3-1
+Added Pin To Net: NetName=NetD9_2 Pin=L3-2
+Added Pin To Net: NetName=NetL3_3 Pin=L3-3
+Added Pin To Net: NetName=NetD9_1 Pin=L3-4
+Added Pin To Net: NetName=NetC37_1 Pin=L4-1
+Added Pin To Net: NetName=NetC36_1 Pin=L4-2
+Added Pin To Net: NetName=3v3 Pin=L5-1
+Added Pin To Net: NetName=NetB1_4 Pin=L5-2
+Added Pin To Net: NetName=+3V3_MCU Pin=P2-1
+Added Pin To Net: NetName=GND Pin=P2-2
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_37 Pin=P2-3
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_36 Pin=P2-4
+Added Pin To Net: NetName=NetC30_2 Pin=P2-5
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_27 Pin=P2-6
+Added Pin To Net: NetName=NetL3_1 Pin=P4-1
+Added Pin To Net: NetName=NetP4_2 Pin=P4-2
+Added Pin To Net: NetName=NetD6_1 Pin=R2-1
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_5 Pin=R2-2
+Added Pin To Net: NetName=NetD7_1 Pin=R12-1
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_6 Pin=R12-2
+Added Pin To Net: NetName=NetC46_2 Pin=R16-1
+Added Pin To Net: NetName=+3V3_MCU Pin=R16-2
+Added Pin To Net: NetName=NetD3_1 Pin=R17-1
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_7 Pin=R17-2
+Added Pin To Net: NetName=NetD4_1 Pin=R18-1
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_8 Pin=R18-2
+Added Pin To Net: NetName=NetD5_1 Pin=R19-1
+Added Pin To Net: NetName=NetESP32-S3_WROOM-1_9 Pin=R19-2
+Added Pin To Net: NetName=NetC30_2 Pin=R21-1
+Added Pin To Net: NetName=+3V3_MCU Pin=R21-2
+Added Pin To Net: NetName=NetC31_1 Pin=R25-1
+Added Pin To Net: NetName=NetC31_2 Pin=R25-2
+Added Pin To Net: NetName=NetC31_1 Pin=R26-1
+Added Pin To Net: NetName=NetC31_2 Pin=R26-2
+Added Pin To Net: NetName=GND Pin=R28-1
+Added Pin To Net: NetName=NetC36_1 Pin=R28-2
+Added Pin To Net: NetName=NetD13_1 Pin=R29-1
+Added Pin To Net: NetName=NetC36_1 Pin=R29-2
+Added Pin To Net: NetName=NetR30_1 Pin=R30-1
+Added Pin To Net: NetName=NetC37_1 Pin=R30-2
+Added Pin To Net: NetName=NetC44_2 Pin=R31-1
+Added Pin To Net: NetName=NetC36_1 Pin=R31-2
+Added Pin To Net: NetName=GND Pin=R34-1
+Added Pin To Net: NetName=NetC44_2 Pin=R34-2
+Added Pin To Net: NetName=RX_N Pin=R35-1
+Added Pin To Net: NetName=NetC50_2 Pin=R35-2
+Added Pin To Net: NetName=NetB1_23 Pin=R36-1
+Added Pin To Net: NetName=GND Pin=R36-2
+Added Pin To Net: NetName=NetC50_2 Pin=R37-1
+Added Pin To Net: NetName=RX_P Pin=R37-2
+Added Pin To Net: NetName=TX_P Pin=R38-1
+Added Pin To Net: NetName=NetB1_4 Pin=R38-2
+Added Pin To Net: NetName=TX_N Pin=R39-1
+Added Pin To Net: NetName=NetB1_4 Pin=R39-2
+Added Pin To Net: NetName=NetB1_4 Pin=R40-1
+Added Pin To Net: NetName=NetC56_2 Pin=R40-2
+Added Pin To Net: NetName=NetB1_31 Pin=R41-1
+Added Pin To Net: NetName=NetB1_30 Pin=R41-2
+Added Pin To Net: NetName=NetJ1_10 Pin=R42-1
+Added Pin To Net: NetName=NetB1_25 Pin=R42-2
+Added Pin To Net: NetName=NetJ1_11 Pin=R43-1
+Added Pin To Net: NetName=NetB1_27 Pin=R43-2
+Added Pin To Net: NetName=GND Pin=R44-1
+Added Pin To Net: NetName=NetB1_10 Pin=R44-2
+Added Pin To Net: NetName=3v3 Pin=R45-1
+Added Pin To Net: NetName=NetB1_37 Pin=R45-2
+Added Pin To Net: NetName=3v3 Pin=R46-1
+Added Pin To Net: NetName=NetB1_43 Pin=R46-2
+Added Pin To Net: NetName=3v3 Pin=R47-1
+Added Pin To Net: NetName=NetB1_44 Pin=R47-2
+Added Pin To Net: NetName=3v3 Pin=R48-1
+Added Pin To Net: NetName=NetB1_45 Pin=R48-2
+Added Pin To Net: NetName=3v3 Pin=R49-1
+Added Pin To Net: NetName=NetB1_36 Pin=R49-2
+Add Pin To Net: Unknown Pin: Pin RT1-1
+Add Pin To Net: Unknown Pin: Pin RT1-2
+Added Pin To Net: NetName=NetC46_2 Pin=SW1-A1
+Added Pin To Net: NetName=NetC46_2 Pin=SW1-A2
+Added Pin To Net: NetName=GND Pin=SW1-B1
+Added Pin To Net: NetName=GND Pin=SW1-B2
+Added Pin To Net: NetName=NetC31_2 Pin=TR1-1
+Added Pin To Net: NetName=NetD14_2 Pin=TR1-2
+Added Pin To Net: NetName=NetD12_2 Pin=TR1-4
+Added Pin To Net: NetName=GND_PS Pin=TR1-5
+Added Pin To Net: NetName=GND Pin=TR1-6
+Added Pin To Net: NetName=NetD10_2 Pin=TR1-10
+Added Pin To Net: NetName=GND_PS Pin=U9-1
+Added Pin To Net: NetName=GND_PS Pin=U9-2
+Added Pin To Net: NetName=NetC45_2 Pin=U9-3
+Added Pin To Net: NetName=VDD Pin=U9-4
+Added Pin To Net: NetName=NetD14_2 Pin=U9-5
+Added Pin To Net: NetName=NetD14_2 Pin=U9-6
+Added Pin To Net: NetName=NetD14_2 Pin=U9-7
+Added Pin To Net: NetName=NetD14_2 Pin=U9-8
+Added Pin To Net: NetName=NetR30_1 Pin=U10-1
+Added Pin To Net: NetName=NetC44_1 Pin=U10-2
+Added Pin To Net: NetName=NetC45_2 Pin=U10-3
+Added Pin To Net: NetName=VDD Pin=U10-4
+Added Pin To Net: NetName=NetC44_1 Pin=U11-1
+Added Pin To Net: NetName=NetC44_2 Pin=U11-2
+Added Pin To Net: NetName=GND Pin=U11-3
+Added Pin To Net: NetName=NetL3_1 Pin=VR1-1
+Added Pin To Net: NetName=NetL3_3 Pin=VR1-2
+Added Pin To Net: NetName=NetB1_30 Pin=Y1-1
+Added Pin To Net: NetName=GND Pin=Y1-2
+Added Pin To Net: NetName=NetB1_31 Pin=Y1-3
+Added Pin To Net: NetName=GND Pin=Y1-4
+Add Differential Pair: Number of nets in differential pair NetC49_1 is 1 instead of 2
+Add Differential Pair: Number of nets in differential pair NetC50_2 is 1 instead of 2
+Added Member To Class: ClassName=CONTROL Member=Component B1 W5500
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component B1 W5500
+Added Member To Class: ClassName=CONTROL Member=Component C17 22nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C17 22nF
+Added Member To Class: ClassName=CONTROL Member=Component C30 2.2uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C30 2.2uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C31 2.2 nF 630V
+Added Member To Class: ClassName=PS_3W Member=Component C31 2.2 nF 630V
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C35 CAP-POLAR
+Added Member To Class: ClassName=PS_3W Member=Component C35 CAP-POLAR
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C36 470uF 25V
+Added Member To Class: ClassName=PS_3W Member=Component C36 470uF 25V
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C37 470uF 25V
+Added Member To Class: ClassName=PS_3W Member=Component C37 470uF 25V
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C39 33uF 50V
+Added Member To Class: ClassName=PS_3W Member=Component C39 33uF 50V
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C41 100nF 63V
+Added Member To Class: ClassName=PS_3W Member=Component C41 100nF 63V
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C44 100nF
+Added Member To Class: ClassName=PS_3W Member=Component C44 100nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C45 100nF
+Added Member To Class: ClassName=PS_3W Member=Component C45 100nF
+Added Member To Class: ClassName=CONTROL Member=Component C46 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C46 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C47 10uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C47 10uF
+Added Member To Class: ClassName=CONTROL Member=Component C48 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C48 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C49 6.8nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C49 6.8nF
+Added Member To Class: ClassName=CONTROL Member=Component C50 10nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C50 10nF
+Added Member To Class: ClassName=CONTROL Member=Component C51 10nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C51 10nF
+Added Member To Class: ClassName=CONTROL Member=Component C52 4.7uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C52 4.7uF
+Added Member To Class: ClassName=CONTROL Member=Component C53 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C53 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C54 10uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C54 10uF
+Added Member To Class: ClassName=CONTROL Member=Component C55 6.8nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C55 6.8nF
+Added Member To Class: ClassName=CONTROL Member=Component C56 22nF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C56 22nF
+Added Member To Class: ClassName=CONTROL Member=Component C57 18pF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C57 18pF
+Added Member To Class: ClassName=CONTROL Member=Component C58 18pF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C58 18pF
+Added Member To Class: ClassName=CONTROL Member=Component C59 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C59 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C60 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C60 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C61 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C61 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C62 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C62 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C63 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C63 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C64 0.1uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C64 0.1uF
+Added Member To Class: ClassName=CONTROL Member=Component C65 10uF
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component C65 10uF
+Added Member To Class: ClassName=CONTROL Member=Component D3 LED GREEN
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D3 LED GREEN
+Added Member To Class: ClassName=CONTROL Member=Component D4 LED RED
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D4 LED RED
+Added Member To Class: ClassName=CONTROL Member=Component D5 LED RED
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D5 LED RED
+Added Member To Class: ClassName=CONTROL Member=Component D6 LED GREEN
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D6 LED GREEN
+Added Member To Class: ClassName=CONTROL Member=Component D7 LED RED
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D7 LED RED
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D9 DB307S
+Added Member To Class: ClassName=PS_3W Member=Component D9 DB307S
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D10 ES1D-M3
+Added Member To Class: ClassName=PS_3W Member=Component D10 ES1D-M3
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D11 SS14
+Added Member To Class: ClassName=PS_3W Member=Component D11 SS14
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D12 ES1D-M3
+Added Member To Class: ClassName=PS_3W Member=Component D12 ES1D-M3
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D13 LED RED
+Added Member To Class: ClassName=PS_3W Member=Component D13 LED RED
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component D14 FR107W
+Added Member To Class: ClassName=PS_3W Member=Component D14 FR107W
+Added Member To Class: ClassName=CONTROL Member=Component ESP32-S3_WROOM-1
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component ESP32-S3_WROOM-1
+Added Member To Class: ClassName=CONTROL Member=Component J1 RJ45
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component J1 RJ45
+Added Member To Class: ClassName=CONTROL Member=Component L3 Drossel
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component L3 Drossel
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component L4 470µH
+Added Member To Class: ClassName=PS_3W Member=Component L4 470µH
+Added Member To Class: ClassName=CONTROL Member=Component L5 33uH
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component L5 33uH
+Added Member To Class: ClassName=CONTROL Member=Component P2 61300611121
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component P2 61300611121
+Added Member To Class: ClassName=CONTROL Member=Component P4 691305540002
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component P4 691305540002
+Added Member To Class: ClassName=CONTROL Member=Component R2 220
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R2 220
+Added Member To Class: ClassName=CONTROL Member=Component R12 220
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R12 220
+Added Member To Class: ClassName=CONTROL Member=Component R16 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R16 10K
+Added Member To Class: ClassName=CONTROL Member=Component R17 220
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R17 220
+Added Member To Class: ClassName=CONTROL Member=Component R18 220
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R18 220
+Added Member To Class: ClassName=CONTROL Member=Component R19 220
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R19 220
+Added Member To Class: ClassName=CONTROL Member=Component R21 100K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R21 100K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R25 200K
+Added Member To Class: ClassName=PS_3W Member=Component R25 200K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R26 200K
+Added Member To Class: ClassName=PS_3W Member=Component R26 200K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R28 1K
+Added Member To Class: ClassName=PS_3W Member=Component R28 1K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R29 5.1K
+Added Member To Class: ClassName=PS_3W Member=Component R29 5.1K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R30 330
+Added Member To Class: ClassName=PS_3W Member=Component R30 330
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R31 12.1K
+Added Member To Class: ClassName=PS_3W Member=Component R31 12.1K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R34 3K
+Added Member To Class: ClassName=PS_3W Member=Component R34 3K
+Added Member To Class: ClassName=CONTROL Member=Component R35 82R 1%
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R35 82R 1%
+Added Member To Class: ClassName=CONTROL Member=Component R36 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R36 10K
+Added Member To Class: ClassName=CONTROL Member=Component R37 82R 1%
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R37 82R 1%
+Added Member To Class: ClassName=CONTROL Member=Component R38 50R 1%
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R38 50R 1%
+Added Member To Class: ClassName=CONTROL Member=Component R39 50R 1%
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R39 50R 1%
+Added Member To Class: ClassName=CONTROL Member=Component R40 10R 1%
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R40 10R 1%
+Added Member To Class: ClassName=CONTROL Member=Component R41 1M
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R41 1M
+Added Member To Class: ClassName=CONTROL Member=Component R42 510
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R42 510
+Added Member To Class: ClassName=CONTROL Member=Component R43 510
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R43 510
+Added Member To Class: ClassName=CONTROL Member=Component R44 12.4Ê
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R44 12.4Ê
+Added Member To Class: ClassName=CONTROL Member=Component R45 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R45 10K
+Added Member To Class: ClassName=CONTROL Member=Component R46 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R46 10K
+Added Member To Class: ClassName=CONTROL Member=Component R47 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R47 10K
+Added Member To Class: ClassName=CONTROL Member=Component R48 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R48 10K
+Added Member To Class: ClassName=CONTROL Member=Component R49 10K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component R49 10K
+Add Class Member: Failed to add class member : Component RT1 MF52 5D7
+Add Class Member: Failed to add class member : Component RT1 MF52 5D7
+Added Member To Class: ClassName=CONTROL Member=Component SW1 430152050826
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component SW1 430152050826
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component TR1 EE13_Flyback
+Added Member To Class: ClassName=PS_3W Member=Component TR1 EE13_Flyback
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component U9 AP8012HS
+Added Member To Class: ClassName=PS_3W Member=Component U9 AP8012HS
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component U10 EL3H7-G
+Added Member To Class: ClassName=PS_3W Member=Component U10 EL3H7-G
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component U11 TL431
+Added Member To Class: ClassName=PS_3W Member=Component U11 TL431
+Added Member To Class: ClassName=CONTROL Member=Component VR1 HEL 10D471K
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component VR1 HEL 10D471K
+Added Member To Class: ClassName=CONTROL Member=Component Y1 ABM8-25.000MHZ-D1X-T
+Added Member To Class: ClassName=Ethernet_bridge(TOP)_2.0 Member=Component Y1 ABM8-25.000MHZ-D1X-T
+Added Room: Name=CONTROL
+Added Room: Name=Ethernet_bridge(TOP)_2.0
+Added Room: Name=Interface
+Added Room: Name=PS_3W

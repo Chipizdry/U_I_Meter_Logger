@@ -107,6 +107,13 @@ static const char* wifi_reason_to_str(uint8_t reason)
     }
 }
 
+
+esp_netif_t *wifi_manager_get_sta_netif(void)
+{
+    return sta_netif;
+}
+
+
 void wifi_manager_init_once(void)
 {
     static bool inited = false;

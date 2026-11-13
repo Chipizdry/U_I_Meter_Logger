@@ -30,6 +30,10 @@
 #include "network_state.h"
 #include "modbus_tcp_client.h"
 #include "ble_manager.h"
+#include "network_failover.h"
+#include "system_watchdog.h"
+
+
 
 #define STRINGIFY(x) #x
 #define TOSTRING(x) STRINGIFY(x)
@@ -128,6 +132,10 @@ void app_main(void)
     start_wifi_manager_task();
     initialize_sntp();
     xTaskCreate(websocket_reconnect_task, "ws_reconnect_task", 4096, NULL, 5, NULL);
+    // Запускаем мониторинг и переключение интерфейсов
+    network_failover_start();
+    // Многоуровневый watchdog с логгированием причин сбоя
+    watchdog_start();
 }
 
 

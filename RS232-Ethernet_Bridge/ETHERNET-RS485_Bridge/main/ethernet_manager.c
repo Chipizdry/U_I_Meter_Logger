@@ -59,6 +59,13 @@ static esp_err_t eth_input_hook(esp_eth_handle_t hdl,uint8_t *buffer,uint32_t le
 static err_t eth_tx_hook(struct netif *netif, struct pbuf *p);
 static err_t (*s_orig_linkoutput)( struct netif *netif, struct pbuf *p) = NULL;
 
+esp_netif_t *ethernet_get_netif(void)
+{
+    return s_eth_netif;
+}
+
+
+
 // =====================================================
 // RX HOOK
 // =====================================================

@@ -77,6 +77,11 @@ void websocket_enable_reconnect(void)
     ws_reconnect_enabled = true;
 }
 
+bool websocket_is_reconnect_enabled(void)
+{
+    return ws_reconnect_enabled;
+}
+
 
 static bool can_resolve_host(const char *host)
 {
