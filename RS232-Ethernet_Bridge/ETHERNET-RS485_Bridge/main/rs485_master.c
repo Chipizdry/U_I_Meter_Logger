@@ -56,21 +56,6 @@ static SemaphoreHandle_t s_data_mutex = NULL;
 static SemaphoreHandle_t s_uart_mutex = NULL;
 static volatile bool s_running = false;
 
-/* CRC16 (Modbus) */
-/*
-static uint16_t modbus_crc16(const uint8_t *buf, size_t len)
-{
-    uint16_t crc = 0xFFFF;
-    for (size_t pos = 0; pos < len; pos++) {
-        crc ^= (uint16_t)buf[pos];
-        for (int i = 0; i < 8; i++) {
-            if (crc & 0x0001) crc = (crc >> 1) ^ 0xA001;
-            else crc >>= 1;
-        }
-    }
-    return crc;
-}
-*/
 
 static void de_off_timer_cb(void *arg)
 {
@@ -98,25 +83,7 @@ static inline uint32_t char_time_us_from_baud(int baud)
     return (uint32_t)(numerator / (uint32_t)baud);
 }
 
-/* Построение Modbus RTU read holding registers (Функция 0x03)
-   request: addr | func | start_hi | start_lo | count_hi | count_lo | crc_lo | crc_hi
-*/
-/*
-static int build_read_request(uint8_t addr, uint16_t start, uint16_t count, uint8_t *out, size_t out_len)
-{
-    if (out_len < 8) return -1;
-    out[0] = addr;
-    out[1] = 0x03;
-    out[2] = (uint8_t)((start >> 8) & 0xFF);
-    out[3] = (uint8_t)(start & 0xFF);
-    out[4] = (uint8_t)((count >> 8) & 0xFF);
-    out[5] = (uint8_t)(count & 0xFF);
-    uint16_t crc = modbus_crc16(out, 6);
-    out[6] = crc & 0xFF;
-    out[7] = (crc >> 8) & 0xFF;
-    return 8;
-}
-*/
+
 /* Чтение ответа с таймаутом: читаем по одному байту, пока не наберём max или не выйдет таймаут */
    
 
@@ -175,134 +142,6 @@ static esp_err_t send_request_async(int uart_num, const uint8_t *req, int req_le
     return ESP_OK;
 }
 
-/* Single poll operation on a slave: отправка запроса и чтение ответа, update data */
-/*
-static void poll_slave(slave_entry_t *s)
-{
-    const int uart_num = RS485_UART_NUM;
-    uint8_t req[8];
-    int nreq = build_read_request(s->cfg.slave_addr, s->cfg.reg_start, s->cfg.reg_count, req, sizeof(req));
-    if (nreq < 0) {
-        s->data.last_error = -2;
-        return;
-    }
-
-    uint32_t char_time_us = char_time_us_from_baud(s_baud);
-    // Отправляем запрос синхронно (DE управление внутри)
-    esp_err_t er = send_request_async(uart_num, req, nreq, char_time_us);
-    if (er != ESP_OK) {
-        s->data.last_error = -3;
-        return;
-    }
-
-    // Ожидаем ответ: expected_len = 5 + 2*count
-    int expected_len = 5 + 2 * s->cfg.reg_count;
-    // Вычисляем таймаут: минимум 3.5 char для silent + time to receive expected bytes
-    // time to receive expected_len chars = expected_len * char_time_us
-    uint32_t t_receive_us = (uint32_t)expected_len * char_time_us;
-    // silent interval = 3.5 * char_time_us (rounded up)
-    uint32_t t_silent_us = (uint32_t)(3.5 * (double)char_time_us + 0.5);
-    // total timeout in microseconds:
-    uint32_t total_us = t_silent_us + t_receive_us + 1000000U; // добавим запас 1s (на случай потерь)
-    // Перевод в миллисекунды, минимум 20ms
-    int timeout_ms = (int)(total_us / 1000U);
-    if (timeout_ms < 20) timeout_ms = 20;
-    if (timeout_ms > 5000) timeout_ms = 5000;
-
-    uint8_t *resp = (uint8_t *)heap_caps_malloc(expected_len + 4, MALLOC_CAP_8BIT);
-    if (!resp) {
-        s->data.last_error = -4;
-        return;
-    }
-    memset(resp, 0, expected_len + 4);
-
-    int r = rs485_read_available(resp, expected_len + 5, timeout_ms);
-    ESP_LOGI(TAG, "RX raw (%d bytes):", r);
-    ESP_LOG_BUFFER_HEX(TAG, resp, r);
-
-    if (r <= 0) {
-        s->data.last_error = -5; // timeout/no data
-        heap_caps_free(resp);
-        return;
-    }
-    ESP_LOGI(TAG, "RX (%d bytes) ← slave %d:", r, s->cfg.slave_addr);
-    ESP_LOG_BUFFER_HEX(TAG, resp, r);
-    // Проверка адреса и функция
-    if (r < 5) {
-        s->data.last_error = -6;
-        heap_caps_free(resp);
-        return;
-    }
-    if (resp[0] != s->cfg.slave_addr || resp[1] != 0x03) {
-        s->data.last_error = -7;
-        heap_caps_free(resp);
-        return;
-    }
-    int byte_count = resp[2];
-    if (byte_count != 2 * s->cfg.reg_count) {
-        s->data.last_error = -8;
-        heap_caps_free(resp);
-        return;
-    }
-    // CRC check: CRC is last two bytes in response (low, high)
-    uint16_t crc_calc = modbus_crc16(resp, 3 + byte_count);
-    uint16_t crc_recv = (uint16_t)resp[3 + byte_count] | ((uint16_t)resp[3 + byte_count + 1] << 8);
-    if (crc_calc != crc_recv) {
-        s->data.last_error = -9;
-        heap_caps_free(resp);
-        return;
-    }
-
-    // Парсинг данных (big-endian words)
-    if (s->cfg.reg_count > (int)(sizeof(s->data.values) / sizeof(s->data.values[0]))) {
-        s->data.last_error = -10;
-        heap_caps_free(resp);
-        return;
-    }
-
-    // Копируем в структуру под мьютексом
-    if (xSemaphoreTake(s_data_mutex, pdMS_TO_TICKS(200)) == pdTRUE) {
-        s->data.slave_addr = s->cfg.slave_addr;
-        s->data.reg_start = s->cfg.reg_start;
-        s->data.reg_count = s->cfg.reg_count;
-        uint8_t *p = &resp[3];
-        for (int i = 0; i < s->cfg.reg_count; ++i) {
-            uint16_t hi = p[2*i];
-            uint16_t lo = p[2*i + 1];
-            s->data.values[i] = (uint16_t)((hi << 8) | lo);
-        }
-        s->data.timestamp_ms = (uint32_t)(xTaskGetTickCount() * portTICK_PERIOD_MS);
-        s->data.last_error = 0;
-        xSemaphoreGive(s_data_mutex);
-    } else {
-        s->data.last_error = -11;
-    }
-
-    heap_caps_free(resp);
-}
-*/
-/* Polling task: идёт по всем слейвам и опрашивает те, у которых время пришло */
-/*
-static void poll_task(void *arg)
-{
-   // const int uart_num = RS485_UART_NUM;
-    while (s_running) {
-        TickType_t now = xTaskGetTickCount();
-        for (int i = 0; i < RS485_MAX_SLAVES; ++i) {
-            if (!s_slaves[i].in_use) continue;
-            TickType_t interval_ticks = pdMS_TO_TICKS(s_slaves[i].cfg.poll_interval_ms);
-            if (interval_ticks == 0) interval_ticks = pdMS_TO_TICKS(1000);
-            if ((now - s_slaves[i].last_poll_tick) >= interval_ticks) {
-                s_slaves[i].last_poll_tick = now;
-                poll_slave(&s_slaves[i]);
-            }
-        }
-        // Небольшая пауза, чтобы не жрать CPU
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-    vTaskDelete(NULL);
-}
-*/
 /* --- Публичные API --- */
 
 esp_err_t rs485_master_init_from_cfg(const uart_settings_t *cfg, int rx_buf_size, int tx_buf_size)
@@ -522,8 +361,8 @@ static void rs485_request_task(void *arg)
     const int uart_num = RS485_UART_NUM;
 
     while (s_running) {
-        char ws_msg[512];          // <── создаётся один раз на итерацию, можно переиспользовать
-        char hex_resp[256];        // <── тоже тут
+       static char ws_msg[512];          // <── создаётся один раз на итерацию, можно переиспользовать
+       static char hex_resp[256];        // <── тоже тут
 
         if (xQueueReceive(s_req_queue, &req, portMAX_DELAY) == pdTRUE) {
 

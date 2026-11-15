@@ -297,6 +297,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
         .reconnect_timeout_ms = 90000,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
+        .task_stack = 8192,
     };
 
     client = esp_websocket_client_init(&websocket_cfg);

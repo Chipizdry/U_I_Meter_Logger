@@ -277,10 +277,8 @@ static esp_err_t process_stream(uint8_t *data, int len)
                     : 100;
                 if (pct != last_pct_data) {
                     last_pct_data = pct;
-                    ESP_LOGI(TAG, "DATA %lu / %lu (%lu%%)",
-                             data_written, data_total_len, pct);
-                    ota_send_progress("Загрузка системных файлов",
-                                      data_written, data_total_len);
+                    ESP_LOGI(TAG, "DATA %lu / %lu (%lu%%)", data_written, data_total_len, pct);
+                    ota_send_progress("Загрузка системных файлов", data_written, data_total_len);
                 }
             }
 
@@ -388,9 +386,11 @@ esp_err_t ota_pull_start(const char *url)
         .url = url,
         .timeout_ms = 30000,
         .buffer_size = OTA_PULL_BUF_SIZE,
+        .buffer_size_tx = 512, 
         .transport_type = HTTP_TRANSPORT_OVER_SSL,
         .cert_pem = (const char *)ca_cert_pem_start,
         .keep_alive_enable = false,
+        .disable_auto_redirect = false,
     };
 
     esp_http_client_handle_t client = esp_http_client_init(&config);
@@ -417,8 +417,7 @@ esp_err_t ota_pull_start(const char *url)
 
     while (1)
     {
-        read_len = esp_http_client_read(client, (char*)s_ota_buf,
-                                        OTA_PULL_BUF_SIZE);
+        read_len = esp_http_client_read(client, (char*)s_ota_buf, OTA_PULL_BUF_SIZE);
 
         if (read_len < 0) {
             ESP_LOGE(TAG, "HTTP read error");
@@ -437,8 +436,7 @@ esp_err_t ota_pull_start(const char *url)
 
         if (process_stream(s_ota_buf, read_len) != ESP_OK) {
             ESP_LOGE(TAG, "Stream processing failed");
-            websocket_send_text(
-                "{\"ota_phase\":\"Ошибка обработки данных\",\"progress\":0}");
+            websocket_send_text("{\"ota_phase\":\"Ошибка обработки данных\",\"progress\":0}");
             ota_pull_cleanup();
             esp_http_client_close(client);
             esp_http_client_cleanup(client);
@@ -521,9 +519,18 @@ void ota_task(void *param)
     vTaskDelete(NULL);
 }
 
+
 static void ota_send_progress(const char *phase_name, uint32_t done, uint32_t total)
 {
     if (!ws_connected || total == 0) return;
+
+    // Защита: если памяти впритык, пропускаем отправку, чтобы не ронять TLS
+    size_t largest = heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (largest < 6000) {
+        ESP_LOGW(TAG, "skip OTA progress WS send: largest=%u", (unsigned)largest);
+        return;
+    }
+
     char msg[128];
     int percent = (int)((done * 100U) / total);
     if (percent > 100) percent = 100;
@@ -531,5 +538,3 @@ static void ota_send_progress(const char *phase_name, uint32_t done, uint32_t to
              "{\"ota_phase\":\"%s\",\"progress\":%d}", phase_name, percent);
     websocket_send_text(msg);
 }
-
-

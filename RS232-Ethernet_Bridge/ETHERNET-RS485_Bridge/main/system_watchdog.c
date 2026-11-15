@@ -1,7 +1,3 @@
-
-
-
-
 #include "system_watchdog.h"
 
 #include "esp_log.h"
@@ -13,6 +9,7 @@
 #include "freertos/task.h"
 #include "nvs.h"
 #include "nvs_flash.h"
+#include <stdlib.h>
 
 #include "websocket_client.h"
 #include "network_state.h"
@@ -127,6 +124,33 @@ static bool heap_is_low(void)
     return (free_ < HEAP_FREE_MIN_THRESHOLD) || (largest < HEAP_LARGEST_MIN_THRESHOLD);
 }
 
+/* Вывод статистики по задачам и их стекам */
+static void log_task_stats(void)
+{
+    UBaseType_t uxArraySize = uxTaskGetNumberOfTasks();
+    // Выделяем память под массив статусов
+    TaskStatus_t *pxTaskStatusArray = malloc(uxArraySize * sizeof(TaskStatus_t));
+    
+    if (pxTaskStatusArray != NULL) {
+        // Заполняем массив
+        uxArraySize = uxTaskGetSystemState(pxTaskStatusArray, uxArraySize, NULL);
+        
+        ESP_LOGI(TAG, "--- TASK STACK USAGE (Min Free Stack) ---");
+        for (UBaseType_t x = 0; x < uxArraySize; x++) {
+            // usStackHighWaterMark возвращает количество СЛОВ (1 слово = 4 байта на ESP32)
+            uint32_t free_stack_bytes = pxTaskStatusArray[x].usStackHighWaterMark * sizeof(StackType_t);
+            
+            ESP_LOGI(TAG, "Task: %-16s | Prio: %2d | Free Stack: %5lu bytes",
+                     pxTaskStatusArray[x].pcTaskName,
+                     pxTaskStatusArray[x].uxCurrentPriority,
+                     (unsigned long)free_stack_bytes);
+        }
+        free(pxTaskStatusArray);
+    } else {
+        ESP_LOGE(TAG, "Failed to allocate task status array");
+    }
+}
+
 /* Полный лог состояния системы. */
 static void log_diagnostics(void)
 {
@@ -158,6 +182,9 @@ static void log_diagnostics(void)
              (unsigned)ws_silence_s,
              def_name,
              (unsigned)(now_ms() / 1000));
+
+    // Вызываем статистику задач
+    log_task_stats();
 }
 
 /* =====================================================================
@@ -291,7 +318,7 @@ static void watchdog_task(void *pvParameters)
         uint32_t uptime_sec = (uint32_t)(now / 1000);
 
         /* Полный DIAG раз в 5 минут */
-        if (uptime_sec - last_diag_sec >= 300) {
+        if (uptime_sec - last_diag_sec >= 12) {
             last_diag_sec = uptime_sec;
             log_diagnostics();
         }
@@ -406,13 +433,7 @@ esp_err_t watchdog_start(void)
     /* Прочитать сохранённый контекст последнего сбоя */
     watchdog_dump_last_crash();
 
-    BaseType_t ret = xTaskCreate(
-        watchdog_task,
-        "wdt_supervisor",
-        WDT_TASK_STACK,
-        NULL,
-        WDT_TASK_PRIO,
-        NULL);
+    BaseType_t ret = xTaskCreate( watchdog_task, "wdt_supervisor", WDT_TASK_STACK, NULL, WDT_TASK_PRIO, NULL);
 
     if (ret != pdPASS) {
         ESP_LOGE(TAG, "Failed to create watchdog task");
@@ -423,14 +444,4 @@ esp_err_t watchdog_start(void)
     return ESP_OK;
 }
 
-// =====================================================================
-// Таблица условий и действий для watchdog
-// =====================================================================
-// Условие	Порог	Действие
-// WS offline	2 мин	soft restart клиента
-// WS offline	5 мин	reboot + запись в NVS
-// WS connected, но нет событий	3 мин	reboot + запись в NVS
-// Нет ни Ethernet, ни Wi-Fi	10 мин	reboot + запись в NVS
-// Default netif отсутствует, хотя сеть UP	3 мин	reboot + запись в NVS
-// Свободная heap < 15 KB или largest < 4 KB	3 мин	reboot + запись в NVS
-// Любая задача зависла (idle не крутится)	30 сек	аппаратный TWDT → panic
+

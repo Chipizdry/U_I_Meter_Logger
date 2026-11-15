@@ -1149,8 +1149,7 @@ static bool handle_ota_update( cJSON *root, const char *session_id)
         return true;
     }
 
-    BaseType_t ret =
-        xTaskCreatePinnedToCore( ota_task, "ota_task", 8192, url_copy, 5, NULL, 1);
+    BaseType_t ret = xTaskCreatePinnedToCore( ota_task, "ota_task", 8192, url_copy, 5, NULL, 1);
 
     if (ret != pdPASS)
     {

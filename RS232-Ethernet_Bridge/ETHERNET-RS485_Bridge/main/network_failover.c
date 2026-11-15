@@ -128,7 +128,7 @@ esp_err_t network_failover_start(void)
     BaseType_t ret = xTaskCreate(
         failover_task,
         "net_failover",
-        4096,
+        2048,
         NULL,
         5,
         NULL
