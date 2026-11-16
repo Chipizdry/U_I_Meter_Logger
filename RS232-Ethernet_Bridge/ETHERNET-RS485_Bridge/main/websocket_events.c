@@ -17,6 +17,7 @@
 #include "ws_server.h"
 #include "gpio_manager.h"
 #include "ota_pull.h"
+#include "event_log.h"
 #include "nvs_settings.h"
 #include "network_state.h"
 #include "modbus_tcp_client.h"
@@ -51,7 +52,8 @@ typedef enum
     WS_MSG_MODBUS_TCP,
     WS_MSG_SETTINGS,
     WS_MSG_OTA,
-    WS_MSG_TRACEROUTE
+    WS_MSG_TRACEROUTE,
+    WS_MSG_GET_EVENTS
 
 } ws_message_type_t;
 
@@ -64,7 +66,7 @@ static bool handle_mtcp_data(cJSON *root);
 static bool handle_msg_data(cJSON *root);
 static bool handle_traceroute(cJSON *root);
 static bool handle_ota_update(cJSON *root, const char *session_id);
-
+static bool handle_get_events(cJSON *root);
 
 static inline uint32_t ticks_to_ms(uint32_t ticks)
 {
@@ -101,6 +103,7 @@ static ws_message_type_t detect_message_type(cJSON *root)
         if (strcmp(type, "traceroute") == 0) {
         return WS_MSG_TRACEROUTE;
         }
+        if (strcmp(type, "get_events") == 0) {return WS_MSG_GET_EVENTS;}
     }
 
     cJSON *command =
@@ -362,10 +365,8 @@ static void traceroute_ws_callback(
 
 bool websocket_process_message(const char *json)
 {
-    if (!json) {
-        return false;
-    }
-
+    if (!json) { return false;}
+    evt_mark_backend_request();     //  сюда ping/pong не попадают
     gpio_link_led(1);
 
     cJSON *root = cJSON_Parse(json);
@@ -441,7 +442,10 @@ bool websocket_process_message(const char *json)
 
             handled = handle_ota_update(root, ws_session_id);
             break;
-        
+        case WS_MSG_GET_EVENTS:           
+
+            handled = handle_get_events(root);
+            break;
 
 
 
@@ -991,7 +995,7 @@ static bool handle_msg_data(cJSON *root)
         strcmp(cloud_status_msg, "connected") == 0)
     {
         gpio_set_net_led(true);
-
+        evt_log(EVT_WS_AUTH_OK, 0, 0); 
         ws_connected = true;
 
         char time_str[64];
@@ -1006,15 +1010,13 @@ static bool handle_msg_data(cJSON *root)
         snprintf(
             msg,
             sizeof(msg),
-            "{\"command_type\":\"device_online\","
-            "\"time\":\"%s\"}",
-            time_str
-        );
+            "{\"command_type\":\"device_online\",""\"time\":\"%s\"}", time_str);
 
         websocket_send_text(msg);
     }
     else
-    {
+    {  
+        evt_log(EVT_WS_AUTH_FAIL, 0, 0);
         ws_connected = false;
     }
 
@@ -1122,7 +1124,22 @@ static bool handle_traceroute(cJSON *root)
     return true;
 }
 
+static bool handle_get_events(cJSON *root)
+{
+    cJSON *cnt = cJSON_GetObjectItemCaseSensitive(root, "count");
+    size_t n = cJSON_IsNumber(cnt) ? (size_t)cnt->valueint : 16;
+    if (n == 0) n = 16;
+    if (n > EVT_LOG_RING_SIZE) n = EVT_LOG_RING_SIZE;
 
+    char *json = evt_log_to_json(n);
+    if (!json) {
+        websocket_send_text("{\"command_type\":\"event_log\",\"error\":\"oom\"}");
+        return true;
+    }
+    websocket_send_text(json);
+    free(json);
+    return true;
+}
 
 static bool handle_ota_update( cJSON *root, const char *session_id)
 {

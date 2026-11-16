@@ -23,14 +23,15 @@
 #include "ws_server.h"
 #include "gpio_manager.h"
 #include "web_server.h"
+#include "event_log.h"
 #include "ota_pull.h"
 
  TickType_t last_ws_event_tick = 0; // последняя активность WebSocket
 
 static const TickType_t WS_TIMEOUT_TICKS = pdMS_TO_TICKS(20000); // 20 секунд
 // переменные для авторизации
- char ws_email[64];
- char ws_password[64];
+ char ws_email[48];
+ char ws_password[48];
  char ws_node_name[64];
  char ws_session_id[128] = {0};
  char ws_session_token[32] = {0};
@@ -62,7 +63,7 @@ static const int MAX_DNS_ERRORS = 10;               // после 10 DNS-оши�
 char cloud_status_msg[32] = "Idle";   // статус по умолчанию
 char ws_rx_buf[512];
 static int ws_rx_len = 0;
-
+static bool s_sntp_logged = false;
 
 void websocket_reconnect_task(void *pvParameters);
 
@@ -184,24 +185,24 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
     {
         case WEBSOCKET_EVENT_CONNECTED:
         ESP_LOGI(TAG, "✅ Connecting to WebSocket server...");
-       
+        evt_log(EVT_WS_CONNECTED, 0, 0);  
         last_ws_event_tick = xTaskGetTickCount(); // сброс таймера при подключении
             // отправляем авторизационное сообщение
             if (strlen(ws_email) > 0 && ((strlen(ws_password) > 0) || strlen(ws_session_token)) > 0) {
-                char auth_msg[384];
+                char auth_msg[320];
                 snprintf(auth_msg, sizeof(auth_msg), "{\"email\":\"%s\", \"token\":\"%s\", \"password\":\"%s\", \"node_name\":\"%s\"}", ws_email, ws_session_token, ws_password, ws_node_name);
                 esp_websocket_client_send_text(client, auth_msg, strlen(auth_msg), portMAX_DELAY);
                 ESP_LOGI(TAG, "📤Sent auth message:%s", auth_msg);
             }
              ws_connected = true;
              ws_broadcast("{\"cloud_status\":\"Connecting...\"}");
-             last_ws_event_tick = xTaskGetTickCount(); // фиксируем активность
              ws_reconnect_in_progress = false; // сбрасываем флаг реконнекта
         break;
 
 
         case WEBSOCKET_EVENT_DISCONNECTED:
             ESP_LOGW(TAG, "⚠️ WebSocket disconnected!");
+            evt_log(EVT_WS_DISCONNECTED, 0, 0);   
             ws_connected = false;
              gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"disconnected\"}");
@@ -209,6 +210,12 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
         case WEBSOCKET_EVENT_ERROR:
             ESP_LOGE(TAG, "❌ WebSocket error!");
+             /* reason передаём код ошибки из data->error_handle */
+            uint8_t ws_err_code = 0;
+            if (data) {
+                ws_err_code = (uint8_t)(data->error_handle.esp_tls_last_esp_err & 0xFF);
+            }
+            evt_log(EVT_WS_ERROR, ws_err_code, 0);   
             ws_connected = false;
              gpio_set_net_led(false);
             ws_broadcast("{\"cloud_status\":\"error\"}");
@@ -216,10 +223,12 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
 
         case WEBSOCKET_EVENT_DATA:
             last_ws_event_tick = xTaskGetTickCount();
+            evt_mark_ws_rx();   
             if (!data->data_ptr || data->data_len <= 0) return;
 
             // ─────── Разделение по типу ───────
             if (data->op_code == 2)  {
+                evt_mark_heartbeat(); 
                 // Heartbeat / keepalive пакеты
                 ESP_LOGI(TAG, "💓 Heartbeat/Binary received, len=%d", data->data_len);
                 ESP_LOG_BUFFER_HEX(TAG, data->data_ptr, data->data_len);
@@ -246,6 +255,7 @@ static void websocket_event_handler(void *handler_args, esp_event_base_t base, i
                 ESP_LOGI(TAG, "📝 WS Text: %s", ws_rx_buf);
 
                  if (strcmp(ws_rx_buf, "ping") == 0) {
+                    evt_mark_heartbeat();
                     ESP_LOGI(TAG, "Ping received → sending Pong");
 
                     if (client && esp_websocket_client_is_connected(client)) {
@@ -281,13 +291,13 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
         return ESP_OK;
     }   
 
-    strncpy(ws_email, email, sizeof(ws_email) - 1);
-    strncpy(ws_password, password, sizeof(ws_password) - 1);
-    strncpy(ws_node_name, node_name, sizeof(ws_node_name) - 1);
-    strncpy(ws_session_id, session_id, sizeof(ws_session_id)-1);
-    strncpy(ws_session_token, session_token, sizeof(ws_session_token)-1);
+    strlcpy(ws_email, email, sizeof(ws_email));
+    strlcpy(ws_password, password, sizeof(ws_password));
+    strlcpy(ws_node_name, node_name, sizeof(ws_node_name));
+    strlcpy(ws_session_id, session_id, sizeof(ws_session_id));
+    strlcpy(ws_session_token, session_token, sizeof(ws_session_token));
 
-    char uri[512];
+    char uri[384];
    
     snprintf(uri, sizeof(uri), "%s%s", sys.ws_server, session_id);
 
@@ -297,7 +307,7 @@ esp_err_t websocket_client_start(const char *session_id, const char *email, cons
         .reconnect_timeout_ms = 90000,
         .network_timeout_ms = 10000,
         .skip_cert_common_name_check = true,
-        .task_stack = 8192,
+        .task_stack = 7168,
     };
 
     client = esp_websocket_client_init(&websocket_cfg);
@@ -352,14 +362,22 @@ void websocket_client_stop(void)
 }
 
 
+static void sntp_sync_cb(struct timeval *tv)
+{
+    if (s_sntp_logged) return;
+    s_sntp_logged = true;
+    evt_log(EVT_SNTP_SYNCED, 0, 0);
+    ESP_LOGI("SNTP", "Time synced (cb): epoch=%lu", (unsigned long)tv->tv_sec);
+}
+
 void initialize_sntp(void)
 {
     ESP_LOGI("SNTP", "Init SNTP");
     esp_sntp_setoperatingmode(SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
+    esp_sntp_set_time_sync_notification_cb(sntp_sync_cb);   
     esp_sntp_init();
 
-    // Ждём синхронизации, но максимум 30 секунд
     time_t now;
     struct tm timeinfo = { 0 };
     const int max_wait_sec = 30;
@@ -369,6 +387,11 @@ void initialize_sntp(void)
         localtime_r(&now, &timeinfo);
         if (timeinfo.tm_year >= (2020 - 1900)) {
             ESP_LOGI("TIME", "✅ SNTP synced: %s", asctime(&timeinfo));
+
+            if (!s_sntp_logged) {                           
+                s_sntp_logged = true;
+                evt_log(EVT_SNTP_SYNCED, 0, 0);
+            }
             return;
         }
         ESP_LOGI("SNTP", "Waiting for time... (%d/%d)", i + 1, max_wait_sec);
@@ -377,7 +400,6 @@ void initialize_sntp(void)
 
     ESP_LOGW("TIME", "❌ SNTP sync timeout, continuing with default time");
 }
-
 
 int hex_to_bytes(const char *in, uint8_t *out, int max_len)
 {

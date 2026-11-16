@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "nvs_settings.h"
+#include "event_log.h"
 #include "network_state.h"
 #include "pairing_manager.h"
 #include "websocket_client.h" 
@@ -31,9 +32,10 @@ static volatile hold_state_t s_hold_state = HOLD_NONE;
 static void factory_reset_task(void *arg)
 {
     ESP_LOGW(TAG, "Factory reset requested via WEB");
-
+    evt_log(EVT_FACTORY_RESET, 0, 0);              
+    evt_log_flush();                                
     vTaskDelay(pdMS_TO_TICKS(200)); // дать HTTP ответу уйти
-     nvs_factory_reset();
+    nvs_factory_reset();
 
     vTaskDelay(pdMS_TO_TICKS(1000));
     esp_restart();

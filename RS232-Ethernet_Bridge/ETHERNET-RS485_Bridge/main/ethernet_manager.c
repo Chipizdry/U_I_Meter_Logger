@@ -17,6 +17,7 @@
 #include "nvs_settings.h"
 #include "network_state.h"
 #include "gpio_manager.h"
+#include "event_log.h"
 
 #include "esp_eth_mac.h"
 #include "esp_netif_net_stack.h"
@@ -92,7 +93,7 @@ static err_t eth_tx_hook(struct netif *netif, struct pbuf *p)
 {
     if (p && p->tot_len > 0) {
         g_tx_bytes += p->tot_len;
-        ESP_LOGI(TAG, "TX frame: %d", p->tot_len);
+      //  ESP_LOGI(TAG, "TX frame: %d", p->tot_len);
     }
 
     return s_orig_linkoutput(netif, p);
@@ -240,7 +241,7 @@ static void eth_event_handler(
     case ETHERNET_EVENT_CONNECTED:
 
         ESP_LOGI(TAG, "Ethernet Link Up");
-
+        evt_log(EVT_ETH_UP, 0, 0);
         s_connected = true;
 
         update_eth_link_speed();
@@ -248,8 +249,8 @@ static void eth_event_handler(
         break;
 
     case ETHERNET_EVENT_DISCONNECTED:
-
         ESP_LOGI(TAG, "Ethernet Link Down");
+        evt_log(EVT_ETH_DOWN, 0, 0);
         s_connected = false;
         network_set_ethernet_state(NET_STATE_ETHERNET_DOWN);
 
@@ -282,6 +283,7 @@ static void got_ip_event_handler(void *arg, esp_event_base_t event_base, int32_t
     update_eth_link_speed();
     network_set_ethernet_state( NET_STATE_ETHERNET_UP);
     ESP_LOGI(TAG, "Got IP: " IPSTR, IP2STR(&event->ip_info.ip));
+    evt_log(EVT_NET_READY, 2, 0);
 }
 
 

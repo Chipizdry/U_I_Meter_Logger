@@ -17,6 +17,7 @@
 #include "wifi_manager.h"
 #include "pairing_manager.h"
 #include "nvs_settings.h"
+#include "event_log.h"
 
 static const char *TAG = "WDT";
 
@@ -31,6 +32,11 @@ static const char *TAG = "WDT";
 #define WS_STUCK_REBOOT_MS           (3  * 60 * 1000)    // 3 минуты  → reboot (connected, но тишина)
 #define NO_NETWORK_REBOOT_MS         (10 * 60 * 1000)    // 10 минут  → reboot
 #define HEAP_LOW_REBOOT_MS           (3  * 60 * 1000)    // 3 минуты  → reboot
+
+/* Логирование, без ребута */
+#define BACKEND_SILENT_LOG_SEC     (6 * 60)         // 1 час
+#define HEARTBEAT_LOST_LOG_SEC     (10 * 60)         // 10 минут
+#define BACKEND_SILENT_RELOG_SEC   (60 * 60)         // не спамить чаще раза в час
 
 /* ---------------- Пороги по памяти ---------------- */
 #define HEAP_FREE_MIN_THRESHOLD      (15 * 1024)          // 15 KB
@@ -163,6 +169,11 @@ static void log_diagnostics(void)
 
     TickType_t now = xTaskGetTickCount();
     uint32_t ws_silence_s = 0;
+
+    uint32_t be_s = evt_sec_since_backend_request();
+    uint32_t hb_s = evt_sec_since_heartbeat();
+
+
     if (ws_connected && last_ws_event_tick != 0) {
         ws_silence_s = (uint32_t)((now - last_ws_event_tick) * portTICK_PERIOD_MS / 1000);
     }
@@ -175,14 +186,15 @@ static void log_diagnostics(void)
     }
 
     ESP_LOGI(TAG,
-             "DIAG heap=%u/%u/%u eth=%s wifi=%s ws=%s silence=%us defnetif=%s uptime=%us",
-             (unsigned)free_, (unsigned)min_, (unsigned)largest,
-             net_state_to_str(eth), net_state_to_str(wifi),
-             ws_connected ? "up" : "down",
-             (unsigned)ws_silence_s,
-             def_name,
-             (unsigned)(now_ms() / 1000));
-
+    "DIAG heap=%u/%u/%u eth=%s wifi=%s ws=%s silence=%us backend=%us hb=%us defnetif=%s uptime=%us",
+    (unsigned)free_, (unsigned)min_, (unsigned)largest,
+    net_state_to_str(eth), net_state_to_str(wifi),
+    ws_connected ? "up" : "down",
+    (unsigned)ws_silence_s,
+    (unsigned)(be_s == UINT32_MAX ? 0 : be_s),
+    (unsigned)(hb_s == UINT32_MAX ? 0 : hb_s),
+    def_name,
+    (unsigned)(now_ms() / 1000));
     // Вызываем статистику задач
     log_task_stats();
 }
@@ -251,15 +263,11 @@ void watchdog_dump_last_crash(void)
     ESP_LOGW(TAG, "ESP reset reason : %d (%s)", (int)r, esp_reset_reason_str(r));
     ESP_LOGW(TAG, "WDT reason       : %s", watchdog_reason_str((wdt_reason_t)info.reason));
     ESP_LOGW(TAG, "Uptime before    : %lu s", (unsigned long)info.uptime_sec);
-    ESP_LOGW(TAG, "Heap free/min/largest : %lu / %lu / %lu",
-             (unsigned long)info.heap_free,
-             (unsigned long)info.heap_min,
-             (unsigned long)info.heap_largest);
+    ESP_LOGW(TAG, "Heap free/min/largest : %lu / %lu / %lu", (unsigned long)info.heap_free, (unsigned long)info.heap_min,(unsigned long)info.heap_largest);
     ESP_LOGW(TAG, "ETH connected    : %u", info.eth_connected);
     ESP_LOGW(TAG, "Wi-Fi connected  : %u", info.wifi_connected);
     ESP_LOGW(TAG, "WS connected     : %u", info.ws_connected);
-    ESP_LOGW(TAG, "Build            : %lu (%s)",
-             (unsigned long)info.build_number, info.build_date);
+    ESP_LOGW(TAG, "Build            : %lu (%s)",(unsigned long)info.build_number, info.build_date);
     ESP_LOGW(TAG, "================================================");
 
     /* Удаляем запись — чтобы не путать со следующим сбоем. */
@@ -278,7 +286,8 @@ static void trigger_reboot(wdt_reason_t reason)
 {
     ESP_LOGE(TAG, ">>> WATCHDOG REBOOT: %s <<<", watchdog_reason_str(reason));
     save_crash_info(reason);
-
+    evt_log(EVT_WDT_REBOOT, (uint8_t)reason, (uint16_t)(now_ms() / 60000));  
+    evt_log_flush(); 
     /* Дать UART-логу выйти в порт и сообщению — уйти в WS (если ещё жив). */
     if (ws_connected) {
         char msg[128];
@@ -373,7 +382,34 @@ static void watchdog_task(void *pvParameters)
                 }
             }
         }
+//////////////////////////////////////////////////////////////////////////////////
 
+
+/* -------- Тишина бэка/heartbeat (только в журнал, без ребута) -------- */
+if (ws_connected && cloud_is_authenticated()) {
+    static uint32_t s_last_be_log = 0;
+    static uint32_t s_last_hb_log = 0;
+
+    uint32_t be_s = evt_sec_since_backend_request();
+    if (be_s != UINT32_MAX && be_s > BACKEND_SILENT_LOG_SEC &&
+        (s_last_be_log == 0 || be_s - s_last_be_log >= BACKEND_SILENT_RELOG_SEC)) {
+        evt_log(EVT_BACKEND_SILENT, 0, (uint16_t)(be_s / 60));
+        s_last_be_log = be_s;
+        ESP_LOGW(TAG, "Backend silent %us", (unsigned)be_s);
+    }
+
+    uint32_t hb_s = evt_sec_since_heartbeat();
+    if (hb_s != UINT32_MAX && hb_s > HEARTBEAT_LOST_LOG_SEC &&
+        (s_last_hb_log == 0 || hb_s - s_last_hb_log >= BACKEND_SILENT_RELOG_SEC)) {
+        evt_log(EVT_HEARTBEAT_LOST, 0, (uint16_t)(hb_s / 60));
+        s_last_hb_log = hb_s;
+        ESP_LOGW(TAG, "Heartbeat lost %us", (unsigned)hb_s);
+    }
+}
+
+
+
+///////////////////////////////////////////////////////////////////////////////////
         /* -------- Сеть -------- */
         if (!network_is_ready()) {
             if (s_no_net_since == 0) {
@@ -425,6 +461,15 @@ static void watchdog_task(void *pvParameters)
 esp_err_t watchdog_start(void)
 {
     if (s_started) return ESP_OK;
+
+    nvs_stats_t st;                                          // <-- NEW
+    if (nvs_get_stats(NULL, &st) == ESP_OK) {                // <-- NEW
+        ESP_LOGI(TAG, "NVS: used=%u free=%u total=%u ns=%u", // <-- NEW
+                 (unsigned)st.used_entries,                  // <-- NEW
+                 (unsigned)st.free_entries,                  // <-- NEW
+                 (unsigned)st.total_entries,                 // <-- NEW
+                 (unsigned)st.namespace_count);              // <-- NEW
+    }                                                        // <-- NEW
 
     ESP_LOGW(TAG, "ESP reset reason at boot: %d (%s)",
              (int)esp_reset_reason(),

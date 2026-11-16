@@ -8,7 +8,9 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
+
 #include "websocket_client.h"
+#include "event_log.h"
 
 #define OTA_PULL_BUF_SIZE 1024
 #define FLASH_SECTOR_SIZE 4096
@@ -494,7 +496,8 @@ esp_err_t ota_pull_start(const char *url)
 
     websocket_send_text("{\"ota_phase\":\"Завершение обновления\",\"progress\":100}");
     ESP_LOGW(TAG, "OTA SUCCESS — rebooting");
-
+    evt_log(EVT_OTA_DONE, 0, 0);                                   // <-- NEW
+    evt_log_flush();   
     vTaskDelay(pdMS_TO_TICKS(1000));
     websocket_send_text("{\"ota_phase\":\"Обновление завершено, перезагрузка\"}");
     vTaskDelay(pdMS_TO_TICKS(1000));
@@ -506,11 +509,15 @@ esp_err_t ota_pull_start(const char *url)
 void ota_task(void *param)
 {
     char *url = (char*)param;
+    evt_log(EVT_OTA_START, 0, 0);                             
+    evt_log_flush();                                            
 
     esp_err_t err = ota_pull_start(url);
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "OTA pull failed: %s", esp_err_to_name(err));
+        evt_log(EVT_OTA_FAIL, (uint8_t)(err & 0xFF), 0);      
+        evt_log_flush();                                       
         ota_pull_cleanup();
         websocket_enable_reconnect();
     }

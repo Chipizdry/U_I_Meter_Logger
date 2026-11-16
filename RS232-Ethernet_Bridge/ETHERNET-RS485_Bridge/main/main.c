@@ -21,6 +21,7 @@
 #include "littlefs_manager.h"
 #include "rs485_master.h"
 #include "web_server.h"
+#include "event_log.h"
 #include "websocket_client.h"
 #include "nvs_settings.h"
 #include "wifi_manager.h"
@@ -70,6 +71,7 @@ void app_main(void)
     vTaskDelay(pdMS_TO_TICKS(500));
 
     ESP_ERROR_CHECK(nvs_settings_init());
+    ESP_ERROR_CHECK(evt_log_init());
     ESP_ERROR_CHECK(esp_netif_init());
     ESP_ERROR_CHECK(esp_event_loop_create_default());
    

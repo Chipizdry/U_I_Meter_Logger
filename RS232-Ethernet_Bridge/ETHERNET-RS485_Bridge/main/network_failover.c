@@ -12,6 +12,7 @@
 #include "ethernet_manager.h"
 #include "wifi_manager.h"
 #include "network_state.h"
+#include "event_log.h"
 
 static const char *TAG = "failover";
 
@@ -88,9 +89,11 @@ static void failover_task(void *pvParameters)
             if (eth) {
                 ESP_LOGW(TAG, "Default netif отсутствует. Назначаем Ethernet.");
                 esp_netif_set_default_netif(eth);
+                evt_log(EVT_DEF_NETIF_LOST, 1, 0); 
             } else if (sta) {
                 ESP_LOGW(TAG, "Default netif отсутствует. Назначаем Wi-Fi STA.");
                 esp_netif_set_default_netif(sta);
+                evt_log(EVT_DEF_NETIF_LOST, 2, 0);
             }
             continue;
         }
@@ -111,10 +114,12 @@ static void failover_task(void *pvParameters)
 
         if (current == eth && sta) {
             ESP_LOGW(TAG, "Переключение: Ethernet -> Wi-Fi STA");
+            evt_log(EVT_FAILOVER_SWITCH, 1, 0); 
             esp_netif_set_default_netif(sta);
             s_failure_count = 0;
         } else if (current == sta && eth) {
             ESP_LOGW(TAG, "Переключение: Wi-Fi STA -> Ethernet");
+            evt_log(EVT_FAILOVER_SWITCH, 2, 0);
             esp_netif_set_default_netif(eth);
             s_failure_count = 0;
         } else {

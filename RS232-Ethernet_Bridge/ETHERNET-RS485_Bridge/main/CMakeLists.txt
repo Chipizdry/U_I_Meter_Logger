@@ -19,6 +19,7 @@ idf_component_register(
         "wifi_manager.c"
         "gpio_manager.c"
         "ota_update.c"
+        "event_log.c"
         "ws_server.c"
         "web_auth.c"
         "ota_pull.c"

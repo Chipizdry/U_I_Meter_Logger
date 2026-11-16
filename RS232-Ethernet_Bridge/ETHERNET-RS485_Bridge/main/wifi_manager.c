@@ -7,6 +7,7 @@
 #include "web_server.h"
 #include "dns_server.h"
 #include "network_state.h"
+#include "event_log.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "nvs_flash.h"
@@ -355,12 +356,14 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
                 
             case WIFI_EVENT_STA_CONNECTED:
                 ESP_LOGI(TAG, "STA connected");
+                evt_log(EVT_WIFI_UP, 0, 0);      
                 break;
                 
             case WIFI_EVENT_STA_DISCONNECTED:
                 {
                     wifi_event_sta_disconnected_t *disconn = event_data;
                     ESP_LOGW(TAG, "STA disconnected, reason=%d (%s)", disconn->reason,wifi_reason_to_str(disconn->reason));
+                    evt_log(EVT_WIFI_DOWN, disconn->reason, 0);  
                     network_set_wifi_state(NET_STATE_WIFI_DOWN);
 
                     if (!wifi_scan_in_progress && !wifi_paused)
@@ -454,6 +457,7 @@ static void wifi_event_handler(void* arg, esp_event_base_t event_base, int32_t e
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t *event = (ip_event_got_ip_t*)event_data;
         network_set_wifi_state(NET_STATE_WIFI_UP);
+        evt_log(EVT_NET_READY, 1, 0);
         ESP_LOGI(TAG, "STA got IP: " IPSTR, IP2STR(&event->ip_info.ip));
           wifi_ap_record_t ap_info;
         if (esp_wifi_sta_get_ap_info(&ap_info) == ESP_OK) {
