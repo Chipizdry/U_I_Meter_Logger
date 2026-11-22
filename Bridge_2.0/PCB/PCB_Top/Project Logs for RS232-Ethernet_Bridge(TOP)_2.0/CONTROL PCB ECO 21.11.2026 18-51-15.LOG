@@ -1,0 +1,16 @@
+Change Component Footprint: Designator=FB1 Old Footprint=FP-BLM21-0_2-t0_85-e0_5-IPC_A New Footprint=FP-BLM21-0_2-t0_85-e0_5-IPC_A
+Change Component Footprint: Designator=U4 Old Footprint=FP-PW0014A-IPC_B New Footprint=FP-PW0014A-IPC_B
+Change Component Footprint: Designator=U8 Old Footprint=FP-RW-20-IPC_B New Footprint=FP-RW-20-IPC_B
+Change Component Footprint: Designator=U1 Old Footprint=FP-TSOT26-MFG New Footprint=FP-TSOT26-MFG
+Add component: Footprint Not Found CAP_A765EB_KEM-L
+Add component: Footprint Not Found CAP_A765EB_KEM-L
+Add Pin To Net: Unknown Pin: Pin C3-1
+Add Pin To Net: Unknown Pin: Pin C3-2
+Add Pin To Net: Unknown Pin: Pin C6-1
+Add Pin To Net: Unknown Pin: Pin C6-2
+Added Pin To Net: NetName=NetB1_4 Pin=C62-2
+Add Differential Pair: Number of nets in differential pair NetC49_1 is 1 instead of 2
+Add Class Member: Failed to add class member : Component C3 100uF 16V
+Add Class Member: Failed to add class member : Component C3 100uF 16V
+Add Class Member: Failed to add class member : Component C6 100uF 16V
+Add Class Member: Failed to add class member : Component C6 100uF 16V
