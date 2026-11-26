@@ -1,0 +1,7 @@
+Removed Pin From Net: NetName=V_BUS Pin=D3-1
+Removed Pin From Net: NetName=VCC_2 Pin=D3-2
+Removed Member From Class: ClassName=CONTROL Member=D3
+Added Component: Designator=D2(SODFL3616X98N)
+Added Pin To Net: NetName=VCC_2 Pin=D2-1
+Added Pin To Net: NetName=V_BUS Pin=D2-2
+Added Member To Class: ClassName=CONTROL Member=Component D2 MBR140SFT1G
