@@ -1,0 +1,567 @@
+
+
+#include "ws_device_settings.h"
+
+#include "esp_log.h"
+#include "cJSON.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include "driver/uart.h"
+
+#include "rs485_master.h"
+#include "ws_server.h"
+#include "gpio_manager.h"
+#include "ota_pull.h"
+#include "nvs_settings.h"
+#include "network_state.h"
+#include "websocket_client.h"
+#include "modbus_tcp_client.h"
+#include "ws_settings_manager.h"
+
+static const char *TAG = "ws_device_settings";
+
+extern network_settings_t net_cfg;
+extern wifi_settings_t wifi_cfg;
+extern uart_settings_t uart_cfg;
+extern user_settings_t user_cfg;
+extern system_settings_t sys;
+extern fs_session_t fs_session;
+extern void fill_netif_ip_info(const char *ifkey,char *ip,char *mask,char *gw,char *dns,size_t len);
+
+
+
+
+
+static void send_account_settings(void);
+static void send_user_settings(void);
+static void send_network_settings(void);
+static void send_wifi_settings(void);
+static void send_uart_settings(void);
+static void send_system_settings(void);
+static void send_ack(const char *category);
+static void send_action_ack(const char *action);
+static void send_error(const char *msg);
+
+static void ws_send_json(cJSON *root)
+{
+    char *json = cJSON_PrintUnformatted(root);
+
+    if (json)
+    {
+        websocket_send_text(json);
+        free(json);
+    }
+    cJSON_Delete(root);
+}
+
+
+static int uart_data_bits_to_int(uart_word_length_t bits)
+{
+    switch (bits)
+    {
+        case UART_DATA_5_BITS: return 5;
+        case UART_DATA_6_BITS: return 6;
+        case UART_DATA_7_BITS: return 7;
+        case UART_DATA_8_BITS: return 8;
+        default: return 8;
+    }
+}
+
+static int uart_stop_bits_to_int(uart_stop_bits_t bits)
+{
+    switch (bits)
+    {
+        case UART_STOP_BITS_1:   return 1;
+        case UART_STOP_BITS_1_5: return 15;
+        case UART_STOP_BITS_2:   return 2;
+        default: return 1;
+    }
+}
+
+static void send_user_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category","user");
+    cJSON_AddStringToObject(data, "login", user_cfg.login);
+    cJSON_AddItemToObject(root,"data",data);
+    ws_send_json(root);
+}
+
+
+static void send_uart_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "uart");
+    cJSON_AddNumberToObject(data,"baud",uart_cfg.baud_rate);
+    cJSON_AddNumberToObject(data,"data_bits", uart_data_bits_to_int(uart_cfg.data_bits));
+    cJSON_AddNumberToObject(data, "stop_bits",uart_stop_bits_to_int(uart_cfg.stop_bits));
+    cJSON_AddNumberToObject(data,"parity",uart_cfg.parity);
+    cJSON_AddBoolToObject(data,"rs485_mode",uart_cfg.rs485_mode);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+static void send_account_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "account");
+    cJSON_AddStringToObject(data, "account_login",user_cfg.account_login);
+    cJSON_AddStringToObject( data, "node_name", user_cfg.node_name);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+
+static void send_network_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "network");
+    cJSON_AddBoolToObject(data, "dhcp_enabled", net_cfg.dhcp_enabled);
+    cJSON_AddStringToObject(data, "ip", net_cfg.ip);
+    cJSON_AddStringToObject(data, "mask", net_cfg.mask);
+    cJSON_AddStringToObject(data, "gateway", net_cfg.gateway);
+    cJSON_AddStringToObject(data, "dns", net_cfg.dns);
+    cJSON_AddNumberToObject(data, "port", net_cfg.port);
+    cJSON_AddBoolToObject(data, "wifi_dhcp_enabled", net_cfg.wifi_dhcp_enabled);
+    cJSON_AddStringToObject(data, "wifi_ip", net_cfg.wifi_ip);
+    cJSON_AddStringToObject(data, "wifi_mask", net_cfg.wifi_mask);
+    cJSON_AddStringToObject(data, "wifi_gateway", net_cfg.wifi_gateway);
+    cJSON_AddStringToObject(data, "wifi_dns", net_cfg.wifi_dns);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+    network_notify_ws();
+}
+
+
+static void send_wifi_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "wifi");
+    cJSON_AddNumberToObject(data, "mode", wifi_cfg.mode);
+    cJSON_AddStringToObject(data, "sta_ssid", wifi_cfg.sta_ssid);
+    cJSON_AddStringToObject(data, "ap_ssid", wifi_cfg.ap_ssid);
+    cJSON_AddNumberToObject(data, "ap_channel", wifi_cfg.ap_channel);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+
+static void send_system_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "system");
+    cJSON_AddNumberToObject(data, "refresh_interval", sys.refresh_interval);
+    cJSON_AddNumberToObject(data, "log_level", sys.log_level);
+    cJSON_AddBoolToObject(data, "debug_mode", sys.debug_mode);
+    cJSON_AddNumberToObject(data, "build_number", sys.build_number);
+    cJSON_AddStringToObject(data, "build_date", sys.build_date);
+    cJSON_AddNumberToObject(data, "model_ID", fs_session.device_model_id);
+    cJSON_AddStringToObject(data, "ws_server", sys.ws_server);
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+static void send_test_settings(void)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON *data = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "settings_response");
+    cJSON_AddStringToObject(root, "category", "test");
+    cJSON_AddNumberToObject(data, "build_number", sys.build_number);
+    cJSON_AddStringToObject(data, "build_date", sys.build_date);
+    cJSON_AddStringToObject( data, "node_name", user_cfg.node_name);
+    cJSON_AddNumberToObject(data, "model_ID", fs_session.device_model_id); 
+    cJSON_AddItemToObject(root, "data", data);
+    ws_send_json(root);
+}
+static void send_ack(const char *category)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "set_settings_ack");
+    cJSON_AddStringToObject(root, "status", "ok");
+    cJSON_AddStringToObject(root, "category", category);
+    ws_send_json(root);
+}
+
+static void send_action_ack(const char *action)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "command_type", "set_settings_ack");
+    cJSON_AddStringToObject(root, "status", "ok");
+    cJSON_AddStringToObject(root, "action", action);
+    ws_send_json(root);
+}
+
+static void send_error(const char *msg)
+{
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "status", "error");
+    cJSON_AddStringToObject(root, "message", msg);
+    ws_send_json(root);
+}
+
+bool handle_settings_command(cJSON *root)
+{
+    if (!root) {
+        return false;
+    }
+
+    /*
+     * Если DHCP включен, берем текущие настройки
+     */
+
+    if (net_cfg.dhcp_enabled)
+    {
+        fill_netif_ip_info(
+            "ETH_DEF",
+            net_cfg.ip,
+            net_cfg.mask,
+            net_cfg.gateway,
+            net_cfg.dns,
+            sizeof(net_cfg.ip)
+        );
+    }
+
+    if (net_cfg.wifi_dhcp_enabled &&
+        (wifi_cfg.mode == WIFI_MODE_STA ||
+         wifi_cfg.mode == WIFI_MODE_APSTA))
+    {
+        fill_netif_ip_info(
+            "WIFI_STA_DEF",
+            net_cfg.wifi_ip,
+            net_cfg.wifi_mask,
+            net_cfg.wifi_gateway,
+            net_cfg.wifi_dns,
+            sizeof(net_cfg.wifi_ip)
+        );
+    }
+
+    cJSON *cmd =
+        cJSON_GetObjectItem(
+            root,
+            "command_type"
+        );
+
+    if (!cJSON_IsString(cmd))
+    {
+        send_error("Missing command_type");
+        return false;
+    }
+
+    const char *command_type =cmd->valuestring;
+    ESP_LOGI(TAG,"⚙️ WS Settings command: %s",command_type);
+
+
+    // ==========================================================
+    // 2) GET SETTINGS
+    // ==========================================================
+    if (strcmp(command_type, "get_settings") == 0)
+    {
+
+       /*
+      const char *category = "all";
+
+            cJSON *cat = cJSON_GetObjectItem(root, "settings_requested");
+
+            if (cJSON_IsString(cat))
+            {
+                category = cat->valuestring;
+            }
+*/
+const char *category = "all";
+
+cJSON *cat = cJSON_GetObjectItem(root, "settings_requested");
+
+if (cJSON_IsString(cat))
+{
+    // Старый формат:
+    // "settings_requested": "system"
+    category = cat->valuestring;
+}
+else if (cJSON_IsArray(cat))
+{
+    // Новый формат:
+    // "settings_requested": ["system"]
+
+    if (cJSON_GetArraySize(cat) == 1)
+    {
+        cJSON *item = cJSON_GetArrayItem(cat, 0);
+
+        if (cJSON_IsString(item))
+        {
+            category = item->valuestring;
+        }
+    }
+}
+
+        ESP_LOGI(TAG, "📥 Requested category: %s", category);
+
+        if (strcmp(category, "user") == 0)
+            {
+                send_user_settings();
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
+                return true;
+            }
+        else if (strcmp(category, "account") == 0)
+            {
+                send_account_settings();
+              //  cJSON_Delete(root);
+              //  gpio_link_led(0);
+                return true;
+            }
+
+        else if (strcmp(category, "network") == 0)
+            {
+                send_network_settings();
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
+                return true;
+            }
+ 
+        else if (strcmp(category, "wifi") == 0)
+            {
+                send_wifi_settings();
+              //  cJSON_Delete(root);
+              //  gpio_link_led(0);
+                return true;
+            }
+                           
+        else if (strcmp(category, "uart") == 0)
+            {
+                send_uart_settings();
+             //   cJSON_Delete(root);
+              //  gpio_link_led(0);
+                return true;
+            }
+
+       else if (strcmp(category, "system") == 0)
+            {
+                send_system_settings();
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
+                return true;
+            }
+       else if (strcmp(category, "test") == 0)
+            {
+                send_test_settings();
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
+                return true;
+            }
+
+        else if (strcmp(category, "all") == 0)
+            {
+                ESP_LOGI(TAG, "📦 Sending ALL settings");
+                send_user_settings();
+                send_account_settings();
+                send_network_settings();
+                send_wifi_settings();
+                send_uart_settings();
+                send_system_settings(); 
+             //   cJSON_Delete(root);
+             //   gpio_link_led(0);
+                return true;
+            }
+
+        else
+            {
+                send_error("Unknown settings category");
+              //  cJSON_Delete(root);
+                return false;
+            }
+       // cJSON_Delete(root);    
+        return true;
+    }
+
+// ==========================================================
+//  SET SETTINGS
+// ==========================================================
+    if (strcmp(command_type, "set_settings") == 0)
+{
+    ESP_LOGI(TAG, "✍️ SET SETTINGS received");
+    const char *category = NULL;
+    cJSON *settings = cJSON_GetObjectItem(root, "settings");
+    if (!cJSON_IsObject(settings))
+    {
+        send_error("Missing settings");
+        return false;
+    }
+
+    if (cJSON_HasObjectItem(settings, "account"))
+        category = "account";
+
+    else if (cJSON_HasObjectItem(settings, "wifi"))
+        category = "wifi";
+
+    else if (cJSON_HasObjectItem(settings, "network"))
+        category = "network";
+
+    else if (cJSON_HasObjectItem(settings, "uart"))
+        category = "uart";
+
+    else if (cJSON_HasObjectItem(settings, "user"))
+        category = "user";
+
+    else if (cJSON_HasObjectItem(settings, "system"))
+        category = "system";
+
+    if (!category)
+    {
+        send_error("Unknown settings category");
+        return false;
+    }
+
+    ESP_LOGI( TAG,"Category to apply: %s", category);
+
+// ==========================================================
+// ACCOUNT SETTINGS
+// ==========================================================
+
+if (strcmp(category, "account") == 0)
+{
+    cJSON *account = cJSON_GetObjectItem(settings, "account");
+
+    if (!account)
+    {
+        ESP_LOGE(TAG, "Missing 'account' settings");
+        send_error("Missing account settings");
+        return false;
+    }
+
+    esp_err_t err = ws_settings_apply_account(account, &user_cfg);
+
+    if (err != ESP_OK)
+    {
+        send_error("Failed to apply account settings");
+        return false;
+    }
+
+    ESP_LOGI(TAG, "Account settings applied and saved");
+    send_ack("account");
+    return true;
+}
+ // ==========================================================
+// UART SETTINGS
+// ==========================================================
+
+if (strcmp(category, "uart") == 0)
+{
+    ESP_LOGI(TAG, "⚙️ Applying UART settings");
+
+    cJSON *uart_item = cJSON_GetObjectItem(settings, "uart");
+
+    if (!uart_item)
+    {
+        send_error("Missing uart field");
+        return false;
+    }
+
+    esp_err_t err = ws_settings_apply_uart(uart_item,&uart_cfg);
+
+    if (err != ESP_OK)
+    {
+        send_error("Failed to apply UART settings");
+        return false;
+    }
+
+    rs485_master_deinit();
+    vTaskDelay(pdMS_TO_TICKS(100));
+    rs485_master_init_from_cfg( &uart_cfg, 2048, 1024);
+    send_ack("uart");
+    return true;
+}
+// ==========================================================
+// USER SETTINGS
+// ==========================================================
+
+if (strcmp(category, "user") == 0)
+{
+
+    ESP_LOGI(TAG, "⚙️ Applying USER settings");
+    cJSON *user_item = cJSON_GetObjectItem(settings, "user");
+
+    if (!user_item)
+    {
+        send_error("Missing user field");
+        return false;
+    }
+
+    esp_err_t err = ws_settings_apply_user(user_item,&user_cfg);
+
+    if (err != ESP_OK)
+    {
+        send_error("Failed to apply USER settings");
+        return false;
+    }
+
+    send_ack("user");
+    return true;
+}
+
+            // ==========================================================
+            // SYSTEM COMMAND PARSE
+            // ==========================================================
+          if (strcmp(category, "system") == 0)
+            {
+                cJSON *system_item = cJSON_GetObjectItem(settings, "system");
+
+                if (!system_item)
+                {
+                    send_error("Missing system field");
+                    return false;
+                }
+
+                const char *value = NULL;
+
+                // system: "reboot"
+                if (cJSON_IsString(system_item))
+                {
+                    value = system_item->valuestring;
+                }
+                // system: { "action":"reboot" }
+                else if (cJSON_IsObject(system_item))
+                {
+                    cJSON *action = cJSON_GetObjectItem(system_item, "action");
+
+                    if (cJSON_IsString(action))
+                    {
+                        value = action->valuestring;
+                    }
+                }
+
+                if (!value)
+                {
+                    send_error("Invalid system command");
+                    return false;
+                }
+
+                ESP_LOGI(TAG, "🛠 System command: %s", value);
+
+                if (strcmp(value, "reboot") == 0)
+                {
+                    ESP_LOGW(TAG, "🔄 Reboot command received");
+                    send_action_ack("reboot");
+                    vTaskDelay(pdMS_TO_TICKS(500));
+                    esp_restart();
+                }
+
+                send_error("Unknown system command");
+                return false;
+            }
+                
+       }
+    return true;
+}
+
+

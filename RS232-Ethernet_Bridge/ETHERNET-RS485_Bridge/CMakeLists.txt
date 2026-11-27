@@ -1,6 +1,8 @@
 
 
 
+
+
 cmake_minimum_required(VERSION 3.16)
 
 # === Автоинкремент номера сборки ===
@@ -43,5 +45,6 @@ add_custom_target(post_build ALL
     COMMENT "Переименование прошивки после сборки"
     VERBATIM
 )
+
 
 

@@ -1,0 +1,389 @@
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>COR-Bridge Control Panel</title>
+    <link rel="stylesheet" href="/style.css">
+   
+</head>
+<body>
+    <div class="container" id="appContainer">
+        <!-- === Форма входа === -->
+        <form id="loginForm"  method="POST" >
+            <h2>Авторизация</h2>
+            <div id="loginStatus" class="login-status hidden message"></div>
+            <label>Имя пользователя:</label>
+            <input name="login" type="text" required placeholder="Введите логин"  autocomplete="username"><br><br>
+
+
+            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
+            <div class="password-container">
+                <input type="password" id="password" name="password" data-translate="password_placeholder"   required autocomplete="current-password">
+                <span id="eyeIcon" class="eye-icon" onclick="togglePassword('password', 'eyeIcon')"></span>
+            </div>
+         <br><br>  
+            <button type="submit">Войти</button>
+        </form>
+
+        <!-- === Основной экран === -->
+        <div id="mainScreen" class="hidden">
+
+            <!-- === Кнопка гамбургера === -->
+            <div id="menuButton">☰</div>
+        
+            <!-- === Боковая панель меню === -->
+            <div id="sideMenu" class="side-menu">
+                <h3>Настройки</h3>
+                <button class="menu-item active" data-tab="account">🔐Учётная запись</button>
+                <button class="menu-item" data-tab="LAN">🌐 Сетевые настройки</button>
+                <button class="menu-item" data-tab="wifi">📡 Wi-Fi</button>
+                <button class="menu-item" data-tab="uart">↔️ Modbus</button>
+                <button class="menu-item" data-tab="user">👤 Пользователь</button>
+                <button class="menu-item" data-tab="system">⚙️ Система</button>
+                <button class="menu-item" data-tab="diagnostics">🛠️ Диагностика</button>
+                <hr>
+                <button id="logoutBtn">🚪 Выйти</button>
+            </div>
+        
+            <!-- === Основная рабочая область === -->
+            <div id="mainContent" class="content">
+        
+                <!-- Wi-Fi -->
+                <div class="tab-content" id="wifi">
+                    <h2>Wi-Fi настройки</h2>
+                    <form id="wifiForm">
+
+                        <label>Mode:
+                            <select name="mode" id="wifiMode">
+                                <option value="0">OFF</option>
+                                <option value="1">STA</option>
+                                <option value="2">AP</option>
+                                <option value="3">APSTA</option>
+                            </select>
+                        </label><br>
+
+
+                        <h3 class="wifi-sta">STA (Client)</h3>
+                            <label class="wifi-sta">STA SSID:
+                                <input type="text" name="sta-ssid">
+                            </label>
+                            <label class="wifi-sta" ... >STA Password:</label>
+                            <button type="button" class="wifi-sta" onclick="wsScanWiFi()">🔍 Сканировать сети</button>
+                            <div id="wifiScanList" class="wifi-sta"></div>
+                            <div class="password-container wifi-sta">
+                                <input type="password" id="sta-password" name="sta-password" autocomplete="sta-password">
+                                <span class="eye-icon" id="eye-sta-password" onclick="togglePassword('sta-password','eye-sta-password')"></span>
+                            </div>
+
+                        <h3 class="wifi-ap">AP (Access Point)</h3>
+                            <label class="wifi-ap">AP SSID:
+                                <input type="text" name="ap-ssid">
+                            </label>
+
+                            <label class="wifi-ap" ... >AP Password:</label>
+                            <div class="password-container wifi-ap">
+                                <input type="password" id="ap-password" name="ap-password" autocomplete="ap-password">
+                                <span class="eye-icon" id="eye-ap-password" onclick="togglePassword('ap-password','eye-ap-password')"></span>
+                            </div>
+
+                            <label class="wifi-ap">AP Channel:
+                                <input type="number" name="ap-channel" min="1" max="13">
+                            </label>
+
+                        <h3 class="hidden">LAN</h3>
+                        <label class="hidden">IP:
+                            <input type="text" name="ip">
+                        </label>
+
+                        <label class="hidden">Mask:
+                            <input type="text" name="mask">
+                        </label>
+
+                        <label class="hidden">Gateway:
+                            <input type="text" name="gateway">
+                        </label>
+
+                        <label class="hidden">DNS:
+                            <input type="text" name="dns">
+                        </label>
+
+                        <label class="hidden"><input type="checkbox" name="dhcp"> DHCP enable</label>
+                        <button type="button" onclick="saveWiFiSettings()">💾 Сохранить</button>
+                    </form>
+                </div>
+
+                
+                <!--UART -->
+                <div class="tab-content" id="uart">
+                    <h2>Настройки Modbus</h2>
+
+                    
+                    <label>Тип интерфейса:</label><br>
+                    <div class="uart-mode-box">
+                        <label class="uart-option">
+                            <input type="radio" name="uart-mode" value="0"> RS232
+                        </label>
+
+                        <label class="uart-option">
+                            <input type="radio" name="uart-mode" value="1"> RS485
+                        </label>
+                    </div>
+                    
+                    <label>Скорость передачи (baud rate):</label>
+                    <input type="number" id="uart-baud" value="9600"><br>
+                
+                    <label>Чётность:</label>
+                    <select id="uart-parity">
+                        <option value="0">None</option>
+                        <option value="2">Even</option>
+                        <option value="1">Odd</option>    
+                    </select><br>
+                
+                    <label>Стоп-биты:</label>
+                    <select id="uart-stop-bits">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="15">1.5</option>
+                    </select><br>
+                
+                    <label>Данные (Data bits):</label>
+                    <select id="uart-data-bits">
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8" selected>8</option>
+                    </select><br><br>
+                
+                    <button type="button" onclick="saveUARTSettings()">💾 Сохранить</button>
+                </div>
+        
+                <!-- Пользователь -->
+                <div class="tab-content" id="user">
+                    <h2>Пользователь</h2>
+
+                     <form id="UserForm">
+                        <label>Имя пользователя:</label>
+                        <input type="text" name="user-login" value="admin" autocomplete="username"><br>
+
+                            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
+                            <div class="password-container">
+                                <input type="password" id="user-password" name="user-password" data-translate="password_placeholder" autocomplete="new-password" >
+                                <span class="eye-icon" id="eye-user-password" onclick="togglePassword('user-password','eye-user-password')"></span>
+                            </div>
+
+                            <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Повторите пароль:</label>
+                            <div class="password-container">
+                                <input type="password" id="user-confirm-password" name="user-confirm-password" data-translate="password_placeholder" autocomplete="new-password" >
+                                <span class="eye-icon" id="eye-user-confirm-password" onclick="togglePassword('user-confirm-password','eye-user-confirm-password')"></span>
+                            </div>
+
+    
+                     <!--   <label>Повторить пароль: <input type="password" name="confirm-user-password"></label><br> -->
+                        <button>💾 Изменить</button>
+                    </form> 
+                </div>
+        
+                <!-- Система -->
+                <div class="tab-content" id="system">
+                    <h2>Системные параметры</h2>
+                        <h3>Обновление </h3>
+
+                        <div class="file-input-box">
+                            <button type="button" id="fileSelectButton" class="file-btn" onclick="document.getElementById('firmwareFile').click()">
+                                Выберите файл
+                            </button>
+
+                            <input type="file" id="firmwareFile" name="firmware" accept=".bin" style="display:none">
+
+                            <span id="fileName" class="file-name">Файл не выбран</span>
+                        </div>
+
+                        <button type="button" id="uploadFirmwareBtn" onclick="uploadFirmware()">Обновить прошивку</button>
+                        <p id="status"></p>
+                    </form>
+                    <button onclick="rebootDevice()">Перезагрузить устройство</button>
+                    <button onclick="FactoryDefaults()">Сбросить настройки</button>
+            
+                      <!-- 🔹 Версия сборки -->
+                     
+                        <div class="card-body">
+                            <span class="build-icon">⚙️</span>
+                            <span id="buildInfoText">Build #— • —</span>
+                        </div>
+                   
+                </div>
+
+
+                <!-- Учётная запись -->
+                <div class="tab-content active" id="account">
+                    <h2>Учётная запись</h2>
+                  <form id="accountForm">
+                    <label>Название узла: <input type="text" name="node-name" ></label><br>
+                    <label>Имя пользователя: <input type="text" name="account-login" required></label><br>
+                
+                    <label for="password" data-translate="password-label"  style=" color:#7f69bd;font-size:14px;" >Пароль:</label>
+                    <div class="password-container">
+                        <input type="password" id="account-password" name="account-password" data-translate="password_placeholder" autocomplete="password" >
+                        <span class="eye-icon" id="eye-account-password" onclick="togglePassword('account-password','eye-account-password')"></span>
+                    </div>
+
+                    <div id="ws-status" style="margin:8px 0; font-size: 10px; font-weight:bold;"></div>
+                    <button type="button" id="testAccountBtn">Тест</button>
+                    <button type="button" id="SaveAccountBtn">💾 Сохранить</button>
+                  </form> 
+                </div>
+
+                <!-- Диагностика -->
+                <div class="tab-content" id="diagnostics">
+                    <h2>Диагностика</h2>
+
+                    <div class="diag-box">
+                        <div class="diag-header">
+                            <span>Тип</span>
+                            <span>Период, мс</span>
+                            <span>Время</span>
+                        </div>
+
+                        <div id="diagList" class="diag-list">
+                            <!-- строки будут добавляться JS -->
+                        </div>
+                    </div>
+                </div>
+                <!-- Сеть -->
+                <div class="tab-content" id="LAN">
+                    <h2>Параметры сети</h2>
+
+                    <!-- 🔘 Выбор типа сети -->
+                    <div class="uart-mode-box">
+                        <label>
+                            <input type="radio" name="netType" value="ethernet" checked>
+                            🌐 Ethernet
+                        </label>
+                        <label>
+                            <input type="radio" name="netType" value="wifi">
+                            📡 Wi-Fi
+                        </label>
+                    </div>
+
+                    <!-- ===== Ethernet ===== -->
+                    <div class="net-block" id="ethernetBlock">
+                    <span id="ethernet-status" class="net-status">UNKNOWN</span>
+                      <form id="lanForm" class="settings-form">
+
+                        <label class="switch-label">
+                            <input type="checkbox" id="dhcp" name="dhcp">
+                            <span class="switch"></span>
+                            Включить DHCP
+                        </label>
+
+                        <label for="ip">IP адрес:</label>
+                        <input type="text" id="ip" name="ip" placeholder="192.168.001.100" required>
+                
+                        <label for="mask">Маска подсети:</label>
+                        <input type="text" id="mask" name="mask" placeholder="255.255.255.000" required>
+                
+                        <label for="gateway">Шлюз:</label>
+                        <input type="text" id="gateway" name="gateway" placeholder="192.168.001.001" required>
+                
+                        <label for="dns">DNS сервер:</label>
+                        <input type="text" id="dns" name="dns" placeholder="008.008.008.008">
+                      </form>
+                    </div>
+
+                    <!-- ===== Wi-Fi ===== -->
+                    <div class="net-block hidden" id="wifiBlock">
+                    <span id="wifi-status" class="net-status">UNKNOWN</span>
+           
+                    <form id="wifiLANForm" class="settings-form">
+                        <label class="switch-label">
+                            <input type="checkbox" id="wifi_dhcp" name="dhcp">
+                            <span class="switch"></span>
+                            Включить DHCP
+                        </label>
+
+                        <label>IP адрес:</label>
+                        <input type="text" id="wifi_ip" name="ip" placeholder="192.168.001.100" required>
+
+                        <label>Маска подсети:</label>
+                        <input type="text" id="wifi_mask" name="mask" placeholder="255.255.255.000" required>
+                       
+
+                        <label>Шлюз:</label>
+                        <input type="text" id="wifi_gateway" name="gateway" placeholder="192.168.001.001" required>
+
+                        <label>DNS сервер:</label>
+                        <input type="text" id="wifi_dns" name="dns" placeholder="008.008.008.008">
+
+                    </form>
+                    </div> 
+                    
+                        <label for="port">Порт:</label>
+                        <input type="number" id="port" name="port" min="1" max="65535" value="80" required>
+                        <button type="submit">💾 Сохранить</button>               
+                </div>       
+            </div>
+        </div>
+
+        <div id="popup-container"></div>
+
+    </div>
+
+<script>
+    const CHUNK_SIZE = 1024;
+    const MAX_RETRIES = 8;
+    const loginForm = document.getElementById('loginForm');
+    const mainScreen = document.getElementById("mainScreen");
+    const wifiForm = document.getElementById("wifiForm");
+    const saveAccountBtn = document.getElementById('SaveAccountBtn');
+    const logoutBtn = document.getElementById("logoutBtn");
+    const accountForm = document.getElementById('accountForm');
+    const dhcpCheckbox = document.getElementById("dhcp");
+    const wifiDhcpCheckbox = document.getElementById("wifi_dhcp");
+    const activeTab = document.querySelector(".menu-item.active")?.dataset.tab || "account";
+    const userForm = document.getElementById("UserForm");
+
+    const lanForm = document.getElementById("lanForm");
+    const wifiLANForm = document.getElementById("wifiLANForm");
+    const saveNetworkBtn = document.querySelector("#LAN button[type='submit']");
+
+    const ethIpFields = ["ip", "mask", "gateway", "dns"];
+    const wifiIpFields = ["wifi_ip", "wifi_mask", "wifi_gateway", "wifi_dns"];
+    const DIAG_MAX_ROWS = 10;
+    const diagList = document.getElementById("diagList");
+    let testAccountActive = false; // флаг тестового режима
+    let diagnosticsActive = false;
+    let buildNumber = null;
+    let buildDate = null;
+    let data = {};
+</script>
+
+<script src="/script.js"></script>
+<script src="/web_app.js"></script>
+<script src="/general_fun.js"></script>
+<script src="/ws.js"></script>
+<script src="/crypto-js.min.js"></script>
+<script>
+// Принудительная очистка кеша для мобильных устройств
+if (/iPhone|iPad|Android/i.test(navigator.userAgent)) {
+    // Добавляем случайный параметр ко всем ссылкам
+    const links = document.querySelectorAll('a');
+    links.forEach(link => {
+        const url = new URL(link.href, window.location.href);
+        url.searchParams.set('_t', Date.now());
+        link.href = url.toString();
+    });
+    
+    // Принудительная перезагрузка через 1 секунду если страница загрузилась из кеша
+    if (performance.navigation.type === 2) { // TYPE_BACK_FORWARD
+        setTimeout(() => {
+            window.location.href = window.location.href + '?_t=' + Date.now();
+        }, 1000);
+    }
+}
+</script>
+</body>
+</html>

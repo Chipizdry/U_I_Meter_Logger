@@ -1,0 +1,328 @@
+
+
+let ws = null;
+let reconnectTimer = null;
+let heartbeatTimer = null;
+let lastPongTime = 0;
+let isLoggingOut = false;
+let reconnectAttempts = 0;  // ДОБАВЛЕНО: счетчик попыток переподключения
+
+const RECONNECT_DELAY    = 4000;  // 4 сек (оставлено для обратной совместимости)
+const HEARTBEAT_INTERVAL = 10000;
+const HEARTBEAT_TIMEOUT  = 20000;
+const BASE_RECONNECT_DELAY = 500;    // 0.5 сек начальная задержка
+const MAX_RECONNECT_DELAY = 5000;    // максимум 5 сек
+const MAX_RECONNECT_ATTEMPTS = 20;
+
+function initWebSocket() {
+    isLoggingOut = false;
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        console.warn(`[${new Date().toISOString()}] WS already exists → skipping init`);
+        return;
+    }
+
+    const token = sessionStorage.getItem("auth_token");
+    if (!token) {
+        console.warn(`[${new Date().toISOString()}] No auth token → cannot init WS`);
+        return;
+    }
+
+    console.log(`[${new Date().toISOString()}] 🚀 Creating WS...`);
+
+    ws = new WebSocket(`ws://${location.host}/ws`);
+
+    ws.onopen = () => {
+        console.log(`[${new Date().toISOString()}] WS connected, sending auth`);
+        reconnectAttempts = 0; // ДОБАВЛЕНО: сброс счетчика при успешном подключении
+        ws.send(JSON.stringify({ type: "auth", token }));
+        lastPongTime = Date.now();
+        startHeartbeat();
+    };
+
+    ws.onmessage = (event) => {
+        console.log(`[${new Date().toISOString()}] WS message received:`, event.data);
+        onWsMessage(event);
+    };
+
+    ws.onclose = (ev) => {
+        console.log(`[${new Date().toISOString()}] WS closed, code=${ev.code}, reason=${ev.reason}, readyState=${ws.readyState}`);
+        stopHeartbeat();
+        ws = null;
+        if (!isLoggingOut && ev.code !== 1000) scheduleReconnect(); // ИСПРАВЛЕНО: не переподключаемся при normal closure
+    };
+
+    ws.onerror = (err) => {
+        console.error(`[${new Date().toISOString()}] WS error, readyState=${ws.readyState}`, err);
+    };
+}
+
+function sendWsCommand(type, payload = {}) {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const msg = { type, payload };
+        console.log(`[${new Date().toISOString()}] WS send:`, msg);
+        ws.send(JSON.stringify(msg));
+    } else {
+        console.warn(`[${new Date().toISOString()}] WS not connected → cannot send`, type, payload);
+    }
+}
+
+
+function startHeartbeat() {
+    stopHeartbeat();
+
+    heartbeatTimer = setInterval(() => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+
+        // Пинг
+        ws.send("ping");
+
+        // Проверяем отсутствие pong
+        if (Date.now() - lastPongTime > HEARTBEAT_TIMEOUT) {
+            console.warn("WS heartbeat timeout → closing socket");
+            ws.close();
+        }
+    }, HEARTBEAT_INTERVAL);
+}
+
+function stopHeartbeat() {
+    if (heartbeatTimer) {
+        clearInterval(heartbeatTimer);
+        heartbeatTimer = null;
+    }
+}
+
+// функция scheduleReconnect с экспоненциальной задержкой
+function scheduleReconnect() {
+    if (reconnectTimer || isLoggingOut) return;
+    
+    // Экспоненциальная задержка, но не больше MAX_RECONNECT_DELAY
+    let delay = BASE_RECONNECT_DELAY * Math.pow(1.5, reconnectAttempts);
+    if (delay > MAX_RECONNECT_DELAY) delay = MAX_RECONNECT_DELAY;
+    
+    reconnectAttempts++;
+    
+    console.log(`[${new Date().toISOString()}] 🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})`);
+    
+    reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        initWebSocket();
+    }, delay);
+}
+
+
+function handleWsMessage(msg) {
+    const cloudEl = document.getElementById("ws-status");
+
+    // === Статусы соединения с облаком ===
+
+      if (msg.cloud_status) {
+        updateCloudStatus(msg.cloud_status);
+      }
+   
+    // === Другие типы сообщений ===
+    if (msg.type === "update") {
+        if (msg.payload?.status) updateStatus(msg.payload.status);
+    }
+
+   if (msg.type === "network" && msg.network) {
+        function updateNetStatus(elementId, label, state) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const allowedStates = ["up", "down", "connecting"];
+        const status = allowedStates.includes(state) ? state : "unknown";
+        el.classList.remove("up", "down", "connecting", "unknown");
+        // ✅ добавляем новый класс
+        el.classList.add("net-status", status);
+
+        // текст
+       // el.textContent = `${label}: ${status.toUpperCase()}`;
+       if (label === "Wi-Fi") {
+            const rssi = msg.network?.wifi_sta?.rssi;
+
+            let rssiText = "";
+            let rssiColor = "";
+
+            if (typeof rssi === "number") {
+                rssiText = ` RSSI ${rssi} dBm`;
+                if (rssi > -60) rssiColor = "green";
+                else if (rssi > -70) rssiColor = "orange";
+                else rssiColor = "red";
+            }
+            el.innerHTML = `${label}: ${status.toUpperCase()} <span style="color:${rssiColor}">${rssiText}</span>`;
+        } else {
+            el.textContent = `${label}: ${status.toUpperCase()}`;
+        }
+    }
+
+    updateNetStatus(
+        "ethernet-status",
+        "Ethernet",
+        msg.network?.ethernet?.state
+    );
+
+    updateNetStatus(
+        "wifi-status",
+        "Wi-Fi",
+        msg.network?.wifi_sta?.state
+    );
+}
+
+
+    // === Wi-Fi scan started ===
+    if (msg.type === "wifi_scan") {
+        if (msg.status === "started") {
+            const scanDiv = document.getElementById("wifiScanList");
+            if (scanDiv) scanDiv.textContent = "🔄 Сканирование Wi-Fi...";
+        }
+    }
+
+    // === Wi-Fi scan results ===
+    if (msg.type === "wifi_scan_result" && Array.isArray(msg.aps)) {
+        const scanDiv = document.getElementById("wifiScanList");
+        if (!scanDiv) return;
+        scanDiv.innerHTML = ""; // очищаем старый список
+
+        if (msg.aps.length === 0) {
+            scanDiv.textContent = "Сети не найдены";
+            return;
+        }
+
+        const ul = document.createElement("ul");
+        msg.aps.forEach(ap => {
+            const li = document.createElement("li");
+            li.textContent = `${ap.ssid} (RSSI: ${ap.rssi} dBm, Channel: ${ap.channel}, Auth: ${ap.authmode})`;
+
+            // Клик по сети заполняет поле STA SSID
+            li.onclick = () => {
+                const ssidInput = document.querySelector("input[name='sta-ssid']");
+                if (ssidInput) ssidInput.value = ap.ssid;
+            };
+
+            ul.appendChild(li);
+        });
+
+        scanDiv.appendChild(ul);
+    }
+
+    if (msg.type === 'reload') {
+            console.log('Received reload command, refreshing page...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        }
+    // === 🔍 Диагностика ===
+    if (msg.diag) {
+        addDiagRow(msg.diag);   
+        return;                // дальше не идём
+    }
+}
+
+
+
+ function wsScanWiFi() {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+        console.warn("WS not connected");
+        return;
+    }
+
+    ws.send(JSON.stringify({ action: "wifi_scan"}));
+    console.log("WS → {action: wifi_scan}");
+}
+
+
+
+
+
+function updateStatus(text) {
+    const el = document.getElementById("ws-status");
+    if (el) el.innerText = text;
+}
+
+
+function diagnosticsOn() {
+    if (diagnosticsActive || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    diagnosticsActive = true;
+    ws.send(JSON.stringify({ action: "diagnostics_on" }));
+    console.log("🔍 Diagnostics ON");
+}
+
+function diagnosticsOff() {
+    if (!diagnosticsActive || !ws || ws.readyState !== WebSocket.OPEN) return;
+
+    diagnosticsActive = false;
+    ws.send(JSON.stringify({ action: "diagnostics_off" }));
+    console.log("🔍 Diagnostics OFF");
+}
+
+
+function shutdownWebSocket(reason = "manual") {
+    console.log("🔌 WS shutdown:", reason);
+    isLoggingOut = true;
+    reconnectAttempts = 0; // ДОБАВЛЕНО: сброс счетчика
+    stopHeartbeat();
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    if (ws) {
+        ws.onclose = null;
+        ws.onerror = null;
+        if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            ws.close(1000, reason);
+        }
+        ws = null;
+    }
+}
+
+
+function onWsMessage(event) {
+    const data = event.data;
+
+    // heartbeat
+    if (data === "ping" || data === "pong") {
+        console.log("WS heartbeat:", data);
+        if (data === "ping" && ws && ws.readyState === WebSocket.OPEN) ws.send("pong");
+        if (data === "pong") lastPongTime = Date.now();
+        return;
+    }
+
+    try {
+        const msg = JSON.parse(data);
+        handleWsMessage(msg);
+        console.log("WS msg:", msg);
+    } catch (err) {
+        console.warn("Invalid WS message:", data);
+    }
+}
+
+
+
+function forceReconnect() {
+    console.log(`[${new Date().toISOString()}] 🔌 Force reconnecting...`);
+    isLoggingOut = false;
+    reconnectAttempts = 0;
+    
+    if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+    }
+    
+    if (ws) {
+        try {
+            ws.onclose = null;
+            ws.onerror = null;
+            ws.close();
+        } catch(e) {}
+        ws = null;
+    }
+    
+    initWebSocket();
+}
+
+// Слушаем восстановление сети
+window.addEventListener('online', () => {
+    console.log(`[${new Date().toISOString()}] 🌐 Network online, forcing reconnect`);
+    forceReconnect();
+});
+
